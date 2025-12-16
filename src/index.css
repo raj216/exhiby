@@ -1,61 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Gallery Dark Theme - Premium Art Fair Aesthetic */
-    --background: 240 10% 6%;
-    --foreground: 45 20% 95%;
+    /* THE MIDNIGHT ATELIER - Premium Dark Theme */
+    
+    /* The Base (The Room) */
+    --background: 240 7% 6%; /* Carbon Black #0F0F11 */
+    --foreground: 45 10% 95%;
 
-    --card: 240 8% 10%;
-    --card-foreground: 45 20% 95%;
+    --card: 240 6% 12%; /* Obsidian Glass #1C1C1F */
+    --card-foreground: 45 10% 95%;
 
-    --popover: 240 8% 12%;
-    --popover-foreground: 45 20% 95%;
+    --popover: 240 6% 14%;
+    --popover-foreground: 45 10% 95%;
 
-    /* Gold accent - premium feel */
-    --primary: 42 87% 55%;
-    --primary-foreground: 240 10% 6%;
+    /* The Energy (The Action) */
+    --primary: 7 100% 67%; /* Electric Clay #FF6B58 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 6% 16%;
-    --secondary-foreground: 45 15% 85%;
+    --secondary: 240 5% 18%;
+    --secondary-foreground: 45 10% 90%;
 
-    --muted: 240 6% 20%;
-    --muted-foreground: 45 10% 55%;
+    --muted: 240 5% 22%;
+    --muted-foreground: 45 5% 55%;
 
-    --accent: 42 70% 45%;
-    --accent-foreground: 45 20% 95%;
+    --accent: 43 72% 52%; /* Muted Gold #D4AF37 */
+    --accent-foreground: 240 7% 6%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 45 20% 95%;
+    --destructive: 345 100% 50%; /* Hyper-Crimson #FF0040 */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 20%;
-    --input: 240 6% 18%;
-    --ring: 42 87% 55%;
+    --border: 240 5% 20%;
+    --input: 240 5% 16%;
+    --ring: 7 100% 67%;
 
     --radius: 1rem;
 
-    /* Custom colors */
-    --gold: 42 87% 55%;
-    --gold-dim: 42 60% 35%;
-    --surface: 240 8% 12%;
-    --surface-elevated: 240 8% 16%;
-    --live-red: 0 84% 60%;
-    --success: 142 76% 36%;
+    /* Custom Brand Colors */
+    --electric-clay: 7 100% 67%; /* #FF6B58 */
+    --hyper-crimson: 345 100% 50%; /* #FF0040 */
+    --muted-gold: 43 72% 52%; /* #D4AF37 */
+    --carbon-black: 240 7% 6%; /* #0F0F11 */
+    --obsidian-glass: 240 6% 12%; /* #1C1C1F */
+    
+    /* Surface variations */
+    --surface: 240 6% 12%;
+    --surface-elevated: 240 5% 16%;
+    --surface-overlay: 240 6% 10%;
+    
+    /* Live indicator */
+    --live: 345 100% 50%;
+    
+    /* Success */
+    --success: 142 70% 45%;
 
     /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(42, 87%, 55%), hsl(38, 90%, 45%));
-    --gradient-dark: linear-gradient(180deg, hsl(240, 10%, 8%), hsl(240, 10%, 4%));
-    --gradient-card: linear-gradient(180deg, hsl(240, 8%, 14%), hsl(240, 8%, 10%));
-    --gradient-live: linear-gradient(90deg, hsl(0, 84%, 50%), hsl(15, 90%, 55%));
-  }
-
-  .dark {
-    --background: 240 10% 6%;
-    --foreground: 45 20% 95%;
+    --gradient-electric: linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%));
+    --gradient-gold: linear-gradient(135deg, hsl(43 72% 52%), hsl(38 80% 45%));
+    --gradient-dark: linear-gradient(180deg, hsl(240 6% 14%), hsl(240 7% 6%));
+    --gradient-card: linear-gradient(180deg, hsl(240 6% 14%), hsl(240 6% 10%));
+    --gradient-spotlight: radial-gradient(ellipse at center, hsl(7 100% 67% / 0.15), transparent 70%);
   }
 }
 
@@ -65,12 +71,12 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'DM Sans', sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Satoshi', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Clash Display', sans-serif;
   }
 }
 
@@ -81,11 +87,12 @@
   }
 
   .card-stack-item {
-    @apply absolute inset-0 rounded-2xl bg-card shadow-2xl;
+    @apply absolute inset-0 rounded-2xl shadow-2xl;
+    background: var(--gradient-card);
     transform-origin: top center;
   }
 
-  /* Slide to Action Track */
+  /* Slide to Action Track - Hot Metal Gradient */
   .slide-track {
     @apply relative h-16 rounded-full overflow-hidden;
     background: linear-gradient(90deg, hsl(var(--surface-elevated)), hsl(var(--surface)));
@@ -93,18 +100,18 @@
 
   .slide-thumb {
     @apply absolute left-1 top-1 bottom-1 w-14 rounded-full flex items-center justify-center;
-    background: var(--gradient-gold);
-    box-shadow: 0 4px 20px hsl(var(--gold) / 0.4);
+    background: var(--gradient-electric);
+    box-shadow: 0 4px 25px hsl(var(--electric-clay) / 0.5);
   }
 
   /* Premium Poster Card */
   .poster-card {
     @apply relative overflow-hidden rounded-2xl;
     aspect-ratio: 2/3;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   }
 
-  /* Live Pulse Animation */
+  /* Live Pulse Animation - Hyper Crimson */
   .live-pulse {
     @apply relative;
   }
@@ -112,7 +119,7 @@
   .live-pulse::before {
     content: '';
     @apply absolute inset-0 rounded-full;
-    background: hsl(var(--live-red));
+    background: hsl(var(--hyper-crimson));
     animation: pulse-ring 1.5s ease-out infinite;
   }
 
@@ -134,8 +141,8 @@
   }
 
   .category-btn.selected {
-    @apply border-primary;
-    box-shadow: 0 0 30px hsl(var(--gold) / 0.2);
+    border-color: hsl(var(--electric-clay));
+    box-shadow: 0 0 40px hsl(var(--electric-clay) / 0.25);
   }
 
   /* Horizontal Scroll */
@@ -149,24 +156,157 @@
     display: none;
   }
 
-  /* Glass effect */
+  /* Glassmorphism - Frosted Black Glass */
   .glass {
-    @apply backdrop-blur-xl;
-    background: hsl(var(--background) / 0.8);
+    @apply backdrop-blur-2xl;
+    background: hsl(var(--carbon-black) / 0.85);
+  }
+
+  .glass-card {
+    @apply backdrop-blur-xl rounded-3xl;
+    background: hsl(var(--obsidian-glass) / 0.9);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  /* Premium Frosted Purchase Card */
+  .glass-purchase {
+    @apply backdrop-blur-3xl rounded-t-3xl;
+    background: hsl(var(--carbon-black) / 0.92);
+    border-top: 1px solid hsl(var(--border) / 0.3);
+    box-shadow: 0 -25px 50px -12px rgba(0, 0, 0, 0.5);
   }
 
   /* Premium Input */
   .premium-input {
-    @apply w-full bg-surface-elevated border-0 rounded-xl px-4 py-4 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 transition-all;
+    @apply w-full border-0 rounded-xl px-4 py-4 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/50 transition-all;
+    background: hsl(var(--surface-elevated));
+  }
+
+  /* Gold Badge Pill */
+  .badge-gold {
+    @apply px-3 py-1 rounded-full text-xs font-semibold;
+    background: transparent;
+    border: 1px solid hsl(var(--muted-gold));
+    color: hsl(var(--muted-gold));
+  }
+
+  /* Price Tag */
+  .price-tag {
+    @apply px-3 py-1 rounded-full text-sm font-semibold;
+    color: hsl(var(--muted-gold));
+    background: hsl(var(--muted-gold) / 0.15);
+  }
+
+  /* Spotlight Background Effect */
+  .spotlight {
+    position: relative;
+  }
+
+  .spotlight::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200%;
+    height: 200%;
+    background: var(--gradient-spotlight);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Electric Clay CTA Button */
+  .btn-electric {
+    @apply px-6 py-3 rounded-2xl font-semibold transition-all;
+    background: var(--gradient-electric);
+    color: white;
+    box-shadow: 0 4px 20px hsl(var(--electric-clay) / 0.4);
+  }
+
+  .btn-electric:hover {
+    box-shadow: 0 6px 30px hsl(var(--electric-clay) / 0.6);
+    transform: translateY(-1px);
+  }
+
+  .btn-electric:active {
+    transform: translateY(0);
+  }
+
+  /* Patron Badges */
+  .badge-bronze {
+    @apply px-3 py-1 rounded-full text-xs font-semibold;
+    background: linear-gradient(135deg, hsl(220 10% 40%), hsl(220 10% 30%));
+    color: hsl(220 10% 85%);
+  }
+
+  .badge-gold-patron {
+    @apply px-3 py-1 rounded-full text-xs font-semibold;
+    background: linear-gradient(135deg, hsl(43 72% 52%), hsl(38 80% 40%));
+    color: hsl(43 20% 10%);
+  }
+
+  .badge-founding {
+    @apply px-3 py-1 rounded-full text-xs font-semibold;
+    background: linear-gradient(135deg, 
+      hsl(0 80% 60%), 
+      hsl(60 80% 60%), 
+      hsl(120 80% 60%), 
+      hsl(180 80% 60%), 
+      hsl(240 80% 60%), 
+      hsl(300 80% 60%));
+    background-size: 200% 200%;
+    animation: holographic 3s ease infinite;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  @keyframes holographic {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Live Ring Glow */
+  .live-ring {
+    box-shadow: 0 0 0 3px hsl(var(--hyper-crimson) / 0.5),
+                0 0 20px hsl(var(--hyper-crimson) / 0.4);
+    animation: live-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes live-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 3px hsl(var(--hyper-crimson) / 0.5),
+                  0 0 20px hsl(var(--hyper-crimson) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 4px hsl(var(--hyper-crimson) / 0.7),
+                  0 0 30px hsl(var(--hyper-crimson) / 0.6);
+    }
   }
 }
 
 @layer utilities {
+  /* Text Gradients */
+  .text-gradient-electric {
+    background: var(--gradient-electric);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   .text-gradient-gold {
     background: var(--gradient-gold);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Background utilities */
+  .bg-carbon {
+    background-color: hsl(var(--carbon-black));
+  }
+
+  .bg-obsidian {
+    background-color: hsl(var(--obsidian-glass));
   }
 
   .bg-surface {
@@ -177,11 +317,37 @@
     background-color: hsl(var(--surface-elevated));
   }
 
+  /* Shadow utilities */
+  .shadow-electric {
+    box-shadow: 0 4px 30px hsl(var(--electric-clay) / 0.3);
+  }
+
   .shadow-gold {
-    box-shadow: 0 4px 30px hsl(var(--gold) / 0.3);
+    box-shadow: 0 4px 30px hsl(var(--muted-gold) / 0.3);
   }
 
   .shadow-card {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  }
+
+  .shadow-deep {
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Color utilities */
+  .text-gold {
+    color: hsl(var(--muted-gold));
+  }
+
+  .text-electric {
+    color: hsl(var(--electric-clay));
+  }
+
+  .border-gold {
+    border-color: hsl(var(--muted-gold));
+  }
+
+  .border-electric {
+    border-color: hsl(var(--electric-clay));
   }
 }

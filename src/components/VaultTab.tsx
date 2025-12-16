@@ -18,7 +18,7 @@ export function VaultTab({ artworks }: VaultTabProps) {
   if (artworks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-full bg-obsidian flex items-center justify-center mb-4">
           <ZoomIn className="w-8 h-8 text-muted-foreground" />
         </div>
         <p className="text-muted-foreground text-center">
@@ -38,14 +38,14 @@ export function VaultTab({ artworks }: VaultTabProps) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.05 }}
             onClick={() => setSelectedArt(art)}
-            className="relative aspect-square rounded-2xl overflow-hidden group"
+            className="relative aspect-square rounded-2xl overflow-hidden group border border-border/30"
           >
             <img
               src={art.image}
               alt={art.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+            <div className="absolute inset-0 bg-carbon/0 group-hover:bg-carbon/40 transition-colors flex items-center justify-center">
               <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </motion.button>
@@ -60,7 +60,7 @@ export function VaultTab({ artworks }: VaultTabProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/95 z-50"
+              className="fixed inset-0 bg-carbon/95 backdrop-blur-xl z-50"
               onClick={() => setSelectedArt(null)}
             />
             <motion.div
@@ -71,17 +71,17 @@ export function VaultTab({ artworks }: VaultTabProps) {
             >
               <button
                 onClick={() => setSelectedArt(null)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center z-10"
+                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-obsidian/80 flex items-center justify-center z-10"
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-6 h-6 text-foreground" />
               </button>
               <img
                 src={selectedArt.image}
                 alt={selectedArt.title}
                 className="max-w-full max-h-full object-contain rounded-lg"
               />
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/60 backdrop-blur-sm rounded-full">
-                <p className="text-white font-serif">{selectedArt.title}</p>
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-obsidian/80 backdrop-blur-sm rounded-full border border-border/30">
+                <p className="text-foreground font-display">{selectedArt.title}</p>
               </div>
             </motion.div>
           </>

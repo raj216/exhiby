@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Upload, Image as ImageIcon, ChevronRight, X, Clock, Zap } from "lucide-react";
 import { SlideToAction } from "./SlideToAction";
 import { PriceSlider } from "./PriceSlider";
+import { triggerClickHaptic } from "@/lib/haptics";
 
 interface GoLiveWizardProps {
   onClose: () => void;
@@ -48,6 +49,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   };
 
   const handleGoLive = () => {
+    triggerClickHaptic();
     onGoLive({
       coverImage,
       category,
@@ -69,10 +71,10 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-background z-50 flex flex-col"
+      className="fixed inset-0 bg-carbon z-50 flex flex-col"
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="flex items-center justify-between p-4 border-b border-border/50">
         <button onClick={onClose} className="p-2 -ml-2">
           <X className="w-6 h-6 text-foreground" />
         </button>
@@ -81,7 +83,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             <div
               key={s}
               className={`h-1 w-8 rounded-full transition-colors ${
-                s <= step ? "bg-primary" : "bg-muted"
+                s <= step ? "bg-electric" : "bg-muted"
               }`}
             />
           ))}
@@ -102,7 +104,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               transition={{ duration: 0.3 }}
               className="p-6"
             >
-              <h1 className="text-3xl font-serif text-center mb-2">Set the Stage</h1>
+              <h1 className="text-3xl font-display text-center mb-2">Set the Stage</h1>
               <p className="text-muted-foreground text-center mb-8">
                 Your cover image is the first impression
               </p>
@@ -110,7 +112,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               {/* Ticket Preview */}
               <div className="flex justify-center mb-8">
                 <div
-                  className="relative w-56 rounded-2xl overflow-hidden border-2 border-dashed border-border transition-colors"
+                  className="relative w-56 rounded-2xl overflow-hidden border-2 border-dashed border-border transition-colors bg-obsidian"
                   style={{ aspectRatio: "2/3" }}
                 >
                   {coverImage ? (
@@ -122,14 +124,14 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                       />
                       <button
                         onClick={() => setCoverImage(null)}
-                        className="absolute top-2 right-2 p-1.5 bg-background/80 rounded-full"
+                        className="absolute top-2 right-2 p-1.5 bg-carbon/80 rounded-full"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </>
                   ) : (
-                    <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-surface-elevated/50 transition-colors">
-                      <div className="w-16 h-16 rounded-full bg-surface-elevated flex items-center justify-center mb-4">
+                    <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer hover:bg-obsidian/80 transition-colors">
+                      <div className="w-16 h-16 rounded-full bg-obsidian flex items-center justify-center mb-4 border border-border/50">
                         <ImageIcon className="w-8 h-8 text-muted-foreground" />
                       </div>
                       <span className="text-muted-foreground text-sm">Tap to upload</span>
@@ -146,8 +148,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
 
               {/* Upload Button */}
               <label className="block">
-                <div className="flex items-center justify-center gap-3 py-4 px-6 bg-surface-elevated rounded-xl cursor-pointer hover:bg-muted transition-colors">
-                  <Upload className="w-5 h-5 text-primary" />
+                <div className="flex items-center justify-center gap-3 py-4 px-6 bg-obsidian rounded-xl cursor-pointer hover:bg-muted transition-colors border border-border/30">
+                  <Upload className="w-5 h-5 text-electric" />
                   <span className="font-medium">
                     {coverImage ? "Change Cover Image" : "Upload Cover Image"}
                   </span>
@@ -178,7 +180,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               transition={{ duration: 0.3 }}
               className="p-6"
             >
-              <h1 className="text-3xl font-serif text-center mb-2">
+              <h1 className="text-3xl font-display text-center mb-2">
                 Define the Experience
               </h1>
               <p className="text-muted-foreground text-center mb-8">
@@ -190,7 +192,10 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setCategory(cat.id)}
+                    onClick={() => {
+                      triggerClickHaptic();
+                      setCategory(cat.id);
+                    }}
                     className={`category-btn w-full text-left ${
                       category === cat.id ? "selected" : ""
                     }`}
@@ -209,9 +214,9 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                     {category === cat.id && (
                       <motion.div
                         layoutId="categoryCheck"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-electric flex items-center justify-center"
                       >
-                        <ChevronRight className="w-4 h-4 text-primary-foreground" />
+                        <ChevronRight className="w-4 h-4 text-white" />
                       </motion.div>
                     )}
                   </button>
@@ -263,7 +268,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               transition={{ duration: 0.3 }}
               className="p-6"
             >
-              <h1 className="text-3xl font-serif text-center mb-2">
+              <h1 className="text-3xl font-display text-center mb-2">
                 The Velvet Rope
               </h1>
               <p className="text-muted-foreground text-center mb-8">
@@ -282,17 +287,20 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => setScheduleType("now")}
+                    onClick={() => {
+                      triggerClickHaptic();
+                      setScheduleType("now");
+                    }}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       scheduleType === "now"
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-surface-elevated"
+                        ? "border-electric bg-electric/10"
+                        : "border-border bg-obsidian"
                     }`}
                   >
                     <Zap
                       className={`w-6 h-6 mx-auto mb-2 ${
                         scheduleType === "now"
-                          ? "text-primary"
+                          ? "text-electric"
                           : "text-muted-foreground"
                       }`}
                     />
@@ -303,17 +311,20 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                   </button>
 
                   <button
-                    onClick={() => setScheduleType("scheduled")}
+                    onClick={() => {
+                      triggerClickHaptic();
+                      setScheduleType("scheduled");
+                    }}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       scheduleType === "scheduled"
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-surface-elevated"
+                        ? "border-electric bg-electric/10"
+                        : "border-border bg-obsidian"
                     }`}
                   >
                     <Clock
                       className={`w-6 h-6 mx-auto mb-2 ${
                         scheduleType === "scheduled"
-                          ? "text-primary"
+                          ? "text-electric"
                           : "text-muted-foreground"
                       }`}
                     />
@@ -340,12 +351,12 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
 
       {/* Footer Navigation */}
       {step < 3 && (
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border/50">
           <div className="flex gap-3">
             {step > 1 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="flex-1 py-4 rounded-xl bg-surface-elevated text-foreground font-medium"
+                className="flex-1 py-4 rounded-xl bg-obsidian text-foreground font-medium border border-border/30"
               >
                 Back
               </button>
@@ -356,7 +367,10 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                 (step === 1 && !canProceedStep1) ||
                 (step === 2 && !canProceedStep2)
               }
-              className="flex-1 py-4 rounded-xl bg-gradient-gold text-primary-foreground font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+              className="flex-1 py-4 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-opacity text-white"
+              style={{
+                background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
+              }}
             >
               Next
             </button>
