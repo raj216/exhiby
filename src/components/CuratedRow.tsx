@@ -1,19 +1,24 @@
 import { ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { StudioCard, CreatorStatus } from "./StudioCard";
 
-interface CuratedItem {
+export interface CuratedItem {
   id: string;
   image: string;
   artistName: string;
+  status: CreatorStatus;
+  scheduledTime?: string;
+  eventTitle?: string;
+  price?: number;
 }
 
 interface CuratedRowProps {
   title: string;
   items: CuratedItem[];
-  onViewCreator?: () => void;
+  onCardTap: (item: CuratedItem, status: CreatorStatus) => void;
 }
 
-export function CuratedRow({ title, items, onViewCreator }: CuratedRowProps) {
+export function CuratedRow({ title, items, onCardTap }: CuratedRowProps) {
   return (
     <div className="mb-8">
       {/* Header */}
@@ -30,23 +35,20 @@ export function CuratedRow({ title, items, onViewCreator }: CuratedRowProps) {
         {items.map((item, index) => (
           <motion.div
             key={item.id}
-            className="flex-shrink-0 snap-start cursor-pointer"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            onClick={onViewCreator}
-            whileTap={{ scale: 0.95 }}
+            transition={{ delay: index * 0.05 }}
           >
-            <div className="w-28 aspect-square rounded-xl overflow-hidden bg-obsidian border border-border/30 mb-2">
-              <img
-                src={item.image}
-                alt={item.artistName}
-                className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground text-center truncate">
-              {item.artistName}
-            </p>
+            <StudioCard
+              id={item.id}
+              image={item.image}
+              artistName={item.artistName}
+              status={item.status}
+              scheduledTime={item.scheduledTime}
+              eventTitle={item.eventTitle}
+              price={item.price}
+              onTap={(status) => onCardTap(item, status)}
+            />
           </motion.div>
         ))}
       </div>
