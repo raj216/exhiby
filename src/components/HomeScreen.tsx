@@ -3,12 +3,16 @@ import { motion } from "framer-motion";
 import { Plus, Search, User } from "lucide-react";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { ScheduledCard } from "./ScheduledCard";
-import { CuratedRow } from "./CuratedRow";
+import { CuratedRow, CuratedItem } from "./CuratedRow";
+import { LiveTicketPreview } from "./LiveTicketPreview";
+import { ScheduledEventPage } from "./ScheduledEventPage";
+import { CreatorStatus } from "./StudioCard";
 
 interface HomeScreenProps {
   onGoLive: () => void;
   onViewCreatorProfile?: () => void;
   onViewAudienceProfile?: () => void;
+  onEnterLiveRoom?: () => void;
 }
 
 // Mock data
@@ -66,28 +70,60 @@ const scheduledEvents = [
   },
 ];
 
-const masterclasses = [
-  { id: "1", image: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop", artistName: "Mia Torres" },
-  { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo" },
-  { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin" },
-  { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka" },
+// Curated rows with status information
+const masterclasses: CuratedItem[] = [
+  { id: "1", image: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop", artistName: "Mia Torres", status: "live", eventTitle: "Color Theory Masterclass", price: 5 },
+  { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo", status: "scheduled", scheduledTime: "Today 8 PM", eventTitle: "Charcoal Techniques", price: 10 },
+  { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin", status: "offline" },
+  { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka", status: "scheduled", scheduledTime: "Tomorrow", eventTitle: "Ink Wash Painting", price: 15 },
 ];
 
-const freshEasel = [
-  { id: "1", image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop", artistName: "Ana Perez" },
-  { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris" },
-  { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov" },
-  { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen" },
+const freshEasel: CuratedItem[] = [
+  { id: "1", image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop", artistName: "Ana Perez", status: "live", eventTitle: "Unveiling: Ocean Series", price: 0 },
+  { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris", status: "offline" },
+  { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov", status: "offline" },
+  { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen", status: "scheduled", scheduledTime: "Fri 6 PM", eventTitle: "New Collection Drop", price: 5 },
 ];
 
-const handcraft = [
-  { id: "1", image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=200&fit=crop", artistName: "Ava Simmons" },
-  { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright" },
-  { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg" },
-  { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes" },
+const handcraft: CuratedItem[] = [
+  { id: "1", image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=200&fit=crop", artistName: "Ava Simmons", status: "offline" },
+  { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright", status: "live", eventTitle: "Pottery Throwing Session", price: 8 },
+  { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg", status: "scheduled", scheduledTime: "Sat 3 PM", eventTitle: "Weaving Workshop", price: 12 },
+  { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", status: "offline" },
 ];
 
-export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile }: HomeScreenProps) {
+export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom }: HomeScreenProps) {
+  // State for live ticket preview
+  const [liveTicketOpen, setLiveTicketOpen] = useState(false);
+  const [selectedLiveItem, setSelectedLiveItem] = useState<CuratedItem | null>(null);
+
+  // State for scheduled event page
+  const [eventPageOpen, setEventPageOpen] = useState(false);
+  const [selectedScheduledItem, setSelectedScheduledItem] = useState<CuratedItem | null>(null);
+
+  // Handle card tap based on status
+  const handleCardTap = (item: CuratedItem, status: CreatorStatus) => {
+    if (status === "live") {
+      setSelectedLiveItem(item);
+      setLiveTicketOpen(true);
+    } else if (status === "scheduled") {
+      setSelectedScheduledItem(item);
+      setEventPageOpen(true);
+    } else {
+      // Offline - go to creator profile
+      onViewCreatorProfile?.();
+    }
+  };
+
+  const handleEnterLiveRoom = () => {
+    setLiveTicketOpen(false);
+    onEnterLiveRoom?.();
+  };
+
+  const handleBuyTicket = () => {
+    setEventPageOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-carbon pb-24">
       {/* Header */}
@@ -157,11 +193,23 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         </div>
       </section>
 
-      {/* Section C: Curated Rows */}
+      {/* Section C: Curated Studio Rows */}
       <section>
-        <CuratedRow title="Masterclasses" items={masterclasses} />
-        <CuratedRow title="Fresh off the Easel" items={freshEasel} />
-        <CuratedRow title="Handcraft & Sculpture" items={handcraft} />
+        <CuratedRow 
+          title="Masterclasses" 
+          items={masterclasses} 
+          onCardTap={handleCardTap}
+        />
+        <CuratedRow 
+          title="Fresh off the Easel" 
+          items={freshEasel} 
+          onCardTap={handleCardTap}
+        />
+        <CuratedRow 
+          title="Handcraft & Sculpture" 
+          items={handcraft} 
+          onCardTap={handleCardTap}
+        />
       </section>
 
       {/* Floating Action Button - Go Live - Electric Clay */}
@@ -176,6 +224,35 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       >
         <Plus className="w-7 h-7 text-primary-foreground" />
       </motion.button>
+
+      {/* Live Ticket Preview Slide-up */}
+      {selectedLiveItem && (
+        <LiveTicketPreview
+          isOpen={liveTicketOpen}
+          onClose={() => setLiveTicketOpen(false)}
+          onEnterRoom={handleEnterLiveRoom}
+          artistName={selectedLiveItem.artistName}
+          eventTitle={selectedLiveItem.eventTitle || "Live Session"}
+          price={selectedLiveItem.price || 0}
+          coverImage={selectedLiveItem.image}
+        />
+      )}
+
+      {/* Scheduled Event Page */}
+      {selectedScheduledItem && (
+        <ScheduledEventPage
+          isOpen={eventPageOpen}
+          onClose={() => setEventPageOpen(false)}
+          onBuyTicket={handleBuyTicket}
+          artistName={selectedScheduledItem.artistName}
+          eventTitle={selectedScheduledItem.eventTitle || "Upcoming Event"}
+          price={selectedScheduledItem.price || 0}
+          coverImage={selectedScheduledItem.image}
+          scheduledTime={selectedScheduledItem.scheduledTime || "Coming Soon"}
+          description="Join this exclusive session to learn new techniques and connect with fellow art enthusiasts."
+          hasTrailer={true}
+        />
+      )}
     </div>
   );
 }
