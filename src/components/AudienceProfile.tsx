@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Settings, Image as ImageIcon, Award, ShoppingBag } from "lucide-react";
 import { EventBadge } from "./EventBadge";
+import { triggerClickHaptic } from "@/lib/haptics";
 
 interface AudienceProfileProps {
   onBack: () => void;
@@ -42,23 +43,23 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/10 to-background pt-12 pb-6 px-4">
+    <div className="min-h-screen bg-carbon">
+      {/* Header with subtle Electric Clay gradient */}
+      <div className="relative bg-gradient-to-b from-electric/10 to-carbon pt-12 pb-6 px-4">
         {/* Back & Settings */}
         <div className="absolute top-4 left-4 right-4 flex justify-between">
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             onClick={onBack}
-            className="w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center"
           >
             <Settings className="w-5 h-5 text-foreground" />
           </motion.button>
@@ -69,7 +70,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 rounded-full border-4 border-background overflow-hidden bg-muted shadow-xl"
+            className="w-24 h-24 rounded-full border-4 border-carbon overflow-hidden bg-obsidian shadow-deep"
           >
             <img
               src={mockUser.avatarImage}
@@ -81,7 +82,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="font-serif text-2xl text-foreground mt-4"
+            className="font-display text-2xl text-foreground mt-4"
           >
             {mockUser.name}
           </motion.h1>
@@ -102,29 +103,33 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
             className="flex items-center gap-8 mt-6"
           >
             <div className="text-center">
-              <p className="font-serif text-2xl text-foreground">${mockUser.totalSpent}</p>
+              <p className="font-display text-2xl text-gold">${mockUser.totalSpent}</p>
               <p className="text-xs text-muted-foreground">Invested</p>
             </div>
-            <div className="w-px h-10 bg-border" />
+            <div className="w-px h-10 bg-border/50" />
             <div className="text-center">
-              <p className="font-serif text-2xl text-foreground">{mockUser.eventsAttended}</p>
+              <p className="font-display text-2xl text-foreground">{mockUser.eventsAttended}</p>
               <p className="text-xs text-muted-foreground">Events</p>
             </div>
-            <div className="w-px h-10 bg-border" />
+            <div className="w-px h-10 bg-border/50" />
             <div className="text-center">
-              <p className="font-serif text-2xl text-foreground">{mockCollectedArt.length}</p>
+              <p className="font-display text-2xl text-foreground">{mockCollectedArt.length}</p>
               <p className="text-xs text-muted-foreground">Collected</p>
             </div>
           </motion.div>
 
-          {/* Passport Badge */}
+          {/* Passport Badge - Gold accent */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.25 }}
-            className="mt-4 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30"
+            className="mt-4 px-4 py-1.5 rounded-full border"
+            style={{
+              background: "hsl(43 72% 52% / 0.1)",
+              borderColor: "hsl(43 72% 52% / 0.3)"
+            }}
           >
-            <p className="text-xs font-semibold text-primary">
+            <p className="text-xs font-semibold text-gold">
               🎫 Collector's Passport • Member since {mockUser.memberSince}
             </p>
           </motion.div>
@@ -132,12 +137,15 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-border">
+      <div className="border-b border-border/50">
         <div className="flex">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                triggerClickHaptic();
+                setActiveTab(tab.id);
+              }}
               className={`flex-1 py-4 text-sm font-semibold relative transition-colors flex items-center justify-center gap-2 ${
                 activeTab === tab.id
                   ? "text-foreground"
@@ -149,7 +157,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="audienceTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-electric"
                 />
               )}
             </button>
@@ -163,7 +171,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
           <div className="p-4">
             {mockCollectedArt.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-obsidian flex items-center justify-center mb-4">
                   <ImageIcon className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground text-center">
@@ -178,7 +186,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 }}
-                    className="rounded-2xl overflow-hidden bg-card border border-border"
+                    className="rounded-2xl overflow-hidden bg-obsidian border border-border/30"
                   >
                     <div className="aspect-square">
                       <img
@@ -209,7 +217,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
             </p>
             {mockBadges.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-obsidian flex items-center justify-center mb-4">
                   <Award className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground text-center">

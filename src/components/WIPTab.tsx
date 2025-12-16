@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Play, Image as ImageIcon } from "lucide-react";
-import { useState } from "react";
 
 interface WIPItem {
   id: string;
@@ -14,15 +13,13 @@ interface WIPTabProps {
 }
 
 export function WIPTab({ items }: WIPTabProps) {
-  const [activeStory, setActiveStory] = useState<number | null>(null);
-  
   const videos = items.filter((item) => item.type === "video");
   const images = items.filter((item) => item.type === "image");
 
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-full bg-obsidian flex items-center justify-center mb-4">
           <ImageIcon className="w-8 h-8 text-muted-foreground" />
         </div>
         <p className="text-muted-foreground text-center">
@@ -48,17 +45,16 @@ export function WIPTab({ items }: WIPTabProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveStory(index)}
-                className="relative flex-shrink-0 w-20 h-28 rounded-xl overflow-hidden ring-2 ring-primary ring-offset-2 ring-offset-background"
+                className="relative flex-shrink-0 w-20 h-28 rounded-xl overflow-hidden ring-2 ring-electric ring-offset-2 ring-offset-carbon"
               >
                 <img
                   src={video.thumbnail}
                   alt={video.title}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
-                    <Play className="w-4 h-4 text-foreground fill-foreground ml-0.5" />
+                <div className="absolute inset-0 bg-carbon/30 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-foreground/90 flex items-center justify-center">
+                    <Play className="w-4 h-4 text-carbon fill-carbon ml-0.5" />
                   </div>
                 </div>
               </motion.button>
@@ -80,7 +76,7 @@ export function WIPTab({ items }: WIPTabProps) {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.03 }}
-                className="aspect-square rounded-xl overflow-hidden bg-muted"
+                className="aspect-square rounded-xl overflow-hidden bg-obsidian border border-border/30"
               >
                 <img
                   src={item.thumbnail}

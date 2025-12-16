@@ -55,14 +55,14 @@ export function ProfileHeader({
         )}
         
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/40 to-transparent" />
         
-        {/* Live indicator */}
+        {/* Live indicator with Hyper-Crimson glow */}
         {isLive && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-live/90 backdrop-blur-sm flex items-center gap-2"
+            className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-crimson/90 backdrop-blur-sm flex items-center gap-2 live-ring"
           >
             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
             <span className="text-xs font-semibold text-white">LIVE NOW</span>
@@ -88,7 +88,7 @@ export function ProfileHeader({
             transition={{ delay: 0.1 }}
             className="relative"
           >
-            <div className="w-28 h-28 rounded-full border-4 border-background overflow-hidden bg-muted">
+            <div className={`w-28 h-28 rounded-full border-4 border-carbon overflow-hidden bg-obsidian ${isLive ? 'live-ring' : ''}`}>
               <img
                 src={avatarImage}
                 alt={name}
@@ -96,7 +96,7 @@ export function ProfileHeader({
               />
             </div>
             {isLive && (
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-live text-white text-xs font-bold">
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-crimson text-white text-xs font-bold">
                 LIVE
               </div>
             )}
@@ -104,9 +104,9 @@ export function ProfileHeader({
 
           <div className="flex-1 pb-2">
             <div className="flex items-center gap-2">
-              <h1 className="font-serif text-2xl text-foreground">{name}</h1>
+              <h1 className="font-display text-2xl text-foreground">{name}</h1>
               {isVerified && (
-                <BadgeCheck className="w-5 h-5 text-primary fill-primary/20" />
+                <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
               )}
             </div>
             <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
@@ -115,7 +115,7 @@ export function ProfileHeader({
           </div>
         </div>
 
-        {/* Tags / Pills */}
+        {/* Tags / Pills with Gold border */}
         <div className="flex flex-wrap gap-2 mt-4">
           {tags.map((tag, index) => {
             const IconComponent = tagIcons[tag.icon] || Pencil;
@@ -126,12 +126,10 @@ export function ProfileHeader({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + index * 0.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-3 py-1.5 rounded-full bg-muted border border-border flex items-center gap-1.5 hover:bg-muted/80 transition-colors"
+                className="badge-gold flex items-center gap-1.5"
               >
-                <IconComponent className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-medium text-foreground">
-                  {tag.label}
-                </span>
+                <IconComponent className="w-3.5 h-3.5" />
+                <span>{tag.label}</span>
               </motion.button>
             );
           })}

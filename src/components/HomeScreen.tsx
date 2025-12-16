@@ -89,20 +89,20 @@ const handcraft = [
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile }: HomeScreenProps) {
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-carbon pb-24">
       {/* Header */}
       <header className="sticky top-0 z-30 glass">
         <div className="flex items-center justify-between p-4">
-          <h1 className="font-serif text-2xl text-gradient-gold">Exhiby</h1>
+          <h1 className="font-display text-2xl text-gradient-electric">Exhiby</h1>
           <div className="flex items-center gap-3">
             <button 
-              className="p-2 rounded-full bg-surface-elevated"
+              className="p-2 rounded-full bg-obsidian border border-border/30"
               onClick={onViewCreatorProfile}
             >
               <Search className="w-5 h-5 text-muted-foreground" />
             </button>
             <button 
-              className="p-2 rounded-full bg-surface-elevated"
+              className="p-2 rounded-full bg-obsidian border border-border/30"
               onClick={onViewAudienceProfile}
             >
               <User className="w-5 h-5 text-muted-foreground" />
@@ -115,7 +115,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       <section className="mb-8">
         <div className="flex items-center justify-between px-4 mb-4">
           <div>
-            <h2 className="font-serif text-xl text-foreground">Live Now</h2>
+            <h2 className="font-display text-xl text-foreground">Live Now</h2>
             <p className="text-sm text-muted-foreground">Step into a studio</p>
           </div>
         </div>
@@ -134,16 +134,16 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         </div>
       </section>
 
-      {/* Section B: The Box Office - SCHEDULED */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between px-4 mb-4">
+      {/* Section B: The Box Office - SCHEDULED with Spotlight Effect */}
+      <section className="mb-8 relative spotlight">
+        <div className="flex items-center justify-between px-4 mb-4 relative z-10">
           <div>
-            <h2 className="font-serif text-xl text-foreground">Box Office</h2>
-            <p className="text-sm text-muted-foreground">Coming up soon</p>
+            <h2 className="font-display text-xl text-foreground">Box Office</h2>
+            <p className="text-sm text-muted-foreground">Doors opening soon</p>
           </div>
         </div>
 
-        <div className="scroll-snap-x gap-3 px-4">
+        <div className="scroll-snap-x gap-3 px-4 relative z-10">
           {scheduledEvents.map((event, index) => (
             <motion.div
               key={event.id}
@@ -164,10 +164,13 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         <CuratedRow title="Handcraft & Sculpture" items={handcraft} />
       </section>
 
-      {/* Floating Action Button - Go Live */}
+      {/* Floating Action Button - Go Live - Electric Clay */}
       <motion.button
         onClick={onGoLive}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-gold shadow-gold flex items-center justify-center z-40"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-electric flex items-center justify-center z-40"
+        style={{
+          background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
+        }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >

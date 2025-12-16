@@ -8,6 +8,7 @@ import { VaultTab } from "./VaultTab";
 import { WIPTab } from "./WIPTab";
 import { NotificationPreferenceModal } from "./NotificationPreferenceModal";
 import { toast } from "@/hooks/use-toast";
+import { triggerClickHaptic } from "@/lib/haptics";
 
 interface CreatorProfileProps {
   onBack: () => void;
@@ -97,6 +98,7 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
   };
 
   const handleBuyTicket = (eventId: string) => {
+    triggerClickHaptic();
     const event = mockEvents.find((e) => e.id === eventId);
     toast({
       title: "Ticket Reserved!",
@@ -105,13 +107,13 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-carbon">
       {/* Back button */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         onClick={onBack}
-        className="fixed top-4 left-4 z-20 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm border border-border flex items-center justify-center"
+        className="fixed top-4 left-4 z-20 w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center"
       >
         <ArrowLeft className="w-5 h-5 text-foreground" />
       </motion.button>
@@ -137,12 +139,15 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
       />
 
       {/* Tabs */}
-      <div className="mt-6 border-b border-border">
+      <div className="mt-6 border-b border-border/50">
         <div className="flex">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                triggerClickHaptic();
+                setActiveTab(tab.id);
+              }}
               className={`flex-1 py-4 text-sm font-semibold relative transition-colors ${
                 activeTab === tab.id
                   ? "text-foreground"
@@ -153,7 +158,7 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-electric"
                 />
               )}
             </button>

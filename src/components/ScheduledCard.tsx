@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, BellRing, Clock } from "lucide-react";
+import { triggerClickHaptic } from "@/lib/haptics";
 
 interface ScheduledCardProps {
   coverImage: string;
@@ -19,6 +20,11 @@ export function ScheduledCard({
 }: ScheduledCardProps) {
   const [reminded, setReminded] = useState(false);
 
+  const handleRemind = () => {
+    triggerClickHaptic();
+    setReminded(!reminded);
+  };
+
   return (
     <motion.div
       className="relative w-44 flex-shrink-0 snap-center"
@@ -26,7 +32,7 @@ export function ScheduledCard({
       whileTap={{ scale: 0.98 }}
     >
       {/* Card */}
-      <div className="rounded-2xl overflow-hidden bg-card shadow-card">
+      <div className="rounded-2xl overflow-hidden bg-obsidian shadow-card border border-border/30">
         {/* Image */}
         <div className="relative aspect-square">
           <img
@@ -36,7 +42,7 @@ export function ScheduledCard({
           />
           {/* Time Badge */}
           <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-full glass">
-            <Clock className="w-3 h-3 text-primary" />
+            <Clock className="w-3 h-3 text-electric" />
             <span className="text-xs font-medium text-foreground">
               {startsIn}
             </span>
@@ -51,17 +57,17 @@ export function ScheduledCard({
           <p className="text-xs text-muted-foreground mb-2">{artistName}</p>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-primary">
+            <span className="text-xs font-semibold text-gold">
               {price === 0 ? "Free" : `$${price}`}
             </span>
 
             {/* Remind Button */}
             <button
-              onClick={() => setReminded(!reminded)}
-              className={`p-2 rounded-full transition-colors ${
+              onClick={handleRemind}
+              className={`p-2 rounded-full transition-all ${
                 reminded
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-surface-elevated text-muted-foreground hover:text-foreground"
+                  ? "bg-electric text-white shadow-electric"
+                  : "bg-obsidian text-muted-foreground hover:text-foreground border border-border/50"
               }`}
             >
               {reminded ? (

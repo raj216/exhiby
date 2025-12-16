@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['DM Sans', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        sans: ['Satoshi', 'system-ui', 'sans-serif'],
+        serif: ['Clash Display', 'serif'],
+        display: ['Clash Display', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -51,15 +52,33 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Brand colors
+        electric: {
+          DEFAULT: "hsl(var(--electric-clay))",
+          clay: "hsl(var(--electric-clay))",
+        },
+        crimson: {
+          DEFAULT: "hsl(var(--hyper-crimson))",
+          hyper: "hsl(var(--hyper-crimson))",
+        },
         gold: {
-          DEFAULT: "hsl(var(--gold))",
-          dim: "hsl(var(--gold-dim))",
+          DEFAULT: "hsl(var(--muted-gold))",
+          muted: "hsl(var(--muted-gold))",
+        },
+        carbon: {
+          DEFAULT: "hsl(var(--carbon-black))",
+          black: "hsl(var(--carbon-black))",
+        },
+        obsidian: {
+          DEFAULT: "hsl(var(--obsidian-glass))",
+          glass: "hsl(var(--obsidian-glass))",
         },
         surface: {
           DEFAULT: "hsl(var(--surface))",
           elevated: "hsl(var(--surface-elevated))",
+          overlay: "hsl(var(--surface-overlay))",
         },
-        live: "hsl(var(--live-red))",
+        live: "hsl(var(--live))",
         success: "hsl(var(--success))",
       },
       borderRadius: {
@@ -68,6 +87,9 @@ export default {
         sm: "calc(var(--radius) - 4px)",
         "2xl": "1.5rem",
         "3xl": "2rem",
+      },
+      backdropBlur: {
+        '3xl': '64px',
       },
       keyframes: {
         "accordion-down": {
@@ -98,6 +120,14 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "pulse-glow": {
+          "0%, 100%": { 
+            boxShadow: "0 0 0 3px hsl(var(--hyper-crimson) / 0.5), 0 0 20px hsl(var(--hyper-crimson) / 0.4)" 
+          },
+          "50%": { 
+            boxShadow: "0 0 0 4px hsl(var(--hyper-crimson) / 0.7), 0 0 30px hsl(var(--hyper-crimson) / 0.6)" 
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -107,12 +137,14 @@ export default {
         "fade-in": "fade-in 0.3s ease-out",
         "scale-in": "scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         shimmer: "shimmer 2s linear infinite",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
       },
       backgroundImage: {
-        "gradient-gold": "linear-gradient(135deg, hsl(var(--gold)), hsl(38, 90%, 45%))",
-        "gradient-dark": "linear-gradient(180deg, hsl(240, 10%, 8%), hsl(240, 10%, 4%))",
-        "gradient-card": "linear-gradient(180deg, hsl(240, 8%, 14%), hsl(240, 8%, 10%))",
-        "gradient-live": "linear-gradient(90deg, hsl(0, 84%, 50%), hsl(15, 90%, 55%))",
+        "gradient-electric": "linear-gradient(135deg, hsl(var(--electric-clay)), hsl(var(--hyper-crimson)))",
+        "gradient-gold": "linear-gradient(135deg, hsl(var(--muted-gold)), hsl(38 80% 45%))",
+        "gradient-dark": "linear-gradient(180deg, hsl(240 6% 14%), hsl(var(--carbon-black)))",
+        "gradient-card": "linear-gradient(180deg, hsl(240 6% 14%), hsl(240 6% 10%))",
+        "gradient-spotlight": "radial-gradient(ellipse at center, hsl(var(--electric-clay) / 0.15), transparent 70%)",
       },
     },
   },

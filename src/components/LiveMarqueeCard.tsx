@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { triggerClickHaptic } from "@/lib/haptics";
 
 interface LiveMarqueeCardProps {
   coverImage: string;
@@ -6,6 +7,7 @@ interface LiveMarqueeCardProps {
   price: number;
   viewers: number;
   artistName: string;
+  onClick?: () => void;
 }
 
 export function LiveMarqueeCard({
@@ -14,7 +16,13 @@ export function LiveMarqueeCard({
   price,
   viewers,
   artistName,
+  onClick,
 }: LiveMarqueeCardProps) {
+  const handleJoin = () => {
+    triggerClickHaptic();
+    onClick?.();
+  };
+
   return (
     <motion.div
       className="poster-card w-72 flex-shrink-0 snap-center"
@@ -22,7 +30,7 @@ export function LiveMarqueeCard({
       whileTap={{ scale: 0.98 }}
     >
       {/* Background - simulated blurred video */}
-      <div className="absolute inset-0 bg-gradient-to-b from-muted/50 to-background">
+      <div className="absolute inset-0 bg-gradient-to-b from-obsidian/50 to-carbon">
         <img
           src={coverImage}
           alt=""
@@ -31,7 +39,7 @@ export function LiveMarqueeCard({
       </div>
 
       {/* Cover Image Overlay */}
-      <div className="absolute inset-4 rounded-xl overflow-hidden shadow-2xl">
+      <div className="absolute inset-4 rounded-xl overflow-hidden shadow-deep">
         <img
           src={coverImage}
           alt={title}
@@ -39,11 +47,11 @@ export function LiveMarqueeCard({
         />
       </div>
 
-      {/* Top Badge - LIVE */}
+      {/* Top Badge - LIVE with Hyper-Crimson glow */}
       <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 rounded-full glass">
         <div className="relative">
-          <div className="w-2 h-2 rounded-full bg-live" />
-          <div className="absolute inset-0 w-2 h-2 rounded-full bg-live animate-ping" />
+          <div className="w-2 h-2 rounded-full bg-crimson" />
+          <div className="absolute inset-0 w-2 h-2 rounded-full bg-crimson animate-ping" />
         </div>
         <span className="text-xs font-semibold text-foreground">LIVE</span>
         <span className="text-xs text-muted-foreground">
@@ -52,20 +60,21 @@ export function LiveMarqueeCard({
       </div>
 
       {/* Bottom Info */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/80 to-transparent">
-        <h3 className="font-serif text-xl text-foreground mb-1 line-clamp-2">
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-carbon via-carbon/90 to-transparent">
+        <h3 className="font-display text-xl text-foreground mb-1 line-clamp-2">
           {title}
         </h3>
         <p className="text-sm text-muted-foreground mb-3">{artistName}</p>
 
-        {/* Entry Price */}
+        {/* Entry Price - Gold accent */}
         <div className="flex items-center justify-between">
-          <div className="px-3 py-1.5 rounded-full bg-surface-elevated">
-            <span className="text-sm font-medium text-primary">
-              {price === 0 ? "Free Entry" : `Entry: $${price}`}
-            </span>
+          <div className="price-tag">
+            {price === 0 ? "Free Entry" : `Entry: $${price}`}
           </div>
-          <button className="px-4 py-2 rounded-full bg-gradient-gold text-primary-foreground text-sm font-semibold shadow-gold">
+          <button 
+            onClick={handleJoin}
+            className="btn-electric px-4 py-2 text-sm"
+          >
             Join
           </button>
         </div>
