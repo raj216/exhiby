@@ -3,6 +3,8 @@ import { AnimatePresence } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
 import { GoLiveWizard } from "@/components/GoLiveWizard";
 import { LiveSession } from "@/components/LiveSession";
+import { CreatorProfile } from "@/components/CreatorProfile";
+import { AudienceProfile } from "@/components/AudienceProfile";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
@@ -15,7 +17,10 @@ interface EventData {
   scheduleType: "now" | "scheduled";
 }
 
+type Screen = "home" | "wizard" | "live" | "creatorProfile" | "audienceProfile";
+
 const Index = () => {
+  const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [showWizard, setShowWizard] = useState(false);
   const [showLiveSession, setShowLiveSession] = useState(false);
   const [eventData, setEventData] = useState<EventData | null>(null);
@@ -44,11 +49,36 @@ const Index = () => {
     });
   };
 
+  const handleBack = () => {
+    setCurrentScreen("home");
+  };
+
+  // Show profiles as full screen overlays
+  if (currentScreen === "creatorProfile") {
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-background">
+        <CreatorProfile onBack={handleBack} />
+      </div>
+    );
+  }
+
+  if (currentScreen === "audienceProfile") {
+    return (
+      <div className="max-w-md mx-auto min-h-screen bg-background">
+        <AudienceProfile onBack={handleBack} />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-md mx-auto min-h-screen bg-background">
       <Toaster position="top-center" />
       
-      <HomeScreen onGoLive={() => setShowWizard(true)} />
+      <HomeScreen 
+        onGoLive={() => setShowWizard(true)} 
+        onViewCreatorProfile={() => setCurrentScreen("creatorProfile")}
+        onViewAudienceProfile={() => setCurrentScreen("audienceProfile")}
+      />
 
       <AnimatePresence>
         {showWizard && (
