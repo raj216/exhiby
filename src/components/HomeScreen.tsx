@@ -7,6 +7,8 @@ import { CuratedRow } from "./CuratedRow";
 
 interface HomeScreenProps {
   onGoLive: () => void;
+  onViewCreatorProfile?: () => void;
+  onViewAudienceProfile?: () => void;
 }
 
 // Mock data
@@ -85,7 +87,7 @@ const handcraft = [
   { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes" },
 ];
 
-export function HomeScreen({ onGoLive }: HomeScreenProps) {
+export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile }: HomeScreenProps) {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -93,10 +95,16 @@ export function HomeScreen({ onGoLive }: HomeScreenProps) {
         <div className="flex items-center justify-between p-4">
           <h1 className="font-serif text-2xl text-gradient-gold">Exhiby</h1>
           <div className="flex items-center gap-3">
-            <button className="p-2 rounded-full bg-surface-elevated">
+            <button 
+              className="p-2 rounded-full bg-surface-elevated"
+              onClick={onViewCreatorProfile}
+            >
               <Search className="w-5 h-5 text-muted-foreground" />
             </button>
-            <button className="p-2 rounded-full bg-surface-elevated">
+            <button 
+              className="p-2 rounded-full bg-surface-elevated"
+              onClick={onViewAudienceProfile}
+            >
               <User className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
