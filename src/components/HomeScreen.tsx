@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, User } from "lucide-react";
+import { Search, User } from "lucide-react";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { ScheduledCard } from "./ScheduledCard";
 import { CuratedRow, CuratedItem } from "./CuratedRow";
@@ -213,19 +213,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         />
       </section>
 
-      {/* Floating Action Button - Go Live - Electric Clay */}
-      <motion.button
-        onClick={onGoLive}
-        className="fixed right-4 w-14 h-14 rounded-full shadow-electric flex items-center justify-center z-40"
-        style={{
-          background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
-          bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 1rem)'
-        }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        <Plus className="w-7 h-7 text-primary-foreground" />
-      </motion.button>
 
       {/* Live Ticket Preview Slide-up */}
       {selectedLiveItem && (
