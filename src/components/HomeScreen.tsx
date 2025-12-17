@@ -13,6 +13,7 @@ interface HomeScreenProps {
   onViewCreatorProfile?: () => void;
   onViewAudienceProfile?: () => void;
   onEnterLiveRoom?: () => void;
+  onOpenSearch?: () => void;
 }
 
 // Mock data
@@ -92,7 +93,7 @@ const handcraft: CuratedItem[] = [
   { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", status: "offline" },
 ];
 
-export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom }: HomeScreenProps) {
+export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch }: HomeScreenProps) {
   // State for live ticket preview
   const [liveTicketOpen, setLiveTicketOpen] = useState(false);
   const [selectedLiveItem, setSelectedLiveItem] = useState<CuratedItem | null>(null);
@@ -133,7 +134,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           <div className="flex items-center gap-3">
             <button 
               className="p-2 rounded-full bg-obsidian border border-border/30"
-              onClick={onViewCreatorProfile}
+              onClick={onOpenSearch}
             >
               <Search className="w-5 h-5 text-muted-foreground" />
             </button>
