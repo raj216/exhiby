@@ -216,9 +216,10 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       {/* Floating Action Button - Go Live - Electric Clay */}
       <motion.button
         onClick={onGoLive}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-electric flex items-center justify-center z-40"
+        className="fixed right-4 w-14 h-14 rounded-full shadow-electric flex items-center justify-center z-40"
         style={{
-          background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
+          background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
+          bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 1rem)'
         }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
