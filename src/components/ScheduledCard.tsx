@@ -41,9 +41,9 @@ export function ScheduledCard({
             className="w-full h-full object-cover"
           />
           {/* Time Badge */}
-          <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-full glass">
-            <Clock className="w-3 h-3 text-electric" />
-            <span className="text-xs font-medium text-foreground">
+          <div className="absolute top-2 left-2 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full glass">
+            <Clock className="w-3 h-3 text-electric flex-shrink-0" />
+            <span className="text-xs font-medium text-foreground whitespace-nowrap leading-none">
               {startsIn}
             </span>
           </div>
