@@ -168,34 +168,42 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
             exit={{ y: -20, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
-            {/* Floating Search Bar - sticky at top */}
+            {/* Search Bar Header */}
             <div 
-              className="flex-shrink-0 p-4 pt-6"
-              style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top, 1.5rem))' }}
+              className="flex-shrink-0 px-4 pb-3"
+              style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
             >
-              <div className="relative glass rounded-2xl border border-border/30">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search artists, events, styles..."
-                  className="w-full pl-12 pr-12 py-4 bg-transparent text-foreground placeholder:text-muted-foreground font-sans text-base focus:outline-none"
-                />
-                {query && (
-                  <button
-                    onClick={handleClear}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                )}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-full bg-obsidian/50 hover:bg-obsidian transition-colors"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+                <div className="flex-1 relative glass rounded-xl border border-border/30">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search artists, events, styles..."
+                    className="w-full pl-10 pr-10 py-3 bg-transparent text-foreground placeholder:text-muted-foreground font-sans text-sm focus:outline-none"
+                  />
+                  {query && (
+                    <button
+                      onClick={handleClear}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <X className="w-3 h-3 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Content Area - scrollable within viewport */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
               <AnimatePresence mode="wait">
                 {!query.trim() ? (
                   /* Discovery State */
@@ -208,14 +216,14 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                   >
                     {/* Recent Searches */}
                     {recentSearches.length > 0 && (
-                      <section className="mb-8">
-                        <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">Recent</h3>
+                      <section className="mb-6">
+                        <h3 className="font-display text-xs text-muted-foreground mb-2 uppercase tracking-wider">Recent</h3>
                         <div className="flex flex-wrap gap-2">
                           {recentSearches.map((term, i) => (
                             <button
                               key={i}
                               onClick={() => setQuery(term.replace("#", ""))}
-                              className="px-4 py-2 rounded-full bg-obsidian border border-border/30 text-sm text-foreground hover:border-electric/50 transition-colors"
+                              className="px-3 py-1.5 rounded-full bg-obsidian border border-border/30 text-xs text-foreground hover:border-electric/50 transition-colors"
                             >
                               {term}
                             </button>
@@ -225,14 +233,14 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                     )}
 
                     {/* Trending Tags */}
-                    <section className="mb-8">
-                      <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">Trending Now</h3>
+                    <section className="mb-6">
+                      <h3 className="font-display text-xs text-muted-foreground mb-2 uppercase tracking-wider">Trending Now</h3>
                       <div className="flex flex-wrap gap-2">
                         {trendingTags.map((tag) => (
                           <button
                             key={tag}
                             onClick={() => handleTagClick(tag)}
-                            className="px-4 py-2 rounded-full bg-gradient-to-r from-electric/20 to-crimson/20 border border-electric/30 text-sm text-foreground hover:border-electric/60 transition-colors"
+                            className="px-3 py-1.5 rounded-full bg-gradient-to-r from-electric/20 to-crimson/20 border border-electric/30 text-xs text-foreground hover:border-electric/60 transition-colors"
                           >
                             {tag}
                           </button>
@@ -242,15 +250,15 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
 
                     {/* Recommended Categories */}
                     <section>
-                      <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">Categories</h3>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h3 className="font-display text-xs text-muted-foreground mb-2 uppercase tracking-wider">Categories</h3>
+                      <div className="grid grid-cols-2 gap-2">
                         {recommendedCategories.map((cat) => (
                           <button
                             key={cat.id}
                             onClick={() => handleCategoryClick(cat)}
-                            className="p-4 rounded-xl bg-obsidian border border-border/30 text-left hover:border-gold/50 transition-colors"
+                            className="p-3 rounded-lg bg-obsidian border border-border/30 text-left hover:border-gold/50 transition-colors"
                           >
-                            <span className="font-sans text-foreground">{cat.name}</span>
+                            <span className="font-sans text-sm text-foreground">{cat.name}</span>
                           </button>
                         ))}
                       </div>
@@ -401,15 +409,6 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
               </AnimatePresence>
             </div>
 
-            {/* Close hint - part of flex layout */}
-            <div className="flex-shrink-0 pb-4 pt-2 flex justify-center">
-              <button
-                onClick={onClose}
-                className="px-6 py-2 rounded-full glass border border-border/30 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Tap to close
-              </button>
-            </div>
           </motion.div>
         </motion.div>
       )}
