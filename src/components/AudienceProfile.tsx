@@ -1,11 +1,29 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, Settings, Image as ImageIcon, Award, ShoppingBag } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ArrowLeft, 
+  Settings, 
+  Image as ImageIcon, 
+  Award, 
+  ShoppingBag,
+  Ticket,
+  CreditCard,
+  MapPin,
+  Bell,
+  ChevronRight,
+  Palette,
+  Clock,
+  Hash
+} from "lucide-react";
 import { EventBadge } from "./EventBadge";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { toast } from "@/hooks/use-toast";
 
 interface AudienceProfileProps {
   onBack: () => void;
+  onSwitchMode?: () => void;
+  isVerifiedCreator?: boolean;
+  onOpenStudio?: () => void;
 }
 
 // Mock data
@@ -19,35 +37,54 @@ const mockUser = {
 };
 
 const mockCollectedArt = [
-  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&q=80", title: "Portrait Study I", artist: "Elena Voss" },
-  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400&q=80", title: "Digital Dreams", artist: "Luna Kim" },
-  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", title: "Abstract Form", artist: "James Wright" },
-  { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&q=80", title: "Motion Study", artist: "Sarah Park" },
+  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&q=80", title: "Portrait Study I", artist: "Elena Voss", type: "digital" },
+  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400&q=80", title: "Digital Dreams", artist: "Luna Kim", type: "digital" },
+  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", title: "Abstract Form", artist: "James Wright", type: "physical" },
+  { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&q=80", title: "Motion Study", artist: "Sarah Park", type: "digital" },
 ];
 
 const mockBadges = [
-  { id: "1", title: "Hair Masterclass Alumni", image: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=400&q=80", date: "Dec 2024" },
-  { id: "2", title: "Eye Workshop Graduate", image: "https://images.unsplash.com/photo-1495231916356-a86217efff12?w=400&q=80", date: "Dec 2024" },
-  { id: "3", title: "First Live Attendee", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&q=80", date: "Nov 2024" },
-  { id: "4", title: "Sketch Session Pro", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", date: "Nov 2024" },
+  { id: "1", title: "Founding Member", image: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=400&q=80", date: "Dec 2024", type: "special" },
+  { id: "2", title: "Hair Masterclass Alumni", image: "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=400&q=80", date: "Dec 2024", type: "event" },
+  { id: "3", title: "First Purchase", image: "https://images.unsplash.com/photo-1495231916356-a86217efff12?w=400&q=80", date: "Dec 2024", type: "achievement" },
+  { id: "4", title: "Pottery Lover", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&q=80", date: "Nov 2024", type: "interest" },
 ];
 
-type TabType = "collected" | "badges";
+const mockTickets = [
+  { id: "1", event: "Realistic Eye Workshop", creator: "Elena Voss", date: "Sat, Dec 21", time: "8 PM EST", price: 5, startsIn: 45 },
+  { id: "2", event: "Drawing Realistic Hair", creator: "Mia Torres", date: "Sun, Dec 22", time: "3 PM EST", price: 10, startsIn: 180 },
+];
 
-export function AudienceProfile({ onBack }: AudienceProfileProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("collected");
+const mockInterests = ["#Realism", "#Clay", "#Miniatures", "#Portraits", "#Watercolor"];
 
-  const tabs: { id: TabType; label: string; icon: typeof ImageIcon }[] = [
-    { id: "collected", label: "Art Collected", icon: ShoppingBag },
-    { id: "badges", label: "Events Attended", icon: Award },
+type TabType = "tickets" | "collection" | "badges" | "settings";
+
+export function AudienceProfile({ 
+  onBack, 
+  onSwitchMode, 
+  isVerifiedCreator = false,
+  onOpenStudio 
+}: AudienceProfileProps) {
+  const [activeTab, setActiveTab] = useState<TabType>("tickets");
+  const [collectionFilter, setCollectionFilter] = useState<"all" | "digital" | "physical">("all");
+
+  const tabs: { id: TabType; label: string; icon: typeof Ticket }[] = [
+    { id: "tickets", label: "Tickets", icon: Ticket },
+    { id: "collection", label: "Vault", icon: ShoppingBag },
+    { id: "badges", label: "Badges", icon: Award },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
+
+  const filteredArt = collectionFilter === "all" 
+    ? mockCollectedArt 
+    : mockCollectedArt.filter(a => a.type === collectionFilter);
 
   return (
     <div className="min-h-screen bg-carbon">
-      {/* Header with subtle Electric Clay gradient */}
+      {/* Header */}
       <div className="relative bg-gradient-to-b from-electric/10 to-carbon pt-12 pb-6 px-4">
-        {/* Back & Settings */}
-        <div className="absolute top-4 left-4 right-4 flex justify-between">
+        {/* Controls */}
+        <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -56,13 +93,22 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center"
-          >
-            <Settings className="w-5 h-5 text-foreground" />
-          </motion.button>
+          
+          {/* Mode Switch (only for verified creators) */}
+          {isVerifiedCreator && onSwitchMode && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={() => {
+                triggerClickHaptic();
+                onSwitchMode();
+              }}
+              className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-electric/50 flex items-center gap-2"
+            >
+              <span className="text-xs text-electric font-medium">Switch to Studio</span>
+              <ChevronRight className="w-4 h-4 text-electric" />
+            </motion.button>
+          )}
         </div>
 
         {/* Profile Info */}
@@ -103,13 +149,8 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
             className="flex items-center gap-8 mt-6"
           >
             <div className="text-center">
-              <p className="font-display text-2xl text-gold">${mockUser.totalSpent}</p>
-              <p className="text-xs text-muted-foreground">Invested</p>
-            </div>
-            <div className="w-px h-10 bg-border/50" />
-            <div className="text-center">
               <p className="font-display text-2xl text-foreground">{mockUser.eventsAttended}</p>
-              <p className="text-xs text-muted-foreground">Events</p>
+              <p className="text-xs text-muted-foreground">Attended</p>
             </div>
             <div className="w-px h-10 bg-border/50" />
             <div className="text-center">
@@ -118,27 +159,57 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
             </div>
           </motion.div>
 
-          {/* Passport Badge - Gold accent */}
+          {/* Badges Row - Horizontal Scroll */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25 }}
+            className="mt-4 w-full overflow-x-auto scrollbar-hide"
+          >
+            <div className="flex gap-2 px-4 pb-2">
+              {mockBadges.slice(0, 4).map((badge) => (
+                <div 
+                  key={badge.id}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full border flex items-center gap-1.5"
+                  style={{
+                    background: badge.type === "special" 
+                      ? "linear-gradient(135deg, hsl(43 72% 52% / 0.2), hsl(43 72% 52% / 0.1))"
+                      : "hsl(var(--obsidian) / 0.5)",
+                    borderColor: badge.type === "special" 
+                      ? "hsl(43 72% 52% / 0.4)" 
+                      : "hsl(var(--border) / 0.3)"
+                  }}
+                >
+                  <Award className={`w-3 h-3 ${badge.type === "special" ? "text-gold" : "text-electric"}`} />
+                  <span className={`text-xs font-medium ${badge.type === "special" ? "text-gold" : "text-foreground"}`}>
+                    {badge.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Passport Badge */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.25 }}
-            className="mt-4 px-4 py-1.5 rounded-full border"
+            transition={{ delay: 0.3 }}
+            className="mt-2 px-4 py-1.5 rounded-full border"
             style={{
               background: "hsl(43 72% 52% / 0.1)",
               borderColor: "hsl(43 72% 52% / 0.3)"
             }}
           >
             <p className="text-xs font-semibold text-gold">
-              🎫 Collector's Passport • Member since {mockUser.memberSince}
+              🎫 Collector's Passport • Since {mockUser.memberSince}
             </p>
           </motion.div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-border/50">
-        <div className="flex">
+      <div className="border-b border-border/50 overflow-x-auto scrollbar-hide">
+        <div className="flex min-w-max">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -146,7 +217,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
                 triggerClickHaptic();
                 setActiveTab(tab.id);
               }}
-              className={`flex-1 py-4 text-sm font-semibold relative transition-colors flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[80px] py-3 text-xs font-semibold relative transition-colors flex flex-col items-center gap-1 ${
                 activeTab === tab.id
                   ? "text-foreground"
                   : "text-muted-foreground"
@@ -157,7 +228,7 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="audienceTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-electric"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-electric"
                 />
               )}
             </button>
@@ -166,65 +237,167 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="pb-20">
-        {activeTab === "collected" && (
-          <div className="p-4">
-            {mockCollectedArt.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 rounded-full bg-obsidian flex items-center justify-center mb-4">
-                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
+      <div className="pb-24">
+        <AnimatePresence mode="wait">
+          {/* Tickets (My Wallet) */}
+          {activeTab === "tickets" && (
+            <motion.div
+              key="tickets"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-4"
+            >
+              <h3 className="font-display text-lg text-foreground mb-4">Upcoming Access</h3>
+              {mockTickets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No tickets yet</p>
                 </div>
-                <p className="text-muted-foreground text-center">
-                  No art collected yet
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {mockCollectedArt.map((art, index) => (
-                  <motion.div
-                    key={art.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="rounded-2xl overflow-hidden bg-obsidian border border-border/30"
+              ) : (
+                <div className="space-y-3">
+                  {mockTickets.map((ticket) => (
+                    <div 
+                      key={ticket.id}
+                      className="bg-obsidian rounded-2xl p-4 border border-border/30"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-display text-foreground">{ticket.event}</p>
+                          <p className="text-sm text-muted-foreground">by {ticket.creator}</p>
+                        </div>
+                        <span className="px-2 py-1 rounded-full bg-gold/10 text-gold text-xs font-medium">
+                          ${ticket.price}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {ticket.date} • {ticket.time}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          triggerClickHaptic();
+                          if (ticket.startsIn <= 15) {
+                            toast({ title: "Entering Room...", description: "Welcome to the session!" });
+                          } else {
+                            toast({ title: "Not Yet", description: `Room opens in ${ticket.startsIn} minutes` });
+                          }
+                        }}
+                        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+                          ticket.startsIn <= 15
+                            ? "bg-gradient-to-r from-electric to-crimson text-white"
+                            : "bg-obsidian border border-border/50 text-muted-foreground"
+                        }`}
+                      >
+                        {ticket.startsIn <= 15 ? "Enter Room" : `Opens in ${ticket.startsIn}m`}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Collection (Vault) */}
+          {activeTab === "collection" && (
+            <motion.div
+              key="collection"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-4"
+            >
+              {/* Filters */}
+              <div className="flex gap-2 mb-4">
+                {(["all", "digital", "physical"] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => {
+                      triggerClickHaptic();
+                      setCollectionFilter(filter);
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs font-medium capitalize transition-all ${
+                      collectionFilter === filter
+                        ? "bg-electric text-carbon"
+                        : "bg-obsidian text-muted-foreground border border-border/50"
+                    }`}
                   >
-                    <div className="aspect-square">
-                      <img
-                        src={art.image}
-                        alt={art.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-3">
-                      <p className="font-medium text-foreground text-sm line-clamp-1">
-                        {art.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        by {art.artist}
-                      </p>
-                    </div>
-                  </motion.div>
+                    {filter}
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
-        )}
 
-        {activeTab === "badges" && (
-          <div className="p-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Badges earned from attending events
-            </p>
-            {mockBadges.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 rounded-full bg-obsidian flex items-center justify-center mb-4">
-                  <Award className="w-8 h-8 text-muted-foreground" />
+              {/* Grid */}
+              {filteredArt.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No art collected yet</p>
                 </div>
-                <p className="text-muted-foreground text-center">
-                  No badges earned yet
-                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {filteredArt.map((art, index) => (
+                    <motion.div
+                      key={art.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="rounded-2xl overflow-hidden bg-obsidian border border-border/30"
+                    >
+                      <div className="aspect-square relative">
+                        <img
+                          src={art.image}
+                          alt={art.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          art.type === "digital" ? "bg-electric/90 text-carbon" : "bg-gold/90 text-carbon"
+                        }`}>
+                          {art.type}
+                        </span>
+                      </div>
+                      <div className="p-3">
+                        <p className="font-medium text-foreground text-sm line-clamp-1">{art.title}</p>
+                        <p className="text-xs text-muted-foreground">by {art.artist}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* Interests */}
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                  <Hash className="w-4 h-4" />
+                  Interests
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {mockInterests.map((tag) => (
+                    <span 
+                      key={tag}
+                      className="px-3 py-1.5 rounded-full bg-obsidian border border-border/30 text-xs text-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-            ) : (
+            </motion.div>
+          )}
+
+          {/* Badges */}
+          {activeTab === "badges" && (
+            <motion.div
+              key="badges"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-4"
+            >
+              <p className="text-sm text-muted-foreground mb-4">
+                Your collection of event badges
+              </p>
               <div className="grid grid-cols-4 gap-4">
                 {mockBadges.map((badge, index) => (
                   <EventBadge
@@ -236,9 +409,76 @@ export function AudienceProfile({ onBack }: AudienceProfileProps) {
                   />
                 ))}
               </div>
-            )}
-          </div>
-        )}
+            </motion.div>
+          )}
+
+          {/* Settings */}
+          {activeTab === "settings" && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-4 space-y-3"
+            >
+              {/* Payment Methods */}
+              <button 
+                onClick={() => toast({ title: "Payment Methods", description: "Opening payment settings..." })}
+                className="w-full flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/30"
+              >
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-electric" />
+                  <span className="text-foreground">Payment Methods</span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </button>
+
+              {/* Shipping */}
+              <button 
+                onClick={() => toast({ title: "Shipping Address", description: "Opening shipping settings..." })}
+                className="w-full flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/30"
+              >
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-electric" />
+                  <span className="text-foreground">Shipping Address</span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </button>
+
+              {/* Notifications */}
+              <button 
+                onClick={() => toast({ title: "Notifications", description: "Opening notification preferences..." })}
+                className="w-full flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/30"
+              >
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-electric" />
+                  <span className="text-foreground">Notification Preferences</span>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              </button>
+
+              {/* Open Studio (only if not verified) */}
+              {!isVerifiedCreator && onOpenStudio && (
+                <button 
+                  onClick={() => {
+                    triggerClickHaptic();
+                    onOpenStudio();
+                  }}
+                  className="w-full mt-6 p-4 rounded-xl bg-gradient-to-r from-electric to-crimson flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <Palette className="w-5 h-5 text-white" />
+                    <div className="text-left">
+                      <span className="text-white font-semibold block">Open Your Studio</span>
+                      <span className="text-white/70 text-xs">Become a verified creator</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-white" />
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
