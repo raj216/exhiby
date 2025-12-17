@@ -126,7 +126,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   };
 
   return (
-    <div className="min-h-screen bg-carbon pb-24">
+    <div className="min-h-screen bg-carbon pb-8">
       {/* Header */}
       <header className="sticky top-0 z-30 glass">
         <div className="flex items-center justify-between p-4">
