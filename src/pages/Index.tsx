@@ -6,6 +6,7 @@ import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { SearchOverlay } from "@/components/SearchOverlay";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ function IndexContent() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [showWizard, setShowWizard] = useState(false);
   const [showLiveSession, setShowLiveSession] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [eventData, setEventData] = useState<EventData | null>(null);
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
 
@@ -110,6 +112,24 @@ function IndexContent() {
         onViewAudienceProfile={() => {
           setCurrentScreen("profile");
           setActiveTab(mode === "audience" ? "passport" : "profile");
+        }}
+        onOpenSearch={() => setShowSearch(true)}
+      />
+
+      {/* Search Overlay */}
+      <SearchOverlay
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        onSelectArtist={() => {
+          setShowSearch(false);
+          setCurrentScreen("creatorProfile");
+        }}
+        onJoinLive={() => {
+          setShowSearch(false);
+          toast.success("Joining live room...");
+        }}
+        onSelectCategory={(tag) => {
+          toast.info(`Filtering by ${tag}`);
         }}
       />
 
