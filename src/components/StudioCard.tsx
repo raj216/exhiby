@@ -57,7 +57,7 @@ export function StudioCard({
 
         {status === "scheduled" && scheduledTime && (
           <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/30">
-            <span className="text-[10px] font-medium text-muted-foreground">
+            <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
               {scheduledTime}
             </span>
           </div>
