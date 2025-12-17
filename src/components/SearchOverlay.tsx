@@ -143,7 +143,8 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50"
+          className="fixed inset-0 z-50 overflow-hidden"
+          style={{ height: '100dvh' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -151,23 +152,27 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
         >
           {/* Glass backdrop */}
           <motion.div
-            className="absolute inset-0 bg-carbon/80 backdrop-blur-xl"
+            className="absolute inset-0 bg-carbon/90 backdrop-blur-xl"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
 
-          {/* Search container */}
+          {/* Search container - constrained to viewport */}
           <motion.div
-            className="relative z-10 flex flex-col h-full"
+            className="relative z-10 flex flex-col max-h-[100dvh] h-full"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -20, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
-            {/* Floating Search Bar */}
-            <div className="p-4 pt-6">
+            {/* Floating Search Bar - sticky at top */}
+            <div 
+              className="flex-shrink-0 p-4 pt-6"
+              style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top, 1.5rem))' }}
+            >
               <div className="relative glass rounded-2xl border border-border/30">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
@@ -189,8 +194,8 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
               </div>
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto px-4 pb-20">
+            {/* Content Area - scrollable within viewport */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6">
               <AnimatePresence mode="wait">
                 {!query.trim() ? (
                   /* Discovery State */
@@ -396,8 +401,8 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
               </AnimatePresence>
             </div>
 
-            {/* Close hint */}
-            <div className="absolute bottom-6 left-0 right-0 flex justify-center">
+            {/* Close hint - part of flex layout */}
+            <div className="flex-shrink-0 pb-4 pt-2 flex justify-center">
               <button
                 onClick={onClose}
                 className="px-6 py-2 rounded-full glass border border-border/30 text-sm text-muted-foreground hover:text-foreground transition-colors"
