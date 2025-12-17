@@ -6,6 +6,7 @@ import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import { LiveRoomTest } from "@/components/LiveRoomTest";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -118,6 +119,9 @@ function IndexContent() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
       />
+
+      {/* Test Button for Daily.co Live Room */}
+      <LiveRoomTest />
 
       <AnimatePresence>
         {showWizard && (
