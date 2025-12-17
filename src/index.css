@@ -68,11 +68,19 @@
 @layer base {
   * {
     @apply border-border;
+    /* Hide all scrollbars for native app feel */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Satoshi', sans-serif;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
