@@ -5,7 +5,6 @@ import { GoLiveWizard } from "@/components/GoLiveWizard";
 import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
-import { BottomNavigation } from "@/components/BottomNavigation";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -93,11 +92,6 @@ function IndexContent() {
           }} 
           onGoLive={() => setShowWizard(true)}
         />
-        <BottomNavigation
-          mode={mode}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-        />
       </div>
     );
   }
@@ -133,11 +127,6 @@ function IndexContent() {
         }}
       />
 
-      <BottomNavigation
-        mode={mode}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
 
       <AnimatePresence>
         {showWizard && (
