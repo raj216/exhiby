@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, User } from "lucide-react";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { ScheduledCard } from "./ScheduledCard";
@@ -8,6 +8,8 @@ import { LiveTicketPreview } from "./LiveTicketPreview";
 import { ScheduledEventPage } from "./ScheduledEventPage";
 import { CreatorStatus } from "./StudioCard";
 import { createMockTiming } from "@/hooks/useEventStatus";
+import { LiveRoomPortal } from "./LiveRoomPortal";
+import { PaymentDrawer } from "./PaymentDrawer";
 
 interface HomeScreenProps {
   onGoLive: () => void;
@@ -17,8 +19,18 @@ interface HomeScreenProps {
   onOpenSearch?: () => void;
 }
 
+// Live now events data
+interface LiveEvent {
+  id: string;
+  coverImage: string;
+  title: string;
+  price: number;
+  viewers: number;
+  artistName: string;
+}
+
 // Mock data with timing-based status
-const liveNowEvents = [
+const liveNowEvents: LiveEvent[] = [
   {
     id: "1",
     coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
@@ -75,28 +87,28 @@ const scheduledEvents = [
 
 // Curated rows with timing-based status
 const masterclasses: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop", artistName: "Mia Torres", timing: createMockTiming(-30, 90), eventTitle: "Color Theory Masterclass", price: 5 }, // Live (started 30 min ago)
-  { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo", timing: createMockTiming(240), eventTitle: "Charcoal Techniques", price: 10 }, // Today in 4 hours
-  { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin", timing: createMockTiming(-180, 60) }, // Ended
-  { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka", timing: createMockTiming(1440), eventTitle: "Ink Wash Painting", price: 15 }, // Tomorrow
+  { id: "1", image: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop", artistName: "Mia Torres", timing: createMockTiming(-30, 90), eventTitle: "Color Theory Masterclass", price: 5 },
+  { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo", timing: createMockTiming(240), eventTitle: "Charcoal Techniques", price: 10 },
+  { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin", timing: createMockTiming(-180, 60) },
+  { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka", timing: createMockTiming(1440), eventTitle: "Ink Wash Painting", price: 15 },
 ];
 
 const freshEasel: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop", artistName: "Ana Perez", timing: createMockTiming(-10, 60), eventTitle: "Unveiling: Ocean Series", price: 0 }, // Live
-  { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris", timing: createMockTiming(-120, 60) }, // Ended
-  { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov", timing: createMockTiming(-90, 60) }, // Ended
-  { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen", timing: createMockTiming(2880), eventTitle: "New Collection Drop", price: 5 }, // 2 days
+  { id: "1", image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop", artistName: "Ana Perez", timing: createMockTiming(-10, 60), eventTitle: "Unveiling: Ocean Series", price: 0 },
+  { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris", timing: createMockTiming(-120, 60) },
+  { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov", timing: createMockTiming(-90, 60) },
+  { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen", timing: createMockTiming(2880), eventTitle: "New Collection Drop", price: 5 },
 ];
 
 const handcraft: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=200&fit=crop", artistName: "Ava Simmons", timing: createMockTiming(-200, 60) }, // Ended
-  { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright", timing: createMockTiming(-15, 90), eventTitle: "Pottery Throwing Session", price: 8 }, // Live
-  { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg", timing: createMockTiming(180), eventTitle: "Weaving Workshop", price: 12 }, // 3 hours
-  { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", timing: createMockTiming(-300, 60) }, // Ended
+  { id: "1", image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=200&fit=crop", artistName: "Ava Simmons", timing: createMockTiming(-200, 60) },
+  { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright", timing: createMockTiming(-15, 90), eventTitle: "Pottery Throwing Session", price: 8 },
+  { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg", timing: createMockTiming(180), eventTitle: "Weaving Workshop", price: 12 },
+  { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", timing: createMockTiming(-300, 60) },
 ];
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch }: HomeScreenProps) {
-  // State for live ticket preview
+  // State for live ticket preview (for curated rows)
   const [liveTicketOpen, setLiveTicketOpen] = useState(false);
   const [selectedLiveItem, setSelectedLiveItem] = useState<CuratedItem | null>(null);
 
@@ -104,7 +116,43 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   const [eventPageOpen, setEventPageOpen] = useState(false);
   const [selectedScheduledItem, setSelectedScheduledItem] = useState<CuratedItem | null>(null);
 
-  // Handle card tap based on status
+  // State for portal flow (Live Now cards)
+  const [portalEvent, setPortalEvent] = useState<LiveEvent | null>(null);
+  const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
+  const [showLiveRoom, setShowLiveRoom] = useState(false);
+
+  // Handle Live Now card tap - Portal flow
+  const handleLiveCardTap = (event: LiveEvent) => {
+    setPortalEvent(event);
+    
+    if (event.price > 0) {
+      // Ticketed - show payment drawer first
+      setShowPaymentDrawer(true);
+    } else {
+      // Free - go directly to portal
+      setShowLiveRoom(true);
+    }
+  };
+
+  // Handle payment success
+  const handlePaymentSuccess = () => {
+    setShowPaymentDrawer(false);
+    // Small delay for smooth transition
+    setTimeout(() => {
+      setShowLiveRoom(true);
+    }, 100);
+  };
+
+  // Handle closing live room
+  const handleCloseLiveRoom = () => {
+    setShowLiveRoom(false);
+    // Reset portal event after animation
+    setTimeout(() => {
+      setPortalEvent(null);
+    }, 400);
+  };
+
+  // Handle card tap based on status (for curated rows)
   const handleCardTap = (item: CuratedItem, status: CreatorStatus) => {
     if (status === "live") {
       setSelectedLiveItem(item);
@@ -167,7 +215,11 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
             >
-              <LiveMarqueeCard {...event} />
+              <LiveMarqueeCard 
+                {...event} 
+                onClick={() => handleLiveCardTap(event)}
+                layoutId={`room-card-${event.id}`}
+              />
             </motion.div>
           ))}
         </div>
@@ -221,8 +273,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         />
       </section>
 
-
-      {/* Live Ticket Preview Slide-up */}
+      {/* Live Ticket Preview Slide-up (for curated rows) */}
       {selectedLiveItem && (
         <LiveTicketPreview
           isOpen={liveTicketOpen}
@@ -250,6 +301,36 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           hasTrailer={true}
         />
       )}
+
+      {/* Payment Drawer for ticketed Live Now events */}
+      {portalEvent && (
+        <PaymentDrawer
+          isOpen={showPaymentDrawer}
+          onClose={() => {
+            setShowPaymentDrawer(false);
+            setPortalEvent(null);
+          }}
+          onPaymentSuccess={handlePaymentSuccess}
+          price={portalEvent.price}
+          eventTitle={portalEvent.title}
+          artistName={portalEvent.artistName}
+          coverImage={portalEvent.coverImage}
+        />
+      )}
+
+      {/* Portal Live Room */}
+      <AnimatePresence>
+        {showLiveRoom && portalEvent && (
+          <LiveRoomPortal
+            eventId={portalEvent.id}
+            coverImage={portalEvent.coverImage}
+            title={portalEvent.title}
+            artistName={portalEvent.artistName}
+            viewers={portalEvent.viewers}
+            onClose={handleCloseLiveRoom}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
