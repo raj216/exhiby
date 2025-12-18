@@ -3,32 +3,44 @@ import { triggerClickHaptic } from "@/lib/haptics";
 import { LiveBadge } from "./EventStatusBadge";
 
 interface LiveMarqueeCardProps {
+  id: string;
   coverImage: string;
   title: string;
   price: number;
   viewers: number;
   artistName: string;
   onClick?: () => void;
+  layoutId?: string;
 }
 
 export function LiveMarqueeCard({
+  id,
   coverImage,
   title,
   price,
   viewers,
   artistName,
   onClick,
+  layoutId,
 }: LiveMarqueeCardProps) {
-  const handleJoin = () => {
+  const handleJoin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerClickHaptic();
+    onClick?.();
+  };
+
+  const handleCardTap = () => {
     triggerClickHaptic();
     onClick?.();
   };
 
   return (
     <motion.div
-      className="poster-card w-72 flex-shrink-0 snap-center"
+      layoutId={layoutId || `room-card-${id}`}
+      className="poster-card w-72 flex-shrink-0 snap-center cursor-pointer"
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
+      onClick={handleCardTap}
     >
       {/* Background - simulated blurred video */}
       <div className="absolute inset-0 bg-gradient-to-b from-obsidian/50 to-carbon">
