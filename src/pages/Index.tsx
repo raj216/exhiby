@@ -75,7 +75,7 @@ function IndexContent() {
   // Creator Profile (viewing another creator)
   if (currentScreen === "creatorProfile") {
     return (
-      <div className="max-w-md mx-auto min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
         <CreatorProfile onBack={handleBack} />
       </div>
     );
@@ -84,7 +84,7 @@ function IndexContent() {
   // User's own Profile (Audience Passport or Creator Studio Dashboard)
   if (currentScreen === "profile") {
     return (
-      <div className="max-w-md mx-auto min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
         <ProfileScreen 
           onBack={() => {
             setCurrentScreen("home");
@@ -97,7 +97,7 @@ function IndexContent() {
   }
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Toaster position="top-center" />
       
       <HomeScreen 

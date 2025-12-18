@@ -11,8 +11,10 @@ import { LiveRoomPortal } from "./LiveRoomPortal";
 import { PaymentDrawer } from "./PaymentDrawer";
 import { DesktopHeader } from "./DesktopHeader";
 import { DesktopSidebar } from "./DesktopSidebar";
-import { FloatingActionButton } from "./FloatingActionButton";
+import { LeftSidebar } from "./LeftSidebar";
 import { CarouselWithArrows } from "./CarouselWithArrows";
+import { BottomNavigation } from "./BottomNavigation";
+import { useUserMode } from "@/contexts/UserModeContext";
 import { ChevronRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -159,6 +161,8 @@ const handcraft: CuratedItem[] = [
 ];
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch }: HomeScreenProps) {
+  const { mode } = useUserMode();
+  const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
   const [liveTicketOpen, setLiveTicketOpen] = useState(false);
   const [selectedLiveItem, setSelectedLiveItem] = useState<CuratedItem | null>(null);
   const [eventPageOpen, setEventPageOpen] = useState(false);
@@ -166,6 +170,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   const [portalEvent, setPortalEvent] = useState<LiveEvent | null>(null);
   const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
   const [showLiveRoom, setShowLiveRoom] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | undefined>();
 
   const handleLiveCardTap = (event: LiveEvent) => {
     setPortalEvent(event);
@@ -212,102 +217,121 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   };
 
   return (
-    <div className="min-h-screen bg-carbon">
-      {/* Desktop Header */}
-      <DesktopHeader
-        onOpenSearch={onOpenSearch}
-        onViewProfile={onViewAudienceProfile}
-        onGoLive={onGoLive}
+    <div className="min-h-screen bg-carbon flex">
+      {/* Left Sidebar - Desktop only */}
+      <LeftSidebar 
+        onSelectCategory={setActiveCategory}
+        activeCategory={activeCategory}
       />
 
-      {/* Main Layout Container */}
-      <div className="max-w-screen-2xl mx-auto">
-        <div className="flex">
-          {/* Main Content Area */}
-          <main className="flex-1 min-w-0 pb-24 lg:pb-8">
-            {/* Section A: Live Now */}
-            <section className="py-6">
-              <div className="flex items-center justify-between px-4 lg:px-8 mb-4">
-                <div>
-                  <h2 className="font-display text-xl lg:text-2xl text-foreground">Live Now</h2>
-                  <p className="text-sm text-muted-foreground">Step into a studio</p>
+      {/* Main Content Wrapper */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Desktop Header - spans remaining width */}
+        <DesktopHeader
+          onOpenSearch={onOpenSearch}
+          onViewProfile={onViewAudienceProfile}
+          onGoLive={onGoLive}
+          hideLogo={true}
+        />
+
+        {/* Main Layout Container */}
+        <div className="flex-1">
+          <div className="flex">
+            {/* Main Content Area */}
+            <main className="flex-1 min-w-0 pb-24 lg:pb-8">
+              {/* Section A: Live Now */}
+              <section className="py-6">
+                <div className="flex items-center justify-between px-4 lg:px-6 mb-4">
+                  <div>
+                    <h2 className="font-display text-xl lg:text-2xl text-foreground">Live Now</h2>
+                    <p className="text-sm text-muted-foreground">Step into a studio</p>
+                  </div>
+                  <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
+                    See all <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
-                <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
-                  See all <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
 
-              <div className="px-4 lg:px-8">
-                <CarouselWithArrows>
-                  {liveNowEvents.map((event, index) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="snap-start flex-shrink-0 w-[65vw] sm:w-[45vw] md:w-[280px] lg:w-[240px] xl:w-[260px]"
-                    >
-                      <LiveMarqueeCard
-                        {...event}
-                        onClick={() => handleLiveCardTap(event)}
-                        layoutId={`room-card-${event.id}`}
-                      />
-                    </motion.div>
-                  ))}
-                </CarouselWithArrows>
-              </div>
-            </section>
-
-            {/* Section B: Box Office */}
-            <section className="py-6 relative spotlight">
-              <div className="flex items-center justify-between px-4 lg:px-8 mb-4 relative z-10">
-                <div>
-                  <h2 className="font-display text-xl lg:text-2xl text-foreground">Box Office</h2>
-                  <p className="text-sm text-muted-foreground">Doors opening soon</p>
+                <div className="px-4 lg:px-6">
+                  <CarouselWithArrows>
+                    {liveNowEvents.map((event, index) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="snap-start flex-shrink-0 w-[65vw] sm:w-[45vw] md:w-[220px] lg:w-[200px] xl:w-[220px]"
+                      >
+                        <LiveMarqueeCard
+                          {...event}
+                          onClick={() => handleLiveCardTap(event)}
+                          layoutId={`room-card-${event.id}`}
+                        />
+                      </motion.div>
+                    ))}
+                  </CarouselWithArrows>
                 </div>
-                <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
-                  See all <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              </section>
 
-              <div className="px-4 lg:px-8 relative z-10">
-                <CarouselWithArrows>
-                  {scheduledEvents.map((event, index) => (
-                    <motion.div
-                      key={event.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="snap-start flex-shrink-0 w-[40vw] sm:w-[30vw] md:w-[180px] lg:w-[160px] xl:w-[180px]"
-                    >
-                      <ScheduledCard
-                        coverImage={event.coverImage}
-                        title={event.title}
-                        price={event.price}
-                        artistName={event.artistName}
-                        timing={event.timing}
-                      />
-                    </motion.div>
-                  ))}
-                </CarouselWithArrows>
-              </div>
-            </section>
+              {/* Section B: Box Office */}
+              <section className="py-6 relative spotlight">
+                <div className="flex items-center justify-between px-4 lg:px-6 mb-4 relative z-10">
+                  <div>
+                    <h2 className="font-display text-xl lg:text-2xl text-foreground">Box Office</h2>
+                    <p className="text-sm text-muted-foreground">Doors opening soon</p>
+                  </div>
+                  <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
+                    See all <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
 
-            {/* Section C: Curated Studio Rows */}
-            <section className="py-4">
-              <CuratedRow title="Masterclasses" items={masterclasses} onCardTap={handleCardTap} />
-              <CuratedRow title="Fresh off the Easel" items={freshEasel} onCardTap={handleCardTap} />
-              <CuratedRow title="Handcraft & Sculpture" items={handcraft} onCardTap={handleCardTap} />
-            </section>
-          </main>
+                <div className="px-4 lg:px-6 relative z-10">
+                  <CarouselWithArrows>
+                    {scheduledEvents.map((event, index) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="snap-start flex-shrink-0 w-[40vw] sm:w-[30vw] md:w-[160px] lg:w-[140px] xl:w-[160px]"
+                      >
+                        <ScheduledCard
+                          coverImage={event.coverImage}
+                          title={event.title}
+                          price={event.price}
+                          artistName={event.artistName}
+                          timing={event.timing}
+                        />
+                      </motion.div>
+                    ))}
+                  </CarouselWithArrows>
+                </div>
+              </section>
 
-          {/* Desktop Sidebar */}
-          <DesktopSidebar onRemind={handleRemind} />
+              {/* Section C: Curated Studio Rows */}
+              <section className="py-4">
+                <CuratedRow title="Masterclasses" items={masterclasses} onCardTap={handleCardTap} />
+                <CuratedRow title="Fresh off the Easel" items={freshEasel} onCardTap={handleCardTap} />
+                <CuratedRow title="Handcraft & Sculpture" items={handcraft} onCardTap={handleCardTap} />
+              </section>
+            </main>
+
+            {/* Desktop Right Sidebar */}
+            <DesktopSidebar onRemind={handleRemind} />
+          </div>
         </div>
-      </div>
 
-      {/* Floating Action Button - Mobile only */}
-      <FloatingActionButton onClick={onGoLive} />
+        {/* Bottom Navigation - Mobile only */}
+        <BottomNavigation
+          mode={mode}
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            if (tab === "passport" || tab === "profile") {
+              onViewAudienceProfile?.();
+            }
+          }}
+        />
+      </div>
 
       {/* Modals and Overlays */}
       {selectedLiveItem && (

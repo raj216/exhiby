@@ -105,7 +105,7 @@ export function CuratedRow({ title, items, onCardTap }: CuratedRowProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="snap-start flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-40 xl:w-44"
+              className="snap-start flex-shrink-0 w-28 sm:w-32 md:w-36 lg:w-32 xl:w-36"
             >
               <StudioCard
                 id={item.id}
