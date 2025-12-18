@@ -7,6 +7,7 @@ import { CuratedRow, CuratedItem } from "./CuratedRow";
 import { LiveTicketPreview } from "./LiveTicketPreview";
 import { ScheduledEventPage } from "./ScheduledEventPage";
 import { CreatorStatus } from "./StudioCard";
+import { createMockTiming } from "@/hooks/useEventStatus";
 
 interface HomeScreenProps {
   onGoLive: () => void;
@@ -16,7 +17,7 @@ interface HomeScreenProps {
   onOpenSearch?: () => void;
 }
 
-// Mock data
+// Mock data with timing-based status
 const liveNowEvents = [
   {
     id: "1",
@@ -44,6 +45,7 @@ const liveNowEvents = [
   },
 ];
 
+// Scheduled events with dynamic timing
 const scheduledEvents = [
   {
     id: "1",
@@ -51,7 +53,7 @@ const scheduledEvents = [
     title: "Portrait Sketching",
     price: 5,
     artistName: "Alex Rivera",
-    startsIn: "15 min",
+    timing: createMockTiming(15), // Starts in 15 min
   },
   {
     id: "2",
@@ -59,7 +61,7 @@ const scheduledEvents = [
     title: "Oil Painting Basics",
     price: 10,
     artistName: "Emma Liu",
-    startsIn: "1 hour",
+    timing: createMockTiming(60), // Starts in 1 hour
   },
   {
     id: "3",
@@ -67,30 +69,30 @@ const scheduledEvents = [
     title: "Digital Art Stream",
     price: 0,
     artistName: "Jay Kim",
-    startsIn: "2 hours",
+    timing: createMockTiming(120), // Starts in 2 hours
   },
 ];
 
-// Curated rows with status information
+// Curated rows with timing-based status
 const masterclasses: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop", artistName: "Mia Torres", status: "live", eventTitle: "Color Theory Masterclass", price: 5 },
-  { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo", status: "scheduled", scheduledTime: "Today 8 PM", eventTitle: "Charcoal Techniques", price: 10 },
-  { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin", status: "offline" },
-  { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka", status: "scheduled", scheduledTime: "Tomorrow", eventTitle: "Ink Wash Painting", price: 15 },
+  { id: "1", image: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop", artistName: "Mia Torres", timing: createMockTiming(-30, 90), eventTitle: "Color Theory Masterclass", price: 5 }, // Live (started 30 min ago)
+  { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo", timing: createMockTiming(240), eventTitle: "Charcoal Techniques", price: 10 }, // Today in 4 hours
+  { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin", timing: createMockTiming(-180, 60) }, // Ended
+  { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka", timing: createMockTiming(1440), eventTitle: "Ink Wash Painting", price: 15 }, // Tomorrow
 ];
 
 const freshEasel: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop", artistName: "Ana Perez", status: "live", eventTitle: "Unveiling: Ocean Series", price: 0 },
-  { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris", status: "offline" },
-  { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov", status: "offline" },
-  { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen", status: "scheduled", scheduledTime: "Fri 6 PM", eventTitle: "New Collection Drop", price: 5 },
+  { id: "1", image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop", artistName: "Ana Perez", timing: createMockTiming(-10, 60), eventTitle: "Unveiling: Ocean Series", price: 0 }, // Live
+  { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris", timing: createMockTiming(-120, 60) }, // Ended
+  { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov", timing: createMockTiming(-90, 60) }, // Ended
+  { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen", timing: createMockTiming(2880), eventTitle: "New Collection Drop", price: 5 }, // 2 days
 ];
 
 const handcraft: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=200&fit=crop", artistName: "Ava Simmons", status: "offline" },
-  { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright", status: "live", eventTitle: "Pottery Throwing Session", price: 8 },
-  { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg", status: "scheduled", scheduledTime: "Sat 3 PM", eventTitle: "Weaving Workshop", price: 12 },
-  { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", status: "offline" },
+  { id: "1", image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=200&fit=crop", artistName: "Ava Simmons", timing: createMockTiming(-200, 60) }, // Ended
+  { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright", timing: createMockTiming(-15, 90), eventTitle: "Pottery Throwing Session", price: 8 }, // Live
+  { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg", timing: createMockTiming(180), eventTitle: "Weaving Workshop", price: 12 }, // 3 hours
+  { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", timing: createMockTiming(-300, 60) }, // Ended
 ];
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch }: HomeScreenProps) {
@@ -188,7 +190,13 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <ScheduledCard {...event} />
+              <ScheduledCard 
+                coverImage={event.coverImage}
+                title={event.title}
+                price={event.price}
+                artistName={event.artistName}
+                timing={event.timing}
+              />
             </motion.div>
           ))}
         </div>

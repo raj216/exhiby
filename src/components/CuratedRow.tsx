@@ -1,12 +1,16 @@
 import { ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { StudioCard, CreatorStatus } from "./StudioCard";
+import { EventTiming } from "@/hooks/useEventStatus";
 
 export interface CuratedItem {
   id: string;
   image: string;
   artistName: string;
-  status: CreatorStatus;
+  // New timing-based status
+  timing?: EventTiming;
+  // Legacy status for backward compatibility
+  status?: CreatorStatus;
   scheduledTime?: string;
   eventTitle?: string;
   price?: number;
@@ -43,6 +47,7 @@ export function CuratedRow({ title, items, onCardTap }: CuratedRowProps) {
               id={item.id}
               image={item.image}
               artistName={item.artistName}
+              timing={item.timing}
               status={item.status}
               scheduledTime={item.scheduledTime}
               eventTitle={item.eventTitle}
