@@ -5,31 +5,37 @@ interface DesktopHeaderProps {
   onOpenSearch?: () => void;
   onViewProfile?: () => void;
   onGoLive?: () => void;
+  hideLogo?: boolean;
 }
 
-export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive }: DesktopHeaderProps) {
+export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo = false }: DesktopHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 glass border-b border-border/20">
-      <div className="max-w-screen-2xl mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-18">
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex-shrink-0"
-          >
-            <h1 className="font-display text-2xl lg:text-3xl text-gradient-electric">Exhiby</h1>
-          </motion.div>
+    <header className="sticky top-0 z-40 glass border-b border-border/20 w-full">
+      <div className="w-full px-4 lg:px-6 xl:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo - Hidden on desktop when left sidebar shows it */}
+          {!hideLogo && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex-shrink-0 lg:hidden"
+            >
+              <h1 className="font-display text-2xl text-gradient-electric">Exhiby</h1>
+            </motion.div>
+          )}
 
-          {/* Search Bar - Desktop only */}
+          {/* Spacer for desktop when logo is hidden */}
+          {hideLogo && <div className="hidden lg:block w-4" />}
+
+          {/* Search Bar - Centered and wider on desktop */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="hidden md:flex flex-1 max-w-xl mx-8"
+            className="hidden md:flex flex-1 max-w-2xl mx-4 lg:mx-8"
           >
             <button
               onClick={onOpenSearch}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-obsidian border border-border/30 hover:border-electric/50 transition-colors group"
+              className="w-full flex items-center gap-3 px-5 py-2.5 rounded-xl bg-obsidian border border-border/30 hover:border-electric/50 transition-colors group"
             >
               <Search className="w-4 h-4 text-muted-foreground group-hover:text-electric transition-colors" />
               <span className="text-sm text-muted-foreground">Search artists, events, styles...</span>

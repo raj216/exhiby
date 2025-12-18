@@ -29,8 +29,8 @@ interface DesktopSidebarProps {
 
 export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
   return (
-    <aside className="hidden lg:block w-80 xl:w-96 flex-shrink-0">
-      <div className="sticky top-20 space-y-6 p-4">
+    <aside className="hidden lg:block w-72 xl:w-80 flex-shrink-0">
+      <div className="sticky top-16 space-y-4 p-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
         {/* Trending Tags */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
