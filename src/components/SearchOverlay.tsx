@@ -143,7 +143,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 overflow-hidden"
+          className="fixed inset-0 z-50 overflow-hidden flex items-start md:items-center justify-center"
           style={{ height: '100dvh' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -152,20 +152,20 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
         >
           {/* Glass backdrop */}
           <motion.div
-            className="absolute inset-0 bg-carbon/90 backdrop-blur-xl"
+            className="absolute inset-0 bg-carbon/90 backdrop-blur-xl md:bg-carbon/80"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
 
-          {/* Search container - constrained to viewport */}
+          {/* Search container - full on mobile, centered modal on desktop */}
           <motion.div
-            className="relative z-10 flex flex-col max-h-[100dvh] h-full"
+            className="relative z-10 flex flex-col w-full h-full md:h-auto md:max-h-[80vh] md:max-w-2xl md:mx-4 md:rounded-2xl md:border md:border-border/30 md:bg-carbon/95 md:backdrop-blur-2xl md:shadow-2xl"
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -20, opacity: 0 }}
+            initial={{ y: -20, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: -20, opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
           >
             {/* Search Bar Header */}
@@ -203,7 +203,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
             </div>
 
             {/* Content Area - scrollable within viewport */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4 md:px-6 md:pb-6">
               <AnimatePresence mode="wait">
                 {!query.trim() ? (
                   /* Discovery State */
@@ -251,7 +251,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                     {/* Recommended Categories */}
                     <section>
                       <h3 className="font-display text-xs text-muted-foreground mb-2 uppercase tracking-wider">Categories</h3>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {recommendedCategories.map((cat) => (
                           <button
                             key={cat.id}

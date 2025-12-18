@@ -81,6 +81,8 @@ export function AudienceProfile({
 
   return (
     <div className="min-h-screen bg-carbon">
+      {/* Main Container */}
+      <div className="max-w-screen-xl mx-auto lg:px-8">
       {/* Header */}
       <div className="relative bg-gradient-to-b from-electric/10 to-carbon pt-12 pb-6 px-4">
         {/* Controls */}
@@ -209,7 +211,7 @@ export function AudienceProfile({
 
       {/* Tabs */}
       <div className="border-b border-border/50 overflow-x-auto scrollbar-hide">
-        <div className="flex min-w-max">
+        <div className="flex min-w-max max-w-2xl mx-auto lg:justify-center lg:gap-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -217,7 +219,7 @@ export function AudienceProfile({
                 triggerClickHaptic();
                 setActiveTab(tab.id);
               }}
-              className={`flex-1 min-w-[80px] py-3 text-xs font-semibold relative transition-colors flex flex-col items-center gap-1 ${
+              className={`flex-1 min-w-[80px] lg:min-w-[100px] py-3 text-xs font-semibold relative transition-colors flex flex-col items-center gap-1 ${
                 activeTab === tab.id
                   ? "text-foreground"
                   : "text-muted-foreground"
@@ -237,7 +239,7 @@ export function AudienceProfile({
       </div>
 
       {/* Tab Content */}
-      <div className="pb-24">
+      <div className="pb-24 lg:pb-8 max-w-4xl mx-auto">
         <AnimatePresence mode="wait">
           {/* Tickets (My Wallet) */}
           {activeTab === "tickets" && (
@@ -336,7 +338,7 @@ export function AudienceProfile({
                   <p className="text-muted-foreground">No art collected yet</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                   {filteredArt.map((art, index) => (
                     <motion.div
                       key={art.id}
@@ -398,7 +400,7 @@ export function AudienceProfile({
               <p className="text-sm text-muted-foreground mb-4">
                 Your collection of event badges
               </p>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
                 {mockBadges.map((badge, index) => (
                   <EventBadge
                     key={badge.id}
@@ -479,6 +481,7 @@ export function AudienceProfile({
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </div>
     </div>
   );

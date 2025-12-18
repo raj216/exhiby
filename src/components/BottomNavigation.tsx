@@ -33,9 +33,9 @@ export function BottomNavigation({ mode, activeTab, onTabChange }: BottomNavigat
     <motion.div
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto"
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
     >
-      <div className="bg-carbon/95 backdrop-blur-xl border-t border-border/30 px-2 pb-6 pt-2">
+      <div className="bg-carbon/95 backdrop-blur-xl border-t border-border/30 px-2 pb-6 pt-2 max-w-lg mx-auto">
         <div className="flex items-center justify-around">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
