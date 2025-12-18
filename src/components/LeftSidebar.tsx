@@ -1,15 +1,16 @@
 import { motion } from "framer-motion";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { triggerHaptic } from "@/lib/haptics";
+import { Pencil, Droplets, Palette, Brush, Scissors, Container, Gem } from "lucide-react";
 
 const categories = [
-  { id: "1", name: "Pencil Art" },
-  { id: "2", name: "Watercolor" },
-  { id: "3", name: "Oil Painting" },
-  { id: "4", name: "Acrylic" },
-  { id: "5", name: "Handmade Art" },
-  { id: "6", name: "Pottery" },
-  { id: "7", name: "Jewelry" },
+  { id: "1", name: "Pencil Art", icon: Pencil },
+  { id: "2", name: "Watercolor", icon: Droplets },
+  { id: "3", name: "Oil Painting", icon: Palette },
+  { id: "4", name: "Acrylic", icon: Brush },
+  { id: "5", name: "Handmade Art", icon: Scissors },
+  { id: "6", name: "Pottery", icon: Container },
+  { id: "7", name: "Jewelry", icon: Gem },
 ];
 
 interface LeftSidebarProps {
@@ -39,25 +40,29 @@ export function LeftSidebar({ onSelectCategory, activeCategory }: LeftSidebarPro
           Categories
         </p>
         <div className="space-y-1">
-          {categories.map((cat, index) => (
-            <motion.button
-              key={cat.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.03 }}
-              onClick={() => {
-                triggerHaptic("light");
-                onSelectCategory?.(cat.name);
-              }}
-              className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeCategory === cat.name
-                  ? "bg-electric/10 text-electric border border-electric/30"
-                  : "text-foreground hover:bg-obsidian hover:text-foreground"
-              }`}
-            >
-              {cat.name}
-            </motion.button>
-          ))}
+          {categories.map((cat, index) => {
+            const IconComponent = cat.icon;
+            return (
+              <motion.button
+                key={cat.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.03 }}
+                onClick={() => {
+                  triggerHaptic("light");
+                  onSelectCategory?.(cat.name);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  activeCategory === cat.name
+                    ? "bg-electric/15 text-electric border border-electric/30"
+                    : "text-foreground/80 hover:bg-white/5 hover:text-foreground"
+                }`}
+              >
+                <IconComponent className={`w-4 h-4 ${activeCategory === cat.name ? "text-electric" : "text-muted-foreground"}`} />
+                {cat.name}
+              </motion.button>
+            );
+          })}
         </div>
       </nav>
 
