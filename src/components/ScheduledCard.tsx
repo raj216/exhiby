@@ -2,13 +2,18 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, BellRing, Clock } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { EventStatusBadge } from "./EventStatusBadge";
+import { useEventStatus, EventTiming } from "@/hooks/useEventStatus";
 
 interface ScheduledCardProps {
   coverImage: string;
   title: string;
   price: number;
   artistName: string;
-  startsIn: string;
+  // New timing-based prop
+  timing?: EventTiming;
+  // Legacy prop for backward compatibility
+  startsIn?: string;
 }
 
 export function ScheduledCard({
@@ -16,14 +21,21 @@ export function ScheduledCard({
   title,
   price,
   artistName,
+  timing,
   startsIn,
 }: ScheduledCardProps) {
   const [reminded, setReminded] = useState(false);
+  
+  // Use the new event status hook if timing is provided
+  const eventStatus = useEventStatus(timing || null);
 
   const handleRemind = () => {
     triggerClickHaptic();
     setReminded(!reminded);
   };
+
+  // Get countdown label from hook or fallback to startsIn
+  const countdownLabel = timing ? eventStatus.countdownLabel : startsIn;
 
   return (
     <motion.div
@@ -40,12 +52,23 @@ export function ScheduledCard({
             alt={title}
             className="w-full h-full object-cover"
           />
-          {/* Time Badge */}
-          <div className="absolute top-2 left-2 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full glass">
-            <Clock className="w-3 h-3 text-electric flex-shrink-0" />
-            <span className="text-xs font-medium text-foreground whitespace-nowrap leading-none">
-              {startsIn}
-            </span>
+          
+          {/* Status Badge */}
+          <div className="absolute top-2 left-2">
+            {timing ? (
+              <EventStatusBadge
+                status={eventStatus.status}
+                countdownLabel={eventStatus.countdownLabel}
+                size="sm"
+              />
+            ) : (
+              <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full glass min-h-[28px]">
+                <Clock className="w-3 h-3 text-electric flex-shrink-0" />
+                <span className="text-xs font-medium text-foreground whitespace-nowrap leading-none">
+                  {countdownLabel}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

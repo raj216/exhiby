@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { LiveBadge } from "./EventStatusBadge";
 
 interface LiveMarqueeCardProps {
   coverImage: string;
@@ -47,16 +48,9 @@ export function LiveMarqueeCard({
         />
       </div>
 
-      {/* Top Badge - LIVE with Hyper-Crimson glow */}
-      <div className="absolute top-6 left-6 flex items-center gap-2 px-3 py-1.5 rounded-full glass">
-        <div className="relative">
-          <div className="w-2 h-2 rounded-full bg-crimson" />
-          <div className="absolute inset-0 w-2 h-2 rounded-full bg-crimson animate-ping" />
-        </div>
-        <span className="text-xs font-semibold text-foreground">LIVE</span>
-        <span className="text-xs text-muted-foreground">
-          {viewers} watching
-        </span>
+      {/* Top Badge - LIVE with viewer count */}
+      <div className="absolute top-6 left-6">
+        <LiveBadge viewers={viewers} size="md" />
       </div>
 
       {/* Bottom Info */}
