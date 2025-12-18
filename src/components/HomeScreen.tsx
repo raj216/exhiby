@@ -55,6 +55,30 @@ const liveNowEvents: LiveEvent[] = [
     viewers: 34,
     artistName: "Luna Park",
   },
+  {
+    id: "4",
+    coverImage: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=400&h=600&fit=crop",
+    title: "Ceramic Sculpting",
+    price: 0,
+    viewers: 89,
+    artistName: "Maya Rodriguez",
+  },
+  {
+    id: "5",
+    coverImage: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=400&h=600&fit=crop",
+    title: "Acrylic Pour Art",
+    price: 8,
+    viewers: 156,
+    artistName: "Jake Thompson",
+  },
+  {
+    id: "6",
+    coverImage: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&h=600&fit=crop",
+    title: "Figure Drawing Live",
+    price: 0,
+    viewers: 234,
+    artistName: "Elena Volkov",
+  },
 ];
 
 // Scheduled events with dynamic timing
@@ -208,14 +232,14 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         </div>
 
         {/* Horizontal scroll on mobile, grid on larger screens */}
-        <div className="scroll-snap-x gap-4 px-4 md:px-8 lg:px-12 pb-4 md:grid md:grid-cols-3 lg:grid-cols-4 md:overflow-visible">
+        <div className="live-grid px-4 pb-4 md:px-8 lg:px-12 md:gap-5">
           {liveNowEvents.map((event, index) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="snap-start flex-shrink-0 md:flex-shrink"
+              transition={{ delay: index * 0.05 }}
+              className="snap-start flex-shrink-0 w-[65vw] max-w-[280px] md:w-auto md:max-w-none"
             >
               <LiveMarqueeCard 
                 {...event} 
@@ -236,14 +260,14 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           </div>
         </div>
 
-        <div className="scroll-snap-x gap-3 px-4 md:px-8 lg:px-12 relative z-10 md:grid md:grid-cols-3 lg:grid-cols-4 md:overflow-visible">
+        <div className="scheduled-grid px-4 pb-4 md:px-8 lg:px-12 md:gap-4 relative z-10">
           {scheduledEvents.map((event, index) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="snap-start flex-shrink-0 md:flex-shrink"
+              transition={{ delay: index * 0.05 }}
+              className="snap-start flex-shrink-0 w-[40vw] max-w-[180px] md:w-auto md:max-w-none"
             >
               <ScheduledCard 
                 coverImage={event.coverImage}

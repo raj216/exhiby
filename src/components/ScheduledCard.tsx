@@ -39,7 +39,7 @@ export function ScheduledCard({
 
   return (
     <motion.div
-      className="relative w-44 flex-shrink-0 snap-center"
+      className="relative w-full flex-shrink-0 snap-center"
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
