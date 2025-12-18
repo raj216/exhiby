@@ -176,20 +176,20 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   };
 
   return (
-    <div className="min-h-screen bg-carbon pb-8">
+    <div className="min-h-screen bg-carbon pb-8 max-w-7xl mx-auto">
       {/* Header */}
       <header className="sticky top-0 z-30 glass">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="font-display text-2xl text-gradient-electric">Exhiby</h1>
+        <div className="flex items-center justify-between p-4 md:px-8 lg:px-12">
+          <h1 className="font-display text-2xl md:text-3xl text-gradient-electric">Exhiby</h1>
           <div className="flex items-center gap-3">
             <button 
-              className="p-2 rounded-full bg-obsidian border border-border/30"
+              className="p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors"
               onClick={onOpenSearch}
             >
               <Search className="w-5 h-5 text-muted-foreground" />
             </button>
             <button 
-              className="p-2 rounded-full bg-obsidian border border-border/30"
+              className="p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors"
               onClick={onViewAudienceProfile}
             >
               <User className="w-5 h-5 text-muted-foreground" />
@@ -200,20 +200,22 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
 
       {/* Section A: The Marquee - LIVE NOW */}
       <section className="mb-8">
-        <div className="flex items-center justify-between px-4 mb-4">
+        <div className="flex items-center justify-between px-4 md:px-8 lg:px-12 mb-4">
           <div>
-            <h2 className="font-display text-xl text-foreground">Live Now</h2>
+            <h2 className="font-display text-xl md:text-2xl text-foreground">Live Now</h2>
             <p className="text-sm text-muted-foreground">Step into a studio</p>
           </div>
         </div>
 
-        <div className="scroll-snap-x gap-4 px-4 pb-4">
+        {/* Horizontal scroll on mobile, grid on larger screens */}
+        <div className="scroll-snap-x gap-4 px-4 md:px-8 lg:px-12 pb-4 md:grid md:grid-cols-3 lg:grid-cols-4 md:overflow-visible">
           {liveNowEvents.map((event, index) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
+              className="snap-start flex-shrink-0 md:flex-shrink"
             >
               <LiveMarqueeCard 
                 {...event} 
@@ -227,20 +229,21 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
 
       {/* Section B: The Box Office - SCHEDULED with Spotlight Effect */}
       <section className="mb-8 relative spotlight">
-        <div className="flex items-center justify-between px-4 mb-4 relative z-10">
+        <div className="flex items-center justify-between px-4 md:px-8 lg:px-12 mb-4 relative z-10">
           <div>
-            <h2 className="font-display text-xl text-foreground">Box Office</h2>
+            <h2 className="font-display text-xl md:text-2xl text-foreground">Box Office</h2>
             <p className="text-sm text-muted-foreground">Doors opening soon</p>
           </div>
         </div>
 
-        <div className="scroll-snap-x gap-3 px-4 relative z-10">
+        <div className="scroll-snap-x gap-3 px-4 md:px-8 lg:px-12 relative z-10 md:grid md:grid-cols-3 lg:grid-cols-4 md:overflow-visible">
           {scheduledEvents.map((event, index) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
+              className="snap-start flex-shrink-0 md:flex-shrink"
             >
               <ScheduledCard 
                 coverImage={event.coverImage}
