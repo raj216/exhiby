@@ -166,6 +166,32 @@
     display: none;
   }
 
+  /* Responsive Grid for Live Cards */
+  .live-grid {
+    @apply flex gap-4 overflow-x-auto snap-x snap-mandatory;
+  }
+
+  @media (min-width: 768px) {
+    .live-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      overflow: visible;
+    }
+  }
+
+  /* Responsive Grid for Scheduled Cards */
+  .scheduled-grid {
+    @apply flex gap-3 overflow-x-auto snap-x snap-mandatory;
+  }
+
+  @media (min-width: 768px) {
+    .scheduled-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      overflow: visible;
+    }
+  }
+
   /* Glassmorphism - Frosted Black Glass */
   .glass {
     @apply backdrop-blur-2xl;
