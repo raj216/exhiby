@@ -78,6 +78,9 @@
   }
 
   body {
+    @apply max-w-md mx-auto;
+    min-height: 100dvh;
+    position: relative;
     @apply bg-background text-foreground antialiased;
     font-family: 'Satoshi', sans-serif;
     overflow-x: hidden;
