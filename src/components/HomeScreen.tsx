@@ -86,6 +86,22 @@ const liveNowEvents: LiveEvent[] = [
     viewers: 234,
     artistName: "Elena Volkov",
   },
+  {
+    id: "7",
+    coverImage: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=600&fit=crop",
+    title: "Portrait Mastery",
+    price: 12,
+    viewers: 78,
+    artistName: "Nina Chen",
+  },
+  {
+    id: "8",
+    coverImage: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=400&h=600&fit=crop",
+    title: "Ink Wash Techniques",
+    price: 0,
+    viewers: 145,
+    artistName: "Tom Harris",
+  },
 ];
 
 // Scheduled events with dynamic timing
@@ -251,15 +267,16 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                   </button>
                 </div>
 
-                <div className="px-4 lg:px-6">
-                  <CarouselWithArrows>
+                {/* Mobile: Horizontal scroll carousel */}
+                <div className="px-4 lg:hidden">
+                  <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
                     {liveNowEvents.map((event, index) => (
                       <motion.div
                         key={event.id}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.05 }}
-                        className="snap-start flex-shrink-0 w-[65vw] sm:w-[45vw] md:w-[220px] lg:w-[200px] xl:w-[220px]"
+                        className="snap-start flex-shrink-0 w-[65vw] sm:w-[45vw]"
                       >
                         <LiveMarqueeCard
                           {...event}
@@ -268,7 +285,27 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                         />
                       </motion.div>
                     ))}
-                  </CarouselWithArrows>
+                  </div>
+                </div>
+
+                {/* Desktop: Responsive grid - 4 columns, max 2 rows */}
+                <div className="hidden lg:block px-6">
+                  <div className="grid grid-cols-4 gap-4 xl:gap-5">
+                    {liveNowEvents.slice(0, 8).map((event, index) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.03 }}
+                      >
+                        <LiveMarqueeCard
+                          {...event}
+                          onClick={() => handleLiveCardTap(event)}
+                          layoutId={`room-card-${event.id}`}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               </section>
 
@@ -315,8 +352,10 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
               </section>
             </main>
 
-            {/* Desktop Right Sidebar */}
-            <DesktopSidebar onRemind={handleRemind} />
+            {/* Desktop Right Sidebar - narrower now */}
+            <div className="hidden lg:block w-64 xl:w-72 flex-shrink-0">
+              <DesktopSidebar onRemind={handleRemind} />
+            </div>
           </div>
         </div>
 

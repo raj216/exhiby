@@ -7,15 +7,6 @@ const trendingTags = [
   "#Pottery", "#Digital", "#Portraits", "#Miniatures"
 ];
 
-const categories = [
-  { id: "1", name: "Pencil Drawing", count: 24 },
-  { id: "2", name: "Sculpture", count: 18 },
-  { id: "3", name: "Pottery", count: 31 },
-  { id: "4", name: "Oil Painting", count: 12 },
-  { id: "5", name: "Digital Art", count: 45 },
-  { id: "6", name: "Watercolor", count: 27 },
-];
-
 const upcomingEvents = [
   { id: "1", title: "Portrait Sketching", artist: "Alex Rivera", time: "15 min", price: 5 },
   { id: "2", title: "Oil Painting Basics", artist: "Emma Liu", time: "1 hour", price: 10 },
@@ -29,7 +20,7 @@ interface DesktopSidebarProps {
 
 export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
   return (
-    <aside className="hidden lg:block w-72 xl:w-80 flex-shrink-0">
+    <aside className="w-full">
       <div className="sticky top-16 space-y-4 p-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
         {/* Trending Tags */}
         <motion.div
@@ -50,33 +41,6 @@ export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
                 className="px-3 py-1.5 rounded-full bg-obsidian border border-border/30 text-xs text-foreground hover:border-electric/50 hover:text-electric transition-colors"
               >
                 {tag}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Recommended Categories */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-4"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display text-sm text-foreground">Categories</h3>
-            <button className="text-xs text-muted-foreground hover:text-electric transition-colors flex items-center gap-1">
-              See all <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="space-y-2">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => triggerHaptic("light")}
-                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-obsidian/50 hover:bg-obsidian border border-transparent hover:border-border/30 transition-all"
-              >
-                <span className="text-sm text-foreground">{cat.name}</span>
-                <span className="text-xs text-muted-foreground">{cat.count} live</span>
               </button>
             ))}
           </div>
