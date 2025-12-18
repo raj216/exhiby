@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, User } from "lucide-react";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { ScheduledCard } from "./ScheduledCard";
 import { CuratedRow, CuratedItem } from "./CuratedRow";
@@ -10,6 +9,12 @@ import { CreatorStatus } from "./StudioCard";
 import { createMockTiming } from "@/hooks/useEventStatus";
 import { LiveRoomPortal } from "./LiveRoomPortal";
 import { PaymentDrawer } from "./PaymentDrawer";
+import { DesktopHeader } from "./DesktopHeader";
+import { DesktopSidebar } from "./DesktopSidebar";
+import { FloatingActionButton } from "./FloatingActionButton";
+import { CarouselWithArrows } from "./CarouselWithArrows";
+import { ChevronRight } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface HomeScreenProps {
   onGoLive: () => void;
@@ -89,7 +94,7 @@ const scheduledEvents = [
     title: "Portrait Sketching",
     price: 5,
     artistName: "Alex Rivera",
-    timing: createMockTiming(15), // Starts in 15 min
+    timing: createMockTiming(15),
   },
   {
     id: "2",
@@ -97,7 +102,7 @@ const scheduledEvents = [
     title: "Oil Painting Basics",
     price: 10,
     artistName: "Emma Liu",
-    timing: createMockTiming(60), // Starts in 1 hour
+    timing: createMockTiming(60),
   },
   {
     id: "3",
@@ -105,7 +110,23 @@ const scheduledEvents = [
     title: "Digital Art Stream",
     price: 0,
     artistName: "Jay Kim",
-    timing: createMockTiming(120), // Starts in 2 hours
+    timing: createMockTiming(120),
+  },
+  {
+    id: "4",
+    coverImage: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=300&h=300&fit=crop",
+    title: "Charcoal Techniques",
+    price: 8,
+    artistName: "David Okonkwo",
+    timing: createMockTiming(240),
+  },
+  {
+    id: "5",
+    coverImage: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=300&fit=crop",
+    title: "Ink Wash Painting",
+    price: 12,
+    artistName: "Sophie Martin",
+    timing: createMockTiming(1440),
   },
 ];
 
@@ -115,6 +136,8 @@ const masterclasses: CuratedItem[] = [
   { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo", timing: createMockTiming(240), eventTitle: "Charcoal Techniques", price: 10 },
   { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin", timing: createMockTiming(-180, 60) },
   { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka", timing: createMockTiming(1440), eventTitle: "Ink Wash Painting", price: 15 },
+  { id: "5", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200&h=200&fit=crop", artistName: "Luna Kim", timing: createMockTiming(-60, 90), eventTitle: "Portrait Mastery", price: 8 },
+  { id: "6", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=200&h=200&fit=crop", artistName: "Ben Wright", timing: createMockTiming(480), eventTitle: "Advanced Shading", price: 12 },
 ];
 
 const freshEasel: CuratedItem[] = [
@@ -122,6 +145,8 @@ const freshEasel: CuratedItem[] = [
   { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris", timing: createMockTiming(-120, 60) },
   { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov", timing: createMockTiming(-90, 60) },
   { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen", timing: createMockTiming(2880), eventTitle: "New Collection Drop", price: 5 },
+  { id: "5", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Rosa Martinez", timing: createMockTiming(-45, 90), eventTitle: "Abstract Forms", price: 0 },
+  { id: "6", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=200&h=200&fit=crop", artistName: "James Park", timing: createMockTiming(720), eventTitle: "Color Studies", price: 6 },
 ];
 
 const handcraft: CuratedItem[] = [
@@ -129,54 +154,38 @@ const handcraft: CuratedItem[] = [
   { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright", timing: createMockTiming(-15, 90), eventTitle: "Pottery Throwing Session", price: 8 },
   { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg", timing: createMockTiming(180), eventTitle: "Weaving Workshop", price: 12 },
   { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", timing: createMockTiming(-300, 60) },
+  { id: "5", image: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=200&h=200&fit=crop", artistName: "Eva Stone", timing: createMockTiming(360), eventTitle: "Ceramic Glazing", price: 10 },
+  { id: "6", image: "https://images.unsplash.com/photo-1531913764164-f85c52e6e654?w=200&h=200&fit=crop", artistName: "Frank Lee", timing: createMockTiming(-80, 120), eventTitle: "Clay Modeling", price: 0 },
 ];
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch }: HomeScreenProps) {
-  // State for live ticket preview (for curated rows)
   const [liveTicketOpen, setLiveTicketOpen] = useState(false);
   const [selectedLiveItem, setSelectedLiveItem] = useState<CuratedItem | null>(null);
-
-  // State for scheduled event page
   const [eventPageOpen, setEventPageOpen] = useState(false);
   const [selectedScheduledItem, setSelectedScheduledItem] = useState<CuratedItem | null>(null);
-
-  // State for portal flow (Live Now cards)
   const [portalEvent, setPortalEvent] = useState<LiveEvent | null>(null);
   const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
   const [showLiveRoom, setShowLiveRoom] = useState(false);
 
-  // Handle Live Now card tap - Portal flow
   const handleLiveCardTap = (event: LiveEvent) => {
     setPortalEvent(event);
-    
     if (event.price > 0) {
-      // Ticketed - show payment drawer first
       setShowPaymentDrawer(true);
     } else {
-      // Free - go directly to portal
       setShowLiveRoom(true);
     }
   };
 
-  // Handle payment success
   const handlePaymentSuccess = () => {
     setShowPaymentDrawer(false);
-    // Small delay for smooth transition
-    setTimeout(() => {
-      setShowLiveRoom(true);
-    }, 100);
+    setTimeout(() => setShowLiveRoom(true), 100);
   };
 
-  // Handle closing live room
   const handleCloseLiveRoom = () => {
     setShowLiveRoom(false);
-    // Reset portal event after animation
-    setTimeout(() => {
-      setPortalEvent(null);
-    }, 400);
+    setTimeout(() => setPortalEvent(null), 400);
   };
 
-  // Handle card tap based on status (for curated rows)
   const handleCardTap = (item: CuratedItem, status: CreatorStatus) => {
     if (status === "live") {
       setSelectedLiveItem(item);
@@ -185,7 +194,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       setSelectedScheduledItem(item);
       setEventPageOpen(true);
     } else {
-      // Offline - go to creator profile
       onViewCreatorProfile?.();
     }
   };
@@ -199,108 +207,109 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
     setEventPageOpen(false);
   };
 
+  const handleRemind = (eventId: string) => {
+    toast({ title: "Reminder Set!", description: "We'll notify you when this event starts." });
+  };
+
   return (
-    <div className="min-h-screen bg-carbon pb-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <header className="sticky top-0 z-30 glass">
-        <div className="flex items-center justify-between p-4 md:px-8 lg:px-12">
-          <h1 className="font-display text-2xl md:text-3xl text-gradient-electric">Exhiby</h1>
-          <div className="flex items-center gap-3">
-            <button 
-              className="p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors"
-              onClick={onOpenSearch}
-            >
-              <Search className="w-5 h-5 text-muted-foreground" />
-            </button>
-            <button 
-              className="p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors"
-              onClick={onViewAudienceProfile}
-            >
-              <User className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
+    <div className="min-h-screen bg-carbon">
+      {/* Desktop Header */}
+      <DesktopHeader
+        onOpenSearch={onOpenSearch}
+        onViewProfile={onViewAudienceProfile}
+        onGoLive={onGoLive}
+      />
+
+      {/* Main Layout Container */}
+      <div className="max-w-screen-2xl mx-auto">
+        <div className="flex">
+          {/* Main Content Area */}
+          <main className="flex-1 min-w-0 pb-24 lg:pb-8">
+            {/* Section A: Live Now */}
+            <section className="py-6">
+              <div className="flex items-center justify-between px-4 lg:px-8 mb-4">
+                <div>
+                  <h2 className="font-display text-xl lg:text-2xl text-foreground">Live Now</h2>
+                  <p className="text-sm text-muted-foreground">Step into a studio</p>
+                </div>
+                <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
+                  See all <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-4 lg:px-8">
+                <CarouselWithArrows>
+                  {liveNowEvents.map((event, index) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="snap-start flex-shrink-0 w-[65vw] sm:w-[45vw] md:w-[280px] lg:w-[240px] xl:w-[260px]"
+                    >
+                      <LiveMarqueeCard
+                        {...event}
+                        onClick={() => handleLiveCardTap(event)}
+                        layoutId={`room-card-${event.id}`}
+                      />
+                    </motion.div>
+                  ))}
+                </CarouselWithArrows>
+              </div>
+            </section>
+
+            {/* Section B: Box Office */}
+            <section className="py-6 relative spotlight">
+              <div className="flex items-center justify-between px-4 lg:px-8 mb-4 relative z-10">
+                <div>
+                  <h2 className="font-display text-xl lg:text-2xl text-foreground">Box Office</h2>
+                  <p className="text-sm text-muted-foreground">Doors opening soon</p>
+                </div>
+                <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
+                  See all <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-4 lg:px-8 relative z-10">
+                <CarouselWithArrows>
+                  {scheduledEvents.map((event, index) => (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="snap-start flex-shrink-0 w-[40vw] sm:w-[30vw] md:w-[180px] lg:w-[160px] xl:w-[180px]"
+                    >
+                      <ScheduledCard
+                        coverImage={event.coverImage}
+                        title={event.title}
+                        price={event.price}
+                        artistName={event.artistName}
+                        timing={event.timing}
+                      />
+                    </motion.div>
+                  ))}
+                </CarouselWithArrows>
+              </div>
+            </section>
+
+            {/* Section C: Curated Studio Rows */}
+            <section className="py-4">
+              <CuratedRow title="Masterclasses" items={masterclasses} onCardTap={handleCardTap} />
+              <CuratedRow title="Fresh off the Easel" items={freshEasel} onCardTap={handleCardTap} />
+              <CuratedRow title="Handcraft & Sculpture" items={handcraft} onCardTap={handleCardTap} />
+            </section>
+          </main>
+
+          {/* Desktop Sidebar */}
+          <DesktopSidebar onRemind={handleRemind} />
         </div>
-      </header>
+      </div>
 
-      {/* Section A: The Marquee - LIVE NOW */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between px-4 md:px-8 lg:px-12 mb-4">
-          <div>
-            <h2 className="font-display text-xl md:text-2xl text-foreground">Live Now</h2>
-            <p className="text-sm text-muted-foreground">Step into a studio</p>
-          </div>
-        </div>
+      {/* Floating Action Button - Mobile only */}
+      <FloatingActionButton onClick={onGoLive} />
 
-        {/* Horizontal scroll on mobile, grid on larger screens */}
-        <div className="live-grid px-4 pb-4 md:px-8 lg:px-12 md:gap-5">
-          {liveNowEvents.map((event, index) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-              className="snap-start flex-shrink-0 w-[65vw] max-w-[280px] md:w-auto md:max-w-none"
-            >
-              <LiveMarqueeCard 
-                {...event} 
-                onClick={() => handleLiveCardTap(event)}
-                layoutId={`room-card-${event.id}`}
-              />
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Section B: The Box Office - SCHEDULED with Spotlight Effect */}
-      <section className="mb-8 relative spotlight">
-        <div className="flex items-center justify-between px-4 md:px-8 lg:px-12 mb-4 relative z-10">
-          <div>
-            <h2 className="font-display text-xl md:text-2xl text-foreground">Box Office</h2>
-            <p className="text-sm text-muted-foreground">Doors opening soon</p>
-          </div>
-        </div>
-
-        <div className="scheduled-grid px-4 pb-4 md:px-8 lg:px-12 md:gap-4 relative z-10">
-          {scheduledEvents.map((event, index) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="snap-start flex-shrink-0 w-[40vw] max-w-[180px] md:w-auto md:max-w-none"
-            >
-              <ScheduledCard 
-                coverImage={event.coverImage}
-                title={event.title}
-                price={event.price}
-                artistName={event.artistName}
-                timing={event.timing}
-              />
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Section C: Curated Studio Rows */}
-      <section>
-        <CuratedRow 
-          title="Masterclasses" 
-          items={masterclasses} 
-          onCardTap={handleCardTap}
-        />
-        <CuratedRow 
-          title="Fresh off the Easel" 
-          items={freshEasel} 
-          onCardTap={handleCardTap}
-        />
-        <CuratedRow 
-          title="Handcraft & Sculpture" 
-          items={handcraft} 
-          onCardTap={handleCardTap}
-        />
-      </section>
-
-      {/* Live Ticket Preview Slide-up (for curated rows) */}
+      {/* Modals and Overlays */}
       {selectedLiveItem && (
         <LiveTicketPreview
           isOpen={liveTicketOpen}
@@ -313,7 +322,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         />
       )}
 
-      {/* Scheduled Event Page */}
       {selectedScheduledItem && (
         <ScheduledEventPage
           isOpen={eventPageOpen}
@@ -329,7 +337,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         />
       )}
 
-      {/* Payment Drawer for ticketed Live Now events */}
       {portalEvent && (
         <PaymentDrawer
           isOpen={showPaymentDrawer}
@@ -345,7 +352,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         />
       )}
 
-      {/* Portal Live Room */}
       <AnimatePresence>
         {showLiveRoom && portalEvent && (
           <LiveRoomPortal

@@ -113,10 +113,13 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         onClick={onBack}
-        className="fixed top-4 left-4 z-20 w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center"
+        className="fixed top-4 left-4 z-20 w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center lg:top-6 lg:left-6"
       >
         <ArrowLeft className="w-5 h-5 text-foreground" />
       </motion.button>
+
+      {/* Main Content Container */}
+      <div className="max-w-screen-xl mx-auto lg:px-8">
 
       {/* Header */}
       <ProfileHeader
@@ -140,7 +143,7 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
 
       {/* Tabs */}
       <div className="mt-6 border-b border-border/50">
-        <div className="flex">
+        <div className="flex max-w-3xl mx-auto lg:justify-center lg:gap-8">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -148,7 +151,7 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
                 triggerClickHaptic();
                 setActiveTab(tab.id);
               }}
-              className={`flex-1 py-4 text-sm font-semibold relative transition-colors ${
+              className={`flex-1 lg:flex-initial py-4 px-6 text-sm font-semibold relative transition-colors ${
                 activeTab === tab.id
                   ? "text-foreground"
                   : "text-muted-foreground"
@@ -167,12 +170,13 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="pb-20">
+      <div className="pb-20 lg:pb-8 max-w-4xl mx-auto">
         {activeTab === "stage" && (
           <StageTab events={mockEvents} onBuyTicket={handleBuyTicket} />
         )}
         {activeTab === "vault" && <VaultTab artworks={mockArtworks} />}
         {activeTab === "wip" && <WIPTab items={mockWIP} />}
+      </div>
       </div>
 
       {/* Notification Modal */}
