@@ -13,9 +13,8 @@ import {
   ChevronRight,
   Palette,
   Clock,
-  Hash
+  X
 } from "lucide-react";
-import { EventBadge } from "./EventBadge";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 
@@ -37,10 +36,10 @@ const mockUser = {
 };
 
 const mockCollectedArt = [
-  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&q=80", title: "Portrait Study I", artist: "Elena Voss", type: "digital" },
-  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400&q=80", title: "Digital Dreams", artist: "Luna Kim", type: "digital" },
-  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", title: "Abstract Form", artist: "James Wright", type: "physical" },
-  { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&q=80", title: "Motion Study", artist: "Sarah Park", type: "digital" },
+  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&q=80", title: "Portrait Study I", artist: "Elena Voss", type: "handcraft" },
+  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400&q=80", title: "Digital Dreams", artist: "Luna Kim", type: "artworks" },
+  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", title: "Abstract Form", artist: "James Wright", type: "artworks" },
+  { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&q=80", title: "Motion Study", artist: "Sarah Park", type: "handcraft" },
 ];
 
 const mockBadges = [
@@ -55,9 +54,12 @@ const mockTickets = [
   { id: "2", event: "Drawing Realistic Hair", creator: "Mia Torres", date: "Sun, Dec 22", time: "3 PM EST", price: 10, startsIn: 180 },
 ];
 
-const mockInterests = ["#Realism", "#Clay", "#Miniatures", "#Portraits", "#Watercolor"];
+const mockPastEvents = [
+  { id: "p1", event: "Watercolor Basics", creator: "James Wright", date: "Sat, Dec 14", time: "6 PM EST", price: 8 },
+  { id: "p2", event: "Abstract Expressions", creator: "Luna Kim", date: "Fri, Dec 13", time: "4 PM EST", price: 12 },
+];
 
-type TabType = "tickets" | "collection" | "badges" | "settings";
+type TabType = "tickets" | "vault";
 
 export function AudienceProfile({ 
   onBack, 
@@ -66,13 +68,12 @@ export function AudienceProfile({
   onOpenStudio 
 }: AudienceProfileProps) {
   const [activeTab, setActiveTab] = useState<TabType>("tickets");
-  const [collectionFilter, setCollectionFilter] = useState<"all" | "digital" | "physical">("all");
+  const [collectionFilter, setCollectionFilter] = useState<"all" | "handcraft" | "artworks">("all");
+  const [showSettings, setShowSettings] = useState(false);
 
   const tabs: { id: TabType; label: string; icon: typeof Ticket }[] = [
     { id: "tickets", label: "Tickets", icon: Ticket },
-    { id: "collection", label: "Vault", icon: ShoppingBag },
-    { id: "badges", label: "Badges", icon: Award },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "vault", label: "Vault", icon: ShoppingBag },
   ];
 
   const filteredArt = collectionFilter === "all" 
@@ -96,21 +97,36 @@ export function AudienceProfile({
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
           
-          {/* Mode Switch (only for verified creators) */}
-          {isVerifiedCreator && onSwitchMode && (
+          <div className="flex items-center gap-2">
+            {/* Settings Gear Icon */}
             <motion.button
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onClick={() => {
                 triggerClickHaptic();
-                onSwitchMode();
+                setShowSettings(true);
               }}
-              className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-electric/50 flex items-center gap-2"
+              className="w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center"
             >
-              <span className="text-xs text-electric font-medium">Switch to Studio</span>
-              <ChevronRight className="w-4 h-4 text-electric" />
+              <Settings className="w-5 h-5 text-foreground" />
             </motion.button>
-          )}
+
+            {/* Mode Switch (only for verified creators) */}
+            {isVerifiedCreator && onSwitchMode && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onClick={() => {
+                  triggerClickHaptic();
+                  onSwitchMode();
+                }}
+                className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-electric/50 flex items-center gap-2"
+              >
+                <span className="text-xs text-electric font-medium">Switch to Studio</span>
+                <ChevronRight className="w-4 h-4 text-electric" />
+              </motion.button>
+            )}
+          </div>
         </div>
 
         {/* Profile Info */}
@@ -209,7 +225,7 @@ export function AudienceProfile({
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs - Only Tickets and Vault */}
       <div className="border-b border-border/50 overflow-x-auto scrollbar-hide">
         <div className="flex min-w-max max-w-2xl mx-auto lg:justify-center lg:gap-4">
           {tabs.map((tab) => (
@@ -219,7 +235,7 @@ export function AudienceProfile({
                 triggerClickHaptic();
                 setActiveTab(tab.id);
               }}
-              className={`flex-1 min-w-[80px] lg:min-w-[100px] py-3 text-xs font-semibold relative transition-colors flex flex-col items-center gap-1 ${
+              className={`flex-1 min-w-[120px] lg:min-w-[140px] py-3 text-xs font-semibold relative transition-colors flex flex-col items-center gap-1 ${
                 activeTab === tab.id
                   ? "text-foreground"
                   : "text-muted-foreground"
@@ -241,7 +257,7 @@ export function AudienceProfile({
       {/* Tab Content */}
       <div className="pb-24 lg:pb-8 max-w-4xl mx-auto">
         <AnimatePresence mode="wait">
-          {/* Tickets (My Wallet) */}
+          {/* Tickets Tab */}
           {activeTab === "tickets" && (
             <motion.div
               key="tickets"
@@ -250,6 +266,7 @@ export function AudienceProfile({
               exit={{ opacity: 0, y: -10 }}
               className="p-4"
             >
+              {/* Upcoming Access */}
               <h3 className="font-display text-lg text-foreground mb-4">Upcoming Access</h3>
               {mockTickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
@@ -287,25 +304,60 @@ export function AudienceProfile({
                             toast({ title: "Not Yet", description: `Room opens in ${ticket.startsIn} minutes` });
                           }
                         }}
-                        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+                        className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
                           ticket.startsIn <= 15
                             ? "bg-gradient-to-r from-electric to-crimson text-white"
                             : "bg-obsidian border border-border/50 text-muted-foreground"
                         }`}
                       >
-                        {ticket.startsIn <= 15 ? "Enter Room" : `Opens in ${ticket.startsIn}m`}
+                        {ticket.startsIn <= 15 ? (
+                          "Enter Room"
+                        ) : (
+                          <>
+                            <span className="px-2 py-0.5 rounded-full bg-[#FF6B58]/20 text-[#FF6B58] font-bold text-xs">
+                              Opens in {ticket.startsIn}m
+                            </span>
+                          </>
+                        )}
                       </button>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Past Events Section */}
+              <h3 className="font-display text-lg text-foreground mt-8 mb-4">Past Events</h3>
+              <div className="space-y-3 opacity-60">
+                {mockPastEvents.map((event) => (
+                  <div 
+                    key={event.id}
+                    className="bg-obsidian rounded-2xl p-4 border border-border/30"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-display text-foreground">{event.event}</p>
+                        <p className="text-sm text-muted-foreground">by {event.creator}</p>
+                      </div>
+                      <span className="px-2 py-1 rounded-full bg-muted/20 text-muted-foreground text-xs font-medium">
+                        ${event.price}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {event.date} • {event.time}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </motion.div>
           )}
 
-          {/* Collection (Vault) */}
-          {activeTab === "collection" && (
+          {/* Vault Tab */}
+          {activeTab === "vault" && (
             <motion.div
-              key="collection"
+              key="vault"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -313,7 +365,7 @@ export function AudienceProfile({
             >
               {/* Filters */}
               <div className="flex gap-2 mb-4">
-                {(["all", "digital", "physical"] as const).map((filter) => (
+                {(["all", "handcraft", "artworks"] as const).map((filter) => (
                   <button
                     key={filter}
                     onClick={() => {
@@ -326,7 +378,7 @@ export function AudienceProfile({
                         : "bg-obsidian text-muted-foreground border border-border/50"
                     }`}
                   >
-                    {filter}
+                    {filter === "all" ? "All" : filter === "handcraft" ? "Handcraft" : "Artworks"}
                   </button>
                 ))}
               </div>
@@ -335,7 +387,7 @@ export function AudienceProfile({
               {filteredArt.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">No art collected yet</p>
+                  <p className="text-muted-foreground">No items collected yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -354,9 +406,9 @@ export function AudienceProfile({
                           className="w-full h-full object-cover"
                         />
                         <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          art.type === "digital" ? "bg-electric/90 text-carbon" : "bg-gold/90 text-carbon"
+                          art.type === "handcraft" ? "bg-electric/90 text-carbon" : "bg-gold/90 text-carbon"
                         }`}>
-                          {art.type}
+                          {art.type === "handcraft" ? "Handcraft" : "Artworks"}
                         </span>
                       </div>
                       <div className="p-3">
@@ -367,122 +419,104 @@ export function AudienceProfile({
                   ))}
                 </div>
               )}
-
-              {/* Interests */}
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                  <Hash className="w-4 h-4" />
-                  Interests
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {mockInterests.map((tag) => (
-                    <span 
-                      key={tag}
-                      className="px-3 py-1.5 rounded-full bg-obsidian border border-border/30 text-xs text-foreground"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Badges */}
-          {activeTab === "badges" && (
-            <motion.div
-              key="badges"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="p-4"
-            >
-              <p className="text-sm text-muted-foreground mb-4">
-                Your collection of event badges
-              </p>
-              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                {mockBadges.map((badge, index) => (
-                  <EventBadge
-                    key={badge.id}
-                    title={badge.title}
-                    image={badge.image}
-                    date={badge.date}
-                    index={index}
-                  />
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Settings */}
-          {activeTab === "settings" && (
-            <motion.div
-              key="settings"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="p-4 space-y-3"
-            >
-              {/* Payment Methods */}
-              <button 
-                onClick={() => toast({ title: "Payment Methods", description: "Opening payment settings..." })}
-                className="w-full flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/30"
-              >
-                <div className="flex items-center gap-3">
-                  <CreditCard className="w-5 h-5 text-electric" />
-                  <span className="text-foreground">Payment Methods</span>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </button>
-
-              {/* Shipping */}
-              <button 
-                onClick={() => toast({ title: "Shipping Address", description: "Opening shipping settings..." })}
-                className="w-full flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/30"
-              >
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-electric" />
-                  <span className="text-foreground">Shipping Address</span>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </button>
-
-              {/* Notifications */}
-              <button 
-                onClick={() => toast({ title: "Notifications", description: "Opening notification preferences..." })}
-                className="w-full flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/30"
-              >
-                <div className="flex items-center gap-3">
-                  <Bell className="w-5 h-5 text-electric" />
-                  <span className="text-foreground">Notification Preferences</span>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              </button>
-
-              {/* Open Studio (only if not verified) */}
-              {!isVerifiedCreator && onOpenStudio && (
-                <button 
-                  onClick={() => {
-                    triggerClickHaptic();
-                    onOpenStudio();
-                  }}
-                  className="w-full mt-6 p-4 rounded-xl bg-gradient-to-r from-electric to-crimson flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <Palette className="w-5 h-5 text-white" />
-                    <div className="text-left">
-                      <span className="text-white font-semibold block">Open Your Studio</span>
-                      <span className="text-white/70 text-xs">Become a verified creator</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-white" />
-                </button>
-              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
       </div>
+
+      {/* Settings Panel (Slide-up) */}
+      <AnimatePresence>
+        {showSettings && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-carbon/80 backdrop-blur-sm z-50"
+              onClick={() => setShowSettings(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-3xl z-50 max-h-[80vh] overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-display text-xl text-foreground">Settings</h2>
+                  <button
+                    onClick={() => setShowSettings(false)}
+                    className="w-10 h-10 rounded-full bg-carbon/50 flex items-center justify-center"
+                  >
+                    <X className="w-5 h-5 text-foreground" />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Payment Methods */}
+                  <button 
+                    onClick={() => toast({ title: "Payment Methods", description: "Opening payment settings..." })}
+                    className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CreditCard className="w-5 h-5 text-electric" />
+                      <span className="text-foreground">Payment Methods</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  </button>
+
+                  {/* Shipping */}
+                  <button 
+                    onClick={() => toast({ title: "Shipping Address", description: "Opening shipping settings..." })}
+                    className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                  >
+                    <div className="flex items-center gap-3">
+                      <MapPin className="w-5 h-5 text-electric" />
+                      <span className="text-foreground">Shipping Address</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  </button>
+
+                  {/* Notifications */}
+                  <button 
+                    onClick={() => toast({ title: "Notifications", description: "Opening notification preferences..." })}
+                    className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Bell className="w-5 h-5 text-electric" />
+                      <span className="text-foreground">Notification Preferences</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  </button>
+
+                  {/* Open Studio (only if not verified) */}
+                  {!isVerifiedCreator && onOpenStudio && (
+                    <button 
+                      onClick={() => {
+                        triggerClickHaptic();
+                        onOpenStudio();
+                        setShowSettings(false);
+                      }}
+                      className="w-full mt-6 p-4 rounded-xl bg-gradient-to-r from-electric to-crimson flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Palette className="w-5 h-5 text-white" />
+                        <div className="text-left">
+                          <span className="text-white font-semibold block">Open Your Studio</span>
+                          <span className="text-white/70 text-xs">Become a verified creator</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-white" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
