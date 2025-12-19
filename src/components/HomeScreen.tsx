@@ -1,18 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
-import { ScheduledCard } from "./ScheduledCard";
-import { CuratedRow, CuratedItem } from "./CuratedRow";
-import { LiveTicketPreview } from "./LiveTicketPreview";
-import { ScheduledEventPage } from "./ScheduledEventPage";
-import { CreatorStatus } from "./StudioCard";
-import { createMockTiming } from "@/hooks/useEventStatus";
 import { LiveRoomPortal } from "./LiveRoomPortal";
 import { PaymentDrawer } from "./PaymentDrawer";
 import { DesktopHeader } from "./DesktopHeader";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { LeftSidebar } from "./LeftSidebar";
-import { CarouselWithArrows } from "./CarouselWithArrows";
 import { BottomNavigation } from "./BottomNavigation";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { ChevronRight } from "lucide-react";
@@ -104,85 +97,10 @@ const liveNowEvents: LiveEvent[] = [
   },
 ];
 
-// Scheduled events with dynamic timing
-const scheduledEvents = [
-  {
-    id: "1",
-    coverImage: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=300&h=300&fit=crop",
-    title: "Portrait Sketching",
-    price: 5,
-    artistName: "Alex Rivera",
-    timing: createMockTiming(15),
-  },
-  {
-    id: "2",
-    coverImage: "https://images.unsplash.com/photo-1531913764164-f85c52e6e654?w=300&h=300&fit=crop",
-    title: "Oil Painting Basics",
-    price: 10,
-    artistName: "Emma Liu",
-    timing: createMockTiming(60),
-  },
-  {
-    id: "3",
-    coverImage: "https://images.unsplash.com/photo-1549887534-1541e9326642?w=300&h=300&fit=crop",
-    title: "Digital Art Stream",
-    price: 0,
-    artistName: "Jay Kim",
-    timing: createMockTiming(120),
-  },
-  {
-    id: "4",
-    coverImage: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=300&h=300&fit=crop",
-    title: "Charcoal Techniques",
-    price: 8,
-    artistName: "David Okonkwo",
-    timing: createMockTiming(240),
-  },
-  {
-    id: "5",
-    coverImage: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=300&fit=crop",
-    title: "Ink Wash Painting",
-    price: 12,
-    artistName: "Sophie Martin",
-    timing: createMockTiming(1440),
-  },
-];
-
-// Curated rows with timing-based status
-const masterclasses: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop", artistName: "Mia Torres", timing: createMockTiming(-30, 90), eventTitle: "Color Theory Masterclass", price: 5 },
-  { id: "2", image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=200&h=200&fit=crop", artistName: "David Okonkwo", timing: createMockTiming(240), eventTitle: "Charcoal Techniques", price: 10 },
-  { id: "3", image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=200&h=200&fit=crop", artistName: "Sophie Martin", timing: createMockTiming(-180, 60) },
-  { id: "4", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Kai Tanaka", timing: createMockTiming(1440), eventTitle: "Ink Wash Painting", price: 15 },
-  { id: "5", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200&h=200&fit=crop", artistName: "Luna Kim", timing: createMockTiming(-60, 90), eventTitle: "Portrait Mastery", price: 8 },
-  { id: "6", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=200&h=200&fit=crop", artistName: "Ben Wright", timing: createMockTiming(480), eventTitle: "Advanced Shading", price: 12 },
-];
-
-const freshEasel: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=200&h=200&fit=crop", artistName: "Ana Perez", timing: createMockTiming(-10, 60), eventTitle: "Unveiling: Ocean Series", price: 0 },
-  { id: "2", image: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=200&h=200&fit=crop", artistName: "Tom Harris", timing: createMockTiming(-120, 60) },
-  { id: "3", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=200&h=200&fit=crop", artistName: "Nina Volkov", timing: createMockTiming(-90, 60) },
-  { id: "4", image: "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=200&h=200&fit=crop", artistName: "Leo Chen", timing: createMockTiming(2880), eventTitle: "New Collection Drop", price: 5 },
-  { id: "5", image: "https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=200&h=200&fit=crop", artistName: "Rosa Martinez", timing: createMockTiming(-45, 90), eventTitle: "Abstract Forms", price: 0 },
-  { id: "6", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=200&h=200&fit=crop", artistName: "James Park", timing: createMockTiming(720), eventTitle: "Color Studies", price: 6 },
-];
-
-const handcraft: CuratedItem[] = [
-  { id: "1", image: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=200&h=200&fit=crop", artistName: "Ava Simmons", timing: createMockTiming(-200, 60) },
-  { id: "2", image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop", artistName: "Ben Wright", timing: createMockTiming(-15, 90), eventTitle: "Pottery Throwing Session", price: 8 },
-  { id: "3", image: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=200&h=200&fit=crop", artistName: "Clara Berg", timing: createMockTiming(180), eventTitle: "Weaving Workshop", price: 12 },
-  { id: "4", image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=200&h=200&fit=crop", artistName: "Dan Reyes", timing: createMockTiming(-300, 60) },
-  { id: "5", image: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=200&h=200&fit=crop", artistName: "Eva Stone", timing: createMockTiming(360), eventTitle: "Ceramic Glazing", price: 10 },
-  { id: "6", image: "https://images.unsplash.com/photo-1531913764164-f85c52e6e654?w=200&h=200&fit=crop", artistName: "Frank Lee", timing: createMockTiming(-80, 120), eventTitle: "Clay Modeling", price: 0 },
-];
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch }: HomeScreenProps) {
   const { mode } = useUserMode();
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
-  const [liveTicketOpen, setLiveTicketOpen] = useState(false);
-  const [selectedLiveItem, setSelectedLiveItem] = useState<CuratedItem | null>(null);
-  const [eventPageOpen, setEventPageOpen] = useState(false);
-  const [selectedScheduledItem, setSelectedScheduledItem] = useState<CuratedItem | null>(null);
   const [portalEvent, setPortalEvent] = useState<LiveEvent | null>(null);
   const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
   const [showLiveRoom, setShowLiveRoom] = useState(false);
@@ -207,29 +125,12 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
     setTimeout(() => setPortalEvent(null), 400);
   };
 
-  const handleCardTap = (item: CuratedItem, status: CreatorStatus) => {
-    if (status === "live") {
-      setSelectedLiveItem(item);
-      setLiveTicketOpen(true);
-    } else if (status === "scheduled") {
-      setSelectedScheduledItem(item);
-      setEventPageOpen(true);
-    } else {
-      onViewCreatorProfile?.();
-    }
-  };
-
-  const handleEnterLiveRoom = () => {
-    setLiveTicketOpen(false);
-    onEnterLiveRoom?.();
-  };
-
-  const handleBuyTicket = () => {
-    setEventPageOpen(false);
-  };
-
   const handleRemind = (eventId: string) => {
     toast({ title: "Reminder Set!", description: "We'll notify you when this event starts." });
+  };
+
+  const handleJoinWaitlist = () => {
+    toast({ title: "You're on the list!", description: "We'll notify you when Season 2 launches." });
   };
 
   return (
@@ -309,46 +210,47 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                 </div>
               </section>
 
-              {/* Section B: Box Office */}
-              <section className="py-6 relative spotlight">
-                <div className="flex items-center justify-between px-4 lg:px-6 mb-4 relative z-10">
-                  <div>
-                    <h2 className="font-display text-xl lg:text-2xl text-foreground">Box Office</h2>
-                    <p className="text-sm text-muted-foreground">Doors opening soon</p>
+              {/* Hero Card: Coming Season 2 */}
+              <section className="px-4 lg:px-6 py-8">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-obsidian via-carbon to-obsidian border border-border/30"
+                >
+                  {/* Background glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-electric/10" />
+                  
+                  {/* Gavel image overlay */}
+                  <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-30 lg:opacity-40">
+                    <img
+                      src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&h=400&fit=crop"
+                      alt=""
+                      className="w-full h-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-carbon via-carbon/80 to-transparent" />
                   </div>
-                  <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
-                    See all <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <div className="px-4 lg:px-6 relative z-10">
-                  <CarouselWithArrows>
-                    {scheduledEvents.map((event, index) => (
-                      <motion.div
-                        key={event.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="snap-start flex-shrink-0 w-[40vw] sm:w-[30vw] md:w-[160px] lg:w-[140px] xl:w-[160px]"
+                  
+                  {/* Content */}
+                  <div className="relative z-10 p-6 sm:p-8 lg:p-10">
+                    <div className="max-w-md">
+                      <p className="text-xs sm:text-sm uppercase tracking-widest text-amber-400 mb-2 font-medium">
+                        Coming Soon
+                      </p>
+                      <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-foreground mb-3">
+                        Season 2
+                      </h3>
+                      <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">
+                        Live Auctions & Masterclass Series. Be the first to know.
+                      </p>
+                      <button 
+                        onClick={handleJoinWaitlist}
+                        className="btn-electric px-6 py-3 text-sm sm:text-base font-medium"
                       >
-                        <ScheduledCard
-                          coverImage={event.coverImage}
-                          title={event.title}
-                          price={event.price}
-                          artistName={event.artistName}
-                          timing={event.timing}
-                        />
-                      </motion.div>
-                    ))}
-                  </CarouselWithArrows>
-                </div>
-              </section>
-
-              {/* Section C: Curated Studio Rows */}
-              <section className="py-4">
-                <CuratedRow title="Masterclasses" items={masterclasses} onCardTap={handleCardTap} />
-                <CuratedRow title="Fresh off the Easel" items={freshEasel} onCardTap={handleCardTap} />
-                <CuratedRow title="Handcraft & Sculpture" items={handcraft} onCardTap={handleCardTap} />
+                        Join Waitlist
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
               </section>
             </main>
 
@@ -371,34 +273,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           }}
         />
       </div>
-
-      {/* Modals and Overlays */}
-      {selectedLiveItem && (
-        <LiveTicketPreview
-          isOpen={liveTicketOpen}
-          onClose={() => setLiveTicketOpen(false)}
-          onEnterRoom={handleEnterLiveRoom}
-          artistName={selectedLiveItem.artistName}
-          eventTitle={selectedLiveItem.eventTitle || "Live Session"}
-          price={selectedLiveItem.price || 0}
-          coverImage={selectedLiveItem.image}
-        />
-      )}
-
-      {selectedScheduledItem && (
-        <ScheduledEventPage
-          isOpen={eventPageOpen}
-          onClose={() => setEventPageOpen(false)}
-          onBuyTicket={handleBuyTicket}
-          artistName={selectedScheduledItem.artistName}
-          eventTitle={selectedScheduledItem.eventTitle || "Upcoming Event"}
-          price={selectedScheduledItem.price || 0}
-          coverImage={selectedScheduledItem.image}
-          scheduledTime={selectedScheduledItem.scheduledTime || "Coming Soon"}
-          description="Join this exclusive session to learn new techniques and connect with fellow art enthusiasts."
-          hasTrailer={true}
-        />
-      )}
 
       {portalEvent && (
         <PaymentDrawer

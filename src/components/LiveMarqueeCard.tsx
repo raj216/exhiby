@@ -13,6 +13,23 @@ interface LiveMarqueeCardProps {
   layoutId?: string;
 }
 
+// Smart badge component based on price
+function SmartBadge({ price }: { price: number }) {
+  if (price === 0) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent border border-white/40 backdrop-blur-sm">
+        <span className="text-xs sm:text-sm font-medium text-white whitespace-nowrap">🟢 Free Entry</span>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg">
+      <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">🎓 Masterclass • ${price}</span>
+    </div>
+  );
+}
+
 export function LiveMarqueeCard({
   id,
   coverImage,
@@ -67,19 +84,17 @@ export function LiveMarqueeCard({
 
       {/* Bottom Info */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-carbon via-carbon/90 to-transparent">
-        <h3 className="font-display text-xl text-foreground mb-1 line-clamp-2">
+        <h3 className="font-display text-lg sm:text-xl text-foreground mb-1 line-clamp-2">
           {title}
         </h3>
         <p className="text-sm text-muted-foreground mb-3">{artistName}</p>
 
-        {/* Entry Price - Gold accent */}
-        <div className="flex items-center justify-between">
-          <div className="price-tag">
-            {price === 0 ? "Free Entry" : `Entry: $${price}`}
-          </div>
+        {/* Smart Badge (left) + Join Button (right) */}
+        <div className="flex items-center justify-between gap-2">
+          <SmartBadge price={price} />
           <button 
             onClick={handleJoin}
-            className="btn-electric px-4 py-2 text-sm"
+            className="btn-electric px-3 sm:px-4 py-2 text-sm flex-shrink-0"
           >
             Join
           </button>
