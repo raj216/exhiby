@@ -1,5 +1,14 @@
 import { motion } from "framer-motion";
-import { Search, User, Bell, Plus } from "lucide-react";
+import { Search, User, Bell, Plus, Settings, LogOut, CreditCard, HelpCircle } from "lucide-react";
+import { useUserMode } from "@/contexts/UserModeContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DesktopHeaderProps {
   onOpenSearch?: () => void;
@@ -9,6 +18,8 @@ interface DesktopHeaderProps {
 }
 
 export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo = false }: DesktopHeaderProps) {
+  const { mode } = useUserMode();
+
   return (
     <header className="sticky top-0 z-40 glass border-b border-border/20 w-full">
       <div className="w-full px-4 lg:px-6 xl:px-8">
@@ -74,13 +85,46 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-crimson" />
             </button>
 
-            {/* Profile */}
-            <button
-              onClick={onViewProfile}
-              className="p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors"
-            >
-              <User className="w-5 h-5 text-muted-foreground" />
-            </button>
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-1 rounded-full bg-gradient-to-br from-electric to-crimson hover:shadow-electric transition-shadow">
+                  <div className="w-8 h-8 rounded-full bg-obsidian flex items-center justify-center">
+                    <span className="text-foreground font-semibold text-sm">MC</span>
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-obsidian border-border/30">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium text-foreground">Marcus Chen</p>
+                    <p className="text-xs text-muted-foreground capitalize">{mode} mode</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border/30" />
+                <DropdownMenuItem onClick={onViewProfile} className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>View Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>Billing</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <span>Help & Support</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border/30" />
+                <DropdownMenuItem className="cursor-pointer text-crimson focus:text-crimson">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </motion.div>
         </div>
       </div>

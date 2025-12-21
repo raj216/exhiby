@@ -66,24 +66,6 @@ export function LeftSidebar({ onSelectCategory, activeCategory }: LeftSidebarPro
         </div>
       </nav>
 
-      {/* User Block - Sticky Bottom */}
-      <div className="p-4 border-t border-border/20 bg-carbon">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-2xl bg-obsidian border border-border/30"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-electric to-crimson flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">MC</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Hi, Marcus</p>
-              <p className="text-xs text-muted-foreground capitalize">{mode}</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
     </aside>
   );
 }
