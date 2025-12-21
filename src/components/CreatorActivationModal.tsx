@@ -79,8 +79,9 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%] w-full max-w-lg p-4"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8 sm:py-12"
         >
+          <div className="w-full max-w-lg px-4">
           <div className="relative rounded-3xl overflow-hidden">
             {/* Premium gradient border effect */}
             <div className="absolute inset-0 bg-gradient-to-br from-crimson/30 via-transparent to-electric/30 rounded-3xl" />
@@ -257,6 +258,7 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
                 </span>
               </motion.button>
             </div>
+          </div>
           </div>
         </motion.div>
       </DialogPortal>
