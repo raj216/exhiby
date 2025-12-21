@@ -139,12 +139,6 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive }: StudioDashbo
           </div>
         </div>
         
-        {/* Settings Button */}
-        <div className="absolute -bottom-12 right-4">
-          <button className="w-10 h-10 rounded-full bg-obsidian border border-border/50 flex items-center justify-center">
-            <Settings className="w-5 h-5 text-muted-foreground" />
-          </button>
-        </div>
       </div>
 
       {/* Creator Info */}
