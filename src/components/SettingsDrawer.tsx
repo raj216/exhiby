@@ -103,29 +103,6 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </button>
 
-                      {/* Shipping */}
-                      <button 
-                        onClick={() => toast({ title: "Shipping Address", description: "Opening shipping settings..." })}
-                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
-                      >
-                        <div className="flex items-center gap-3">
-                          <MapPin className="w-5 h-5 text-electric" />
-                          <span className="text-foreground">Shipping Address</span>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      </button>
-
-                      {/* Notifications */}
-                      <button 
-                        onClick={() => toast({ title: "Notifications", description: "Opening notification preferences..." })}
-                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Bell className="w-5 h-5 text-electric" />
-                          <span className="text-foreground">Notification Preferences</span>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      </button>
 
                       {/* Get Help - Opens Support Sub-menu */}
                       <button 
