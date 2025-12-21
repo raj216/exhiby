@@ -1,0 +1,305 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ArrowLeft, 
+  CreditCard,
+  MapPin,
+  Bell,
+  ChevronRight,
+  Palette,
+  X,
+  HelpCircle,
+  FileText,
+  MessageSquare,
+  Bug,
+  BookOpen,
+  Shield,
+  Trash2
+} from "lucide-react";
+import { triggerClickHaptic } from "@/lib/haptics";
+import { toast } from "@/hooks/use-toast";
+import { useUserMode } from "@/contexts/UserModeContext";
+
+interface SettingsDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onOpenStudio?: () => void;
+}
+
+type SettingsView = "main" | "support" | "legal";
+
+export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawerProps) {
+  const [settingsView, setSettingsView] = useState<SettingsView>("main");
+  const { isVerifiedCreator } = useUserMode();
+
+  const handleClose = () => {
+    onClose();
+    setSettingsView("main");
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-carbon/80 backdrop-blur-sm z-50"
+            onClick={handleClose}
+          />
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-3xl z-50 max-h-[85vh] overflow-y-auto"
+          >
+            <div className="p-6 flex flex-col min-h-[60vh]">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                {settingsView !== "main" ? (
+                  <button
+                    onClick={() => setSettingsView("main")}
+                    className="flex items-center gap-2 text-foreground"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                    <span className="font-display text-xl">
+                      {settingsView === "support" ? "Support" : "Legal"}
+                    </span>
+                  </button>
+                ) : (
+                  <h2 className="font-display text-xl text-foreground">Settings</h2>
+                )}
+                <button
+                  onClick={handleClose}
+                  className="w-10 h-10 rounded-full bg-carbon/50 flex items-center justify-center"
+                >
+                  <X className="w-5 h-5 text-foreground" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1">
+                <AnimatePresence mode="wait">
+                  {/* Main Settings View */}
+                  {settingsView === "main" && (
+                    <motion.div
+                      key="main"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      className="space-y-3"
+                    >
+                      {/* Payment Methods */}
+                      <button 
+                        onClick={() => toast({ title: "Payment Methods", description: "Opening payment settings..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <CreditCard className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Payment Methods</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Shipping */}
+                      <button 
+                        onClick={() => toast({ title: "Shipping Address", description: "Opening shipping settings..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <MapPin className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Shipping Address</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Notifications */}
+                      <button 
+                        onClick={() => toast({ title: "Notifications", description: "Opening notification preferences..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Bell className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Notification Preferences</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Get Help - Opens Support Sub-menu */}
+                      <button 
+                        onClick={() => {
+                          triggerClickHaptic();
+                          setSettingsView("support");
+                        }}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <HelpCircle className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Get Help</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Privacy & Terms - Opens Legal Sub-menu */}
+                      <button 
+                        onClick={() => {
+                          triggerClickHaptic();
+                          setSettingsView("legal");
+                        }}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Shield className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Privacy & Terms</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Open Studio (only if not verified) */}
+                      {!isVerifiedCreator && onOpenStudio && (
+                        <button 
+                          onClick={() => {
+                            triggerClickHaptic();
+                            onOpenStudio();
+                            handleClose();
+                          }}
+                          className="w-full mt-4 p-4 rounded-xl bg-gradient-to-r from-electric to-crimson flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Palette className="w-5 h-5 text-white" />
+                            <div className="text-left">
+                              <span className="text-white font-semibold block">Open Your Studio</span>
+                              <span className="text-white/70 text-xs">Become a verified creator</span>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-white" />
+                        </button>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Support Sub-menu */}
+                  {settingsView === "support" && (
+                    <motion.div
+                      key="support"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-3"
+                    >
+                      {/* FAQ */}
+                      <button 
+                        onClick={() => toast({ title: "FAQ", description: "Opening FAQ..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">FAQ</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Contact Support - mailto */}
+                      <a 
+                        href="mailto:support@clayapp.com"
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <MessageSquare className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Contact Support</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </a>
+
+                      {/* Report a Bug */}
+                      <button 
+                        onClick={() => toast({ title: "Report a Bug", description: "Opening bug report form..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Bug className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Report a Bug</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Community Guidelines */}
+                      <button 
+                        onClick={() => toast({ title: "Community Guidelines", description: "Opening community guidelines..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Community Guidelines</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {/* Legal Sub-menu */}
+                  {settingsView === "legal" && (
+                    <motion.div
+                      key="legal"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-3"
+                    >
+                      {/* Terms of Service */}
+                      <button 
+                        onClick={() => toast({ title: "Terms of Service", description: "Opening terms..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Terms of Service</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Privacy Policy */}
+                      <button 
+                        onClick={() => toast({ title: "Privacy Policy", description: "Opening privacy policy..." })}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Shield className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Privacy Policy</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
+
+                      {/* Delete Account - Red at bottom */}
+                      <div className="pt-8">
+                        <button 
+                          onClick={() => {
+                            triggerClickHaptic();
+                            toast({ 
+                              title: "Delete Account", 
+                              description: "This action cannot be undone. Please contact support to delete your account.",
+                              variant: "destructive"
+                            });
+                          }}
+                          className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-destructive/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Trash2 className="w-5 h-5 text-destructive" />
+                            <span className="text-destructive">Delete Account</span>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-destructive/60" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
