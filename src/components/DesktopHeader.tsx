@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, User, Bell, Plus, Settings, LogOut, Palette } from "lucide-react";
+import { Search, User, Bell, Plus, Settings, LogOut, Palette, LayoutDashboard } from "lucide-react";
 import { useUserMode } from "@/contexts/UserModeContext";
 import {
   DropdownMenu,
@@ -11,6 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SettingsDrawer } from "./SettingsDrawer";
+import { CreatorActivationModal } from "./CreatorActivationModal";
+import { WelcomeBanner } from "./WelcomeBanner";
+import { ConfettiEffect } from "./ConfettiEffect";
 
 interface DesktopHeaderProps {
   onOpenSearch?: () => void;
@@ -21,9 +24,32 @@ interface DesktopHeaderProps {
 }
 
 export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo = false, onOpenStudio }: DesktopHeaderProps) {
-  const { mode } = useUserMode();
+  const { mode, isVerifiedCreator } = useUserMode();
   const [showSettings, setShowSettings] = useState(false);
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
+  const handleOpenStudio = () => {
+    if (isVerifiedCreator) {
+      // Already a creator - go to studio dashboard
+      onOpenStudio?.();
+    } else {
+      // Show activation modal
+      setShowActivationModal(true);
+    }
+  };
+
+  const handleActivationSuccess = () => {
+    setShowConfetti(true);
+    setTimeout(() => {
+      setShowWelcomeBanner(true);
+    }, 300);
+  };
+
+  const handleBannerComplete = () => {
+    setShowWelcomeBanner(false);
+  };
   return (
     <>
       <header className="sticky top-0 z-40 glass border-b border-border/20 w-full">
@@ -75,10 +101,14 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                 <Search className="w-5 h-5 text-muted-foreground" />
               </button>
 
-              {/* Go Live Button - Desktop */}
+              {/* Go Live Button - Desktop (only active for creators) */}
               <button
-                onClick={onGoLive}
-                className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-electric to-crimson text-white font-medium text-sm hover:shadow-electric transition-shadow"
+                onClick={isVerifiedCreator ? onGoLive : () => setShowActivationModal(true)}
+                className={`hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                  isVerifiedCreator
+                    ? "bg-gradient-to-r from-electric to-crimson text-white hover:shadow-electric"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 border border-border/30"
+                }`}
               >
                 <Plus className="w-4 h-4" />
                 Go Live
@@ -116,12 +146,21 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-border/30" />
+                  {isVerifiedCreator && (
+                    <DropdownMenuItem 
+                      onClick={onOpenStudio} 
+                      className="cursor-pointer"
+                    >
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Studio Dashboard</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
-                    onClick={onOpenStudio} 
+                    onClick={handleOpenStudio} 
                     className="cursor-pointer bg-gradient-to-r from-crimson/20 to-crimson/10 hover:from-crimson/30 hover:to-crimson/20 text-foreground"
                   >
                     <Palette className="mr-2 h-4 w-4 text-crimson" />
-                    <span className="font-medium">Open Your Studio</span>
+                    <span className="font-medium">{isVerifiedCreator ? "Creator Settings" : "Open Your Studio"}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-border/30" />
                   <DropdownMenuItem className="cursor-pointer text-crimson focus:text-crimson">
@@ -139,6 +178,25 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
         isOpen={showSettings} 
         onClose={() => setShowSettings(false)}
         onOpenStudio={onOpenStudio}
+      />
+
+      {/* Creator Activation Modal */}
+      <CreatorActivationModal
+        isOpen={showActivationModal}
+        onClose={() => setShowActivationModal(false)}
+        onSuccess={handleActivationSuccess}
+      />
+
+      {/* Welcome Banner */}
+      <WelcomeBanner
+        isVisible={showWelcomeBanner}
+        onComplete={handleBannerComplete}
+      />
+
+      {/* Confetti Effect */}
+      <ConfettiEffect
+        isActive={showConfetti}
+        onComplete={() => setShowConfetti(false)}
       />
     </>
   );
