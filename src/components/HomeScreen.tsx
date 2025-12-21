@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
-import { LiveRoomPortal } from "./LiveRoomPortal";
+import { LiveStudioView, StudioRoom } from "./studio";
 import { PaymentDrawer } from "./PaymentDrawer";
 import { DesktopHeader } from "./DesktopHeader";
 import { DesktopSidebar } from "./DesktopSidebar";
@@ -19,7 +19,7 @@ interface HomeScreenProps {
   onOpenSearch?: () => void;
 }
 
-// Live now events data
+// Live now events data - extended for studio view
 interface LiveEvent {
   id: string;
   coverImage: string;
@@ -27,6 +27,7 @@ interface LiveEvent {
   price: number;
   viewers: number;
   artistName: string;
+  materials?: string[];
 }
 
 // Mock data with timing-based status
@@ -38,6 +39,13 @@ const liveNowEvents: LiveEvent[] = [
     price: 5,
     viewers: 53,
     artistName: "Sarah Chen",
+    materials: [
+      "Prismacolor Premier Pencil (Black)",
+      "Fabriano Bristol Paper (Smooth)",
+      "Kneaded Eraser",
+      "Tombow Mono Zero Eraser",
+      "Blending Stump Set"
+    ],
   },
   {
     id: "2",
@@ -46,6 +54,12 @@ const liveNowEvents: LiveEvent[] = [
     price: 0,
     viewers: 127,
     artistName: "Marcus Webb",
+    materials: [
+      "Winsor & Newton Cotman Set",
+      "Arches Cold Press 140lb Paper",
+      "Princeton Neptune Brushes",
+      "Ceramic Mixing Palette"
+    ],
   },
   {
     id: "3",
@@ -54,6 +68,12 @@ const liveNowEvents: LiveEvent[] = [
     price: 10,
     viewers: 34,
     artistName: "Luna Park",
+    materials: [
+      "Golden Heavy Body Acrylics",
+      "Palette Knives (assorted)",
+      "Large Canvas 36x48",
+      "Spray Bottle for Texture"
+    ],
   },
   {
     id: "4",
@@ -62,6 +82,12 @@ const liveNowEvents: LiveEvent[] = [
     price: 0,
     viewers: 89,
     artistName: "Maya Rodriguez",
+    materials: [
+      "Stoneware Clay (10 lbs)",
+      "Wire Clay Cutter",
+      "Wooden Modeling Tools",
+      "Sponge Set"
+    ],
   },
   {
     id: "5",
@@ -70,6 +96,12 @@ const liveNowEvents: LiveEvent[] = [
     price: 8,
     viewers: 156,
     artistName: "Jake Thompson",
+    materials: [
+      "Liquitex Pouring Medium",
+      "Primary Color Acrylic Set",
+      "Silicone Oil",
+      "Heat Gun / Torch"
+    ],
   },
   {
     id: "6",
@@ -78,6 +110,12 @@ const liveNowEvents: LiveEvent[] = [
     price: 0,
     viewers: 234,
     artistName: "Elena Volkov",
+    materials: [
+      "Conte Crayons",
+      "Newsprint Pad 18x24",
+      "Charcoal Pencils",
+      "Fixative Spray"
+    ],
   },
   {
     id: "7",
@@ -86,6 +124,12 @@ const liveNowEvents: LiveEvent[] = [
     price: 12,
     viewers: 78,
     artistName: "Nina Chen",
+    materials: [
+      "Oil Paint Set (Gamblin)",
+      "Linen Canvas Panel",
+      "Filbert Brushes",
+      "Odorless Mineral Spirits"
+    ],
   },
   {
     id: "8",
@@ -94,6 +138,12 @@ const liveNowEvents: LiveEvent[] = [
     price: 0,
     viewers: 145,
     artistName: "Tom Harris",
+    materials: [
+      "Sumi Ink",
+      "Rice Paper Roll",
+      "Chinese Calligraphy Brushes",
+      "Ink Stone"
+    ],
   },
 ];
 
@@ -291,12 +341,17 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
 
       <AnimatePresence>
         {showLiveRoom && portalEvent && (
-          <LiveRoomPortal
-            eventId={portalEvent.id}
-            coverImage={portalEvent.coverImage}
-            title={portalEvent.title}
-            artistName={portalEvent.artistName}
-            viewers={portalEvent.viewers}
+          <LiveStudioView
+            room={{
+              id: portalEvent.id,
+              title: portalEvent.title,
+              isLive: true,
+              artistName: portalEvent.artistName,
+              coverImage: portalEvent.coverImage,
+              materials: portalEvent.materials || [],
+              price: portalEvent.price,
+              viewers: portalEvent.viewers,
+            }}
             onClose={handleCloseLiveRoom}
           />
         )}
