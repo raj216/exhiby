@@ -5,7 +5,6 @@ import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { StudioChat } from "./StudioChat";
 import { MaterialsDrawer } from "./MaterialsDrawer";
-import html2canvas from "html2canvas";
 
 // Room data model
 export interface StudioRoom {
@@ -115,39 +114,48 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
     setShowMaterials(false);
 
     // Wait for UI to hide completely
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 150));
     
     // Show flash effect
     setIsCapturing(true);
 
     try {
-      // Capture the video container (artwork only)
-      if (videoRef.current) {
-        const canvas = await html2canvas(videoRef.current, {
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#000000',
-          scale: 2, // High quality
-        });
+      // Find the image element and capture it using canvas
+      const imgElement = videoRef.current?.querySelector('img') as HTMLImageElement;
+      
+      if (imgElement && imgElement.complete) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
         
-        // Convert canvas to blob and trigger download
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `exhiby-snap-${room.title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            toast({
-              title: "📸 Snap saved!",
-              description: "Clean artwork captured to your gallery.",
-            });
-          }
-        }, 'image/png', 1.0);
+        if (ctx) {
+          // Set canvas size to image natural dimensions for high quality
+          canvas.width = imgElement.naturalWidth || imgElement.width;
+          canvas.height = imgElement.naturalHeight || imgElement.height;
+          
+          // Draw the image to canvas
+          ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+          
+          // Convert canvas to blob and trigger download
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `exhiby-snap-${room.title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              
+              toast({
+                title: "📸 Snap saved!",
+                description: "Clean artwork captured to your gallery.",
+              });
+            }
+          }, 'image/png', 1.0);
+        }
+      } else {
+        throw new Error('Image not loaded');
       }
     } catch (error) {
       console.error('Capture error:', error);
