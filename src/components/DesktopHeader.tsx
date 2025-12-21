@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, User, Bell, Plus, Settings, LogOut, CreditCard, HelpCircle } from "lucide-react";
+import { Search, User, Bell, Plus, Settings, LogOut, Palette } from "lucide-react";
 import { useUserMode } from "@/contexts/UserModeContext";
 import {
   DropdownMenu,
@@ -114,6 +114,14 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                   <DropdownMenuItem onClick={() => setShowSettings(true)} className="cursor-pointer">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-border/30" />
+                  <DropdownMenuItem 
+                    onClick={onOpenStudio} 
+                    className="cursor-pointer bg-gradient-to-r from-crimson/20 to-crimson/10 hover:from-crimson/30 hover:to-crimson/20 text-foreground"
+                  >
+                    <Palette className="mr-2 h-4 w-4 text-crimson" />
+                    <span className="font-medium">Open Your Studio</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-border/30" />
                   <DropdownMenuItem className="cursor-pointer text-crimson focus:text-crimson">
