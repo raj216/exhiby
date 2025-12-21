@@ -24,6 +24,7 @@ export default {
         sans: ['Satoshi', 'system-ui', 'sans-serif'],
         serif: ['Clash Display', 'serif'],
         display: ['Clash Display', 'serif'],
+        logo: ['Cinzel Decorative', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

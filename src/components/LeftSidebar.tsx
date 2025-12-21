@@ -28,7 +28,7 @@ export function LeftSidebar({ onSelectCategory, activeCategory }: LeftSidebarPro
         <motion.h1
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="font-display text-2xl text-gradient-electric"
+          className="font-logo text-2xl text-gradient-electric"
         >
           Exhiby
         </motion.h1>
