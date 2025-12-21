@@ -5,6 +5,7 @@ import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { StudioChat } from "./StudioChat";
 import { MaterialsDrawer } from "./MaterialsDrawer";
+import html2canvas from "html2canvas";
 
 // Room data model
 export interface StudioRoom {
@@ -107,29 +108,49 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
 
   const handleSnap = async () => {
     triggerSuccessHaptic();
-    setIsCapturing(true);
     
-    // Hide all UI for clean capture
+    // Hide all UI for clean capture first
     setIsUIVisible(false);
     setShowChat(false);
     setShowMaterials(false);
 
-    // Simulate capture delay
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Wait for UI to hide completely
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Show flash effect
+    setIsCapturing(true);
 
-    // In a real implementation, this would capture the video element
-    // For now, we'll save the cover image as a placeholder
     try {
-      const link = document.createElement('a');
-      link.href = room.coverImage;
-      link.download = `exhiby-snap-${room.title.replace(/\s+/g, '-').toLowerCase()}.jpg`;
-      link.click();
-      
-      toast({
-        title: "📸 Snap saved!",
-        description: "Clean artwork captured to your device.",
-      });
+      // Capture the video container (artwork only)
+      if (videoRef.current) {
+        const canvas = await html2canvas(videoRef.current, {
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#000000',
+          scale: 2, // High quality
+        });
+        
+        // Convert canvas to blob and trigger download
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `exhiby-snap-${room.title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast({
+              title: "📸 Snap saved!",
+              description: "Clean artwork captured to your gallery.",
+            });
+          }
+        }, 'image/png', 1.0);
+      }
     } catch (error) {
+      console.error('Capture error:', error);
       toast({
         title: "Capture failed",
         description: "Could not save the image.",
@@ -137,9 +158,11 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
       });
     }
 
-    setIsCapturing(false);
-    // Restore UI after a moment
-    setTimeout(() => setIsUIVisible(true), 500);
+    // Hide flash and restore UI
+    setTimeout(() => {
+      setIsCapturing(false);
+      setIsUIVisible(true);
+    }, 200);
   };
 
   const handleRaiseHand = () => {
