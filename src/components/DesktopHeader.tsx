@@ -155,13 +155,15 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                       <span>Studio Dashboard</span>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem 
-                    onClick={handleOpenStudio} 
-                    className="cursor-pointer bg-gradient-to-r from-crimson/20 to-crimson/10 hover:from-crimson/30 hover:to-crimson/20 text-foreground"
-                  >
-                    <Palette className="mr-2 h-4 w-4 text-crimson" />
-                    <span className="font-medium">{isVerifiedCreator ? "Creator Settings" : "Open Your Studio"}</span>
-                  </DropdownMenuItem>
+                  {!isVerifiedCreator && (
+                    <DropdownMenuItem 
+                      onClick={handleOpenStudio} 
+                      className="cursor-pointer bg-gradient-to-r from-crimson/20 to-crimson/10 hover:from-crimson/30 hover:to-crimson/20 text-foreground"
+                    >
+                      <Palette className="mr-2 h-4 w-4 text-crimson" />
+                      <span className="font-medium">Open Your Studio</span>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator className="bg-border/30" />
                   <DropdownMenuItem className="cursor-pointer text-crimson focus:text-crimson">
                     <LogOut className="mr-2 h-4 w-4" />
