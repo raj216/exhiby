@@ -1,6 +1,13 @@
-import { motion } from "framer-motion";
-import { Home, Search, User, Compass, BarChart3, Menu, Palette } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Home, Search, User, Compass, BarChart3, Menu, Palette, Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { useUserMode } from "@/contexts/UserModeContext";
+import { useProfile } from "@/hooks/useProfile";
+import { SettingsDrawer } from "./SettingsDrawer";
+import { CreatorActivationModal } from "./CreatorActivationModal";
+import { WelcomeBanner } from "./WelcomeBanner";
+import { ConfettiEffect } from "./ConfettiEffect";
 
 type AudienceTab = "home" | "search" | "passport" | "profile";
 type CreatorTab = "studio" | "insights" | "menu" | "profile";
@@ -9,6 +16,10 @@ interface BottomNavigationProps {
   mode: "audience" | "creator";
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onOpenSearch?: () => void;
+  onViewProfile?: () => void;
+  onOpenStudio?: () => void;
+  onLogout?: () => void;
 }
 
 const audienceTabs: { id: AudienceTab; label: string; icon: typeof Home }[] = [
@@ -25,61 +36,289 @@ const creatorTabs: { id: CreatorTab; label: string; icon: typeof Palette }[] = [
   { id: "profile", label: "Profile", icon: User },
 ];
 
-export function BottomNavigation({ mode, activeTab, onTabChange }: BottomNavigationProps) {
+export function BottomNavigation({ 
+  mode, 
+  activeTab, 
+  onTabChange, 
+  onOpenSearch,
+  onViewProfile,
+  onOpenStudio,
+  onLogout 
+}: BottomNavigationProps) {
+  const { isVerifiedCreator } = useUserMode();
+  const { profile } = useProfile();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
   const tabs = mode === "audience" ? audienceTabs : creatorTabs;
   const accentColor = mode === "creator" ? "text-electric" : "text-foreground";
 
+  // Get initials from user's name
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const displayName = profile?.name || "Guest";
+  const initials = getInitials(displayName);
+
+  const handleTabClick = (tabId: string) => {
+    triggerClickHaptic();
+    
+    if (tabId === "search") {
+      // Open search overlay
+      onOpenSearch?.();
+      return;
+    }
+    
+    if (tabId === "profile") {
+      // Toggle profile menu
+      setShowProfileMenu(!showProfileMenu);
+      return;
+    }
+    
+    // Close menu if clicking other tabs
+    setShowProfileMenu(false);
+    onTabChange(tabId);
+  };
+
+  const handleViewProfile = () => {
+    setShowProfileMenu(false);
+    onViewProfile?.();
+  };
+
+  const handleOpenStudio = () => {
+    setShowProfileMenu(false);
+    if (isVerifiedCreator) {
+      onOpenStudio?.();
+    } else {
+      setShowActivationModal(true);
+    }
+  };
+
+  const handleSettings = () => {
+    setShowProfileMenu(false);
+    setShowSettings(true);
+  };
+
+  const handleLogout = () => {
+    setShowProfileMenu(false);
+    onLogout?.();
+  };
+
+  const handleActivationSuccess = () => {
+    setShowConfetti(true);
+    setTimeout(() => {
+      setShowWelcomeBanner(true);
+    }, 300);
+  };
+
+  const handleBannerComplete = () => {
+    setShowWelcomeBanner(false);
+  };
+
   return (
-    <motion.div
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
-    >
-      <div className="bg-carbon/95 backdrop-blur-xl border-t border-border/30 px-2 pb-6 pt-2 max-w-lg mx-auto">
-        <div className="flex items-center justify-around">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  triggerClickHaptic();
-                  onTabChange(tab.id);
-                }}
-                className="flex flex-col items-center gap-1 py-2 px-4 relative"
-              >
-                <motion.div
-                  animate={{
-                    scale: isActive ? 1.1 : 1,
-                  }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+    <>
+      {/* Backdrop for profile menu */}
+      <AnimatePresence>
+        {showProfileMenu && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-30 lg:hidden"
+            onClick={() => setShowProfileMenu(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
+      >
+        {/* Upward Profile Menu */}
+        <AnimatePresence>
+          {showProfileMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="absolute bottom-full right-4 mb-2 w-56 bg-obsidian border border-border/30 rounded-xl shadow-2xl overflow-hidden"
+            >
+              {/* User Info Header */}
+              <div className="p-4 border-b border-border/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-electric to-crimson p-0.5">
+                    <div className="w-full h-full rounded-full bg-obsidian flex items-center justify-center overflow-hidden">
+                      {profile?.avatarUrl ? (
+                        <img 
+                          src={profile.avatarUrl} 
+                          alt={displayName} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-foreground font-semibold text-sm">{initials}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                    {profile?.handle && (
+                      <p className="text-xs text-muted-foreground truncate">@{profile.handle}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground capitalize">{mode} mode</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Menu Items */}
+              <div className="py-2">
+                <button
+                  onClick={handleViewProfile}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
                 >
-                  <tab.icon
-                    className={`w-5 h-5 transition-colors ${
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span>View Profile</span>
+                </button>
+
+                {isVerifiedCreator ? (
+                  <button
+                    onClick={handleOpenStudio}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+                    <span>Studio Dashboard</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleOpenStudio}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground bg-gradient-to-r from-crimson/20 to-crimson/10 hover:from-crimson/30 hover:to-crimson/20 transition-colors"
+                  >
+                    <Palette className="w-4 h-4 text-crimson" />
+                    <span className="font-medium">Open Your Studio</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={handleSettings}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                  <span>Settings</span>
+                </button>
+
+                <div className="my-2 mx-4 border-t border-border/30" />
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-crimson hover:bg-crimson/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log out</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bottom Navigation Bar */}
+        <div className="bg-carbon/95 backdrop-blur-xl border-t border-border/30 px-2 pb-6 pt-2 max-w-lg mx-auto">
+          <div className="flex items-center justify-around">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id || (tab.id === "profile" && showProfileMenu);
+              const isProfileTab = tab.id === "profile";
+              
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab.id)}
+                  className="flex flex-col items-center gap-1 py-2 px-4 relative"
+                >
+                  <motion.div
+                    animate={{
+                      scale: isActive ? 1.1 : 1,
+                    }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  >
+                    {isProfileTab ? (
+                      // Profile tab shows user avatar/initials
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-electric to-crimson p-0.5">
+                        <div className="w-full h-full rounded-full bg-obsidian flex items-center justify-center overflow-hidden">
+                          {profile?.avatarUrl ? (
+                            <img 
+                              src={profile.avatarUrl} 
+                              alt={displayName} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-foreground font-bold text-[10px]">{initials}</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <tab.icon
+                        className={`w-5 h-5 transition-colors ${
+                          isActive ? accentColor : "text-muted-foreground"
+                        }`}
+                      />
+                    )}
+                  </motion.div>
+                  <span
+                    className={`text-[10px] font-medium transition-colors ${
                       isActive ? accentColor : "text-muted-foreground"
                     }`}
-                  />
-                </motion.div>
-                <span
-                  className={`text-[10px] font-medium transition-colors ${
-                    isActive ? accentColor : "text-muted-foreground"
-                  }`}
-                >
-                  {tab.label}
-                </span>
-                {isActive && (
-                  <motion.div
-                    layoutId="navIndicator"
-                    className={`absolute -top-1 w-8 h-0.5 rounded-full ${
-                      mode === "creator" ? "bg-electric" : "bg-foreground"
-                    }`}
-                  />
-                )}
-              </button>
-            );
-          })}
+                  >
+                    {tab.label}
+                  </span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="navIndicator"
+                      className={`absolute -top-1 w-8 h-0.5 rounded-full ${
+                        mode === "creator" ? "bg-electric" : "bg-foreground"
+                      }`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      {/* Settings Drawer */}
+      <SettingsDrawer 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)}
+        onOpenStudio={onOpenStudio}
+      />
+
+      {/* Creator Activation Modal */}
+      <CreatorActivationModal
+        isOpen={showActivationModal}
+        onClose={() => setShowActivationModal(false)}
+        onSuccess={handleActivationSuccess}
+      />
+
+      {/* Welcome Banner */}
+      <WelcomeBanner
+        isVisible={showWelcomeBanner}
+        onComplete={handleBannerComplete}
+      />
+
+      {/* Confetti Effect */}
+      <ConfettiEffect
+        isActive={showConfetti}
+        onComplete={() => setShowConfetti(false)}
+      />
+    </>
   );
 }
