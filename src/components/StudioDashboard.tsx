@@ -22,19 +22,28 @@ import {
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 
+interface UserProfile {
+  name: string;
+  handle: string | null;
+  avatarUrl: string | null;
+  email: string;
+  memberSince: string;
+}
+
 interface StudioDashboardProps {
   onBack: () => void;
   onSwitchMode: () => void;
   onGoLive: () => void;
+  profile?: UserProfile | null;
 }
 
-// Mock data
-const mockCreator = {
-  name: "Elena Voss",
+// Fallback data for when profile is loading
+const fallbackCreator = {
+  name: "Creator",
   avatarImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80",
   coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800&q=80",
   isVerified: true,
-  followers: 1247,
+  followers: 0,
 };
 
 const mockAnalytics = {
@@ -62,8 +71,12 @@ const mockInventory = [
 
 type PortfolioTab = "replays" | "finished" | "shop";
 
-export function StudioDashboard({ onBack, onSwitchMode, onGoLive }: StudioDashboardProps) {
+export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: StudioDashboardProps) {
   const [showEarnings, setShowEarnings] = useState(true);
+  
+  // Use real profile data or fallback
+  const displayName = profile?.name || fallbackCreator.name;
+  const displayAvatar = profile?.avatarUrl || fallbackCreator.avatarImage;
   const [portfolioTab, setPortfolioTab] = useState<PortfolioTab>("replays");
 
   const portfolioTabs: { id: PortfolioTab; label: string; icon: typeof Play }[] = [
@@ -89,7 +102,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive }: StudioDashbo
       {/* Cover Banner */}
       <div className="relative h-44">
         <img 
-          src={mockCreator.coverImage}
+          src={fallbackCreator.coverImage}
           alt="Cover"
           className="w-full h-full object-cover"
         />
@@ -126,12 +139,12 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive }: StudioDashbo
           <div className="relative">
             <div className="w-24 h-24 rounded-full border-4 border-carbon overflow-hidden bg-obsidian">
               <img 
-                src={mockCreator.avatarImage}
-                alt={mockCreator.name}
+                src={displayAvatar}
+                alt={displayName}
                 className="w-full h-full object-cover"
               />
             </div>
-            {mockCreator.isVerified && (
+            {fallbackCreator.isVerified && (
               <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-electric flex items-center justify-center">
                 <BadgeCheck className="w-5 h-5 text-carbon" />
               </div>
@@ -144,10 +157,10 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive }: StudioDashbo
       {/* Creator Info */}
       <div className="pt-16 px-4">
         <div className="flex items-center gap-2">
-          <h1 className="font-display text-2xl text-foreground">{mockCreator.name}</h1>
+          <h1 className="font-display text-2xl text-foreground">{displayName}</h1>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          {mockCreator.followers.toLocaleString()} followers • Creator Studio
+          {profile?.handle ? `@${profile.handle}` : ""} • Creator Studio
         </p>
       </div>
 

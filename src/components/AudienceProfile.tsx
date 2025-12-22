@@ -12,20 +12,28 @@ import {
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 
+interface UserProfile {
+  name: string;
+  handle: string | null;
+  avatarUrl: string | null;
+  email: string;
+  memberSince: string;
+}
+
 interface AudienceProfileProps {
   onBack: () => void;
   onSwitchMode?: () => void;
   isVerifiedCreator?: boolean;
   onOpenStudio?: () => void;
+  profile?: UserProfile | null;
 }
 
-// Mock data
-const mockUser = {
-  name: "Marcus Chen",
-  username: "@marcuschen",
+// Fallback data for when profile is loading
+const fallbackUser = {
+  name: "Guest",
+  username: "@guest",
   avatarImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80",
   memberSince: "Dec 2024",
-  totalSpent: 245,
   eventsAttended: 12,
 };
 
@@ -59,8 +67,14 @@ export function AudienceProfile({
   onBack, 
   onSwitchMode, 
   isVerifiedCreator = false,
-  onOpenStudio 
+  onOpenStudio,
+  profile
 }: AudienceProfileProps) {
+  // Use real profile data or fallback
+  const displayName = profile?.name || fallbackUser.name;
+  const displayHandle = profile?.handle ? `@${profile.handle}` : fallbackUser.username;
+  const displayAvatar = profile?.avatarUrl || fallbackUser.avatarImage;
+  const displayMemberSince = profile?.memberSince || fallbackUser.memberSince;
   const [activeTab, setActiveTab] = useState<TabType>("tickets");
   const [collectionFilter, setCollectionFilter] = useState<"all" | "handcraft" | "artworks">("all");
 
@@ -118,8 +132,8 @@ export function AudienceProfile({
             className="w-24 h-24 rounded-full border-4 border-carbon overflow-hidden bg-obsidian shadow-deep"
           >
             <img
-              src={mockUser.avatarImage}
-              alt={mockUser.name}
+              src={displayAvatar}
+              alt={displayName}
               className="w-full h-full object-cover"
             />
           </motion.div>
@@ -129,7 +143,7 @@ export function AudienceProfile({
             transition={{ delay: 0.1 }}
             className="font-display text-2xl text-foreground mt-4"
           >
-            {mockUser.name}
+            {displayName}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -137,7 +151,7 @@ export function AudienceProfile({
             transition={{ delay: 0.15 }}
             className="text-muted-foreground text-sm"
           >
-            {mockUser.username}
+            {displayHandle}
           </motion.p>
 
           {/* Stats */}
@@ -148,7 +162,7 @@ export function AudienceProfile({
             className="flex items-center gap-8 mt-6"
           >
             <div className="text-center">
-              <p className="font-display text-2xl text-foreground">{mockUser.eventsAttended}</p>
+              <p className="font-display text-2xl text-foreground">{fallbackUser.eventsAttended}</p>
               <p className="text-xs text-muted-foreground">Attended</p>
             </div>
             <div className="w-px h-10 bg-border/50" />
@@ -200,7 +214,7 @@ export function AudienceProfile({
             }}
           >
             <p className="text-xs font-semibold text-gold">
-              🎫 Collector's Passport • Since {mockUser.memberSince}
+              🎫 Collector's Passport • Since {displayMemberSince}
             </p>
           </motion.div>
         </div>
