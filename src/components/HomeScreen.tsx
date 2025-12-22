@@ -17,6 +17,7 @@ interface HomeScreenProps {
   onViewAudienceProfile?: () => void;
   onEnterLiveRoom?: () => void;
   onOpenSearch?: () => void;
+  onOpenStudio?: () => void;
   onLogout?: () => void;
 }
 
@@ -282,7 +283,7 @@ const allContent: ContentItem[] = [
   },
 ];
 
-export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch, onLogout }: HomeScreenProps) {
+export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch, onOpenStudio, onLogout }: HomeScreenProps) {
   const { mode } = useUserMode();
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
   const [portalEvent, setPortalEvent] = useState<ContentItem | null>(null);
@@ -414,9 +415,9 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
         <div className="hidden lg:block">
           <DesktopHeader
             onOpenSearch={onOpenSearch}
-            onViewProfile={onViewCreatorProfile}
+            onViewProfile={onViewAudienceProfile}
             onGoLive={onGoLive}
-            onOpenStudio={onGoLive}
+            onOpenStudio={onOpenStudio}
             onLogout={onLogout}
             hideLogo
           />
@@ -669,7 +670,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           }}
           onOpenSearch={onOpenSearch}
           onViewProfile={onViewAudienceProfile}
-          onOpenStudio={onGoLive}
+          onOpenStudio={onOpenStudio}
           onLogout={onLogout}
         />
       </div>

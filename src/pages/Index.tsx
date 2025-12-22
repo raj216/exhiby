@@ -209,6 +209,10 @@ function IndexContent() {
           setCurrentScreen("profile");
           setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
+        onOpenStudio={() => {
+          setCurrentScreen("profile");
+          setActiveTab("profile");
+        }}
         onOpenSearch={() => setShowSearch(true)}
         onLogout={handleLogout}
       />
