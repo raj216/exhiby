@@ -5,6 +5,7 @@ import { StudioDashboard } from "./StudioDashboard";
 import { CreatorVerificationFlow } from "./CreatorVerificationFlow";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { useProfile } from "@/hooks/useProfile";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -15,6 +16,7 @@ export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
   const { mode, isVerifiedCreator, setVerifiedCreator, toggleMode, setMode } = useUserMode();
   const [showVerification, setShowVerification] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
+  const { profile } = useProfile();
 
   const handleSwitchMode = () => {
     if (!isVerifiedCreator) return;
@@ -75,12 +77,14 @@ export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
               onSwitchMode={isVerifiedCreator ? handleSwitchMode : undefined}
               isVerifiedCreator={isVerifiedCreator}
               onOpenStudio={handleOpenStudio}
+              profile={profile}
             />
           ) : (
             <StudioDashboard
               onBack={onBack}
               onSwitchMode={handleSwitchMode}
               onGoLive={onGoLive}
+              profile={profile}
             />
           )}
         </motion.div>
