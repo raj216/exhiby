@@ -17,6 +17,7 @@ interface HomeScreenProps {
   onViewAudienceProfile?: () => void;
   onEnterLiveRoom?: () => void;
   onOpenSearch?: () => void;
+  onLogout?: () => void;
 }
 
 // Content item with category
@@ -281,7 +282,7 @@ const allContent: ContentItem[] = [
   },
 ];
 
-export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch }: HomeScreenProps) {
+export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch, onLogout }: HomeScreenProps) {
   const { mode } = useUserMode();
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
   const [portalEvent, setPortalEvent] = useState<ContentItem | null>(null);
@@ -415,6 +416,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           onViewProfile={onViewAudienceProfile}
           onGoLive={onGoLive}
           hideLogo={true}
+          onLogout={onLogout}
         />
 
         {/* Main Layout Container */}
