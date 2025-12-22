@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { LiveStudioView, StudioRoom } from "./studio";
 import { PaymentDrawer } from "./PaymentDrawer";
-import { DesktopHeader } from "./DesktopHeader";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { LeftSidebar } from "./LeftSidebar";
 import { BottomNavigation } from "./BottomNavigation";
@@ -410,14 +409,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
 
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Desktop Header - spans remaining width */}
-        <DesktopHeader
-          onOpenSearch={onOpenSearch}
-          onViewProfile={onViewAudienceProfile}
-          onGoLive={onGoLive}
-          hideLogo={true}
-          onLogout={onLogout}
-        />
 
         {/* Main Layout Container */}
         <div className="flex-1">
@@ -660,10 +651,14 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           activeTab={activeTab}
           onTabChange={(tab) => {
             setActiveTab(tab);
-            if (tab === "passport" || tab === "profile") {
+            if (tab === "passport") {
               onViewAudienceProfile?.();
             }
           }}
+          onOpenSearch={onOpenSearch}
+          onViewProfile={onViewAudienceProfile}
+          onOpenStudio={onGoLive}
+          onLogout={onLogout}
         />
       </div>
 
