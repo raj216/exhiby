@@ -19,16 +19,17 @@ export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
   const { profile } = useProfile();
 
   const handleSwitchMode = () => {
-    if (!isVerifiedCreator) return;
-    
+    // Always allow switching back to Audience. Only gate switching *into* Creator.
+    if (mode === "audience" && !isVerifiedCreator) return;
+
     triggerClickHaptic();
     setIsFlipping(true);
-    
+
     // Start flip animation
     setTimeout(() => {
       toggleMode();
     }, 150); // Switch at midpoint of flip
-    
+
     setTimeout(() => {
       setIsFlipping(false);
     }, 300);
