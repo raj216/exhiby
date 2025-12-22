@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, User, Bell, Plus, Settings, LogOut, Palette, LayoutDashboard } from "lucide-react";
 import { useUserMode } from "@/contexts/UserModeContext";
+import { useProfile } from "@/hooks/useProfile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,10 +27,24 @@ interface DesktopHeaderProps {
 
 export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo = false, onOpenStudio, onLogout }: DesktopHeaderProps) {
   const { mode, isVerifiedCreator } = useUserMode();
+  const { profile } = useProfile();
   const [showSettings, setShowSettings] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Get initials from user's name
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const displayName = profile?.name || "Guest";
+  const initials = getInitials(displayName);
 
   const handleOpenStudio = () => {
     if (isVerifiedCreator) {
@@ -125,15 +140,23 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="p-1 rounded-full bg-gradient-to-br from-electric to-crimson hover:shadow-electric transition-shadow">
-                    <div className="w-8 h-8 rounded-full bg-obsidian flex items-center justify-center">
-                      <span className="text-foreground font-semibold text-sm">MC</span>
+                    <div className="w-8 h-8 rounded-full bg-obsidian flex items-center justify-center overflow-hidden">
+                      {profile?.avatarUrl ? (
+                        <img 
+                          src={profile.avatarUrl} 
+                          alt={displayName} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-foreground font-semibold text-sm">{initials}</span>
+                      )}
                     </div>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-obsidian border-border/30">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium text-foreground">Marcus Chen</p>
+                      <p className="text-sm font-medium text-foreground">{displayName}</p>
                       <p className="text-xs text-muted-foreground capitalize">{mode} mode</p>
                     </div>
                   </DropdownMenuLabel>
