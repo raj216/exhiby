@@ -26,7 +26,7 @@ interface DesktopHeaderProps {
 }
 
 export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo = false, onOpenStudio, onLogout }: DesktopHeaderProps) {
-  const { mode, isVerifiedCreator } = useUserMode();
+  const { mode, isVerifiedCreator, setMode } = useUserMode();
   const { profile } = useProfile();
   const [showSettings, setShowSettings] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
@@ -48,7 +48,8 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
 
   const handleOpenStudio = () => {
     if (isVerifiedCreator) {
-      // Already a creator - go to studio dashboard
+      // Set mode to creator and go to studio dashboard
+      setMode("creator");
       onOpenStudio?.();
     } else {
       // Show activation modal

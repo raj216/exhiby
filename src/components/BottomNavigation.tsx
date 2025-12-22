@@ -45,7 +45,7 @@ export function BottomNavigation({
   onOpenStudio,
   onLogout 
 }: BottomNavigationProps) {
-  const { isVerifiedCreator } = useUserMode();
+  const { isVerifiedCreator, setMode } = useUserMode();
   const { profile } = useProfile();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -97,6 +97,8 @@ export function BottomNavigation({
   const handleOpenStudio = () => {
     setShowProfileMenu(false);
     if (isVerifiedCreator) {
+      // Set mode to creator before navigating to studio
+      setMode("creator");
       onOpenStudio?.();
     } else {
       setShowActivationModal(true);
