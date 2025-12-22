@@ -7,7 +7,7 @@ import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { SearchOverlay } from "@/components/SearchOverlay";
-import { PassportStamp, LogoutOverlay } from "@/components/auth";
+import { PassportStamp, LogoutOverlay, PassportModal } from "@/components/auth";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,29 +38,47 @@ function IndexContent() {
   const [showWelcomeStamp, setShowWelcomeStamp] = useState(false);
   const [userName, setUserName] = useState("Guest");
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
+  const [needsPassportSetup, setNeedsPassportSetup] = useState(false);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
 
-  // Check for returning user and show stamp animation
+  // Check if user needs passport setup (first-time users)
   useEffect(() => {
-    const checkReturningUser = async () => {
+    const checkPassportSetup = async () => {
       if (user && !isLoading) {
-        // Check if this is a fresh login (from auth redirect)
-        const lastStampShown = sessionStorage.getItem("exhiby_stamp_shown");
-        if (!lastStampShown) {
-          // Fetch user profile for name
+        setIsCheckingProfile(true);
+        
+        try {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("name")
+            .select("name, handle, avatar_url")
             .eq("user_id", user.id)
             .maybeSingle();
           
+          // Store userName for later use
           setUserName(profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Guest");
-          setShowWelcomeStamp(true);
-          sessionStorage.setItem("exhiby_stamp_shown", "true");
+          
+          // Check if passport is incomplete (no handle or avatar)
+          if (profile && (!profile.handle || !profile.avatar_url)) {
+            setNeedsPassportSetup(true);
+          } else if (profile) {
+            // Passport complete - check for welcome stamp
+            const lastStampShown = sessionStorage.getItem("exhiby_stamp_shown");
+            if (!lastStampShown) {
+              setShowWelcomeStamp(true);
+              sessionStorage.setItem("exhiby_stamp_shown", "true");
+            }
+          }
+        } catch (error) {
+          console.error("Profile check error:", error);
+        } finally {
+          setIsCheckingProfile(false);
         }
+      } else if (!isLoading && !user) {
+        setIsCheckingProfile(false);
       }
     };
 
-    checkReturningUser();
+    checkPassportSetup();
   }, [user, isLoading]);
 
   // Redirect to auth if not logged in
@@ -124,7 +142,7 @@ function IndexContent() {
   };
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || isCheckingProfile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -135,6 +153,20 @@ function IndexContent() {
   // Redirect handled by useEffect
   if (!user) {
     return null;
+  }
+
+  // Passport setup for first-time users (mandatory, non-skippable)
+  if (needsPassportSetup) {
+    return (
+      <PassportModal 
+        userName={userName} 
+        onComplete={() => {
+          setNeedsPassportSetup(false);
+          setShowWelcomeStamp(true);
+          sessionStorage.setItem("exhiby_stamp_shown", "true");
+        }} 
+      />
+    );
   }
 
   // Welcome stamp animation for returning users
