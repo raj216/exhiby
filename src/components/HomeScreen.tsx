@@ -4,6 +4,7 @@ import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { LiveStudioView, StudioRoom } from "./studio";
 import { PaymentDrawer } from "./PaymentDrawer";
 import { DesktopSidebar } from "./DesktopSidebar";
+import { DesktopHeader } from "./DesktopHeader";
 import { LeftSidebar } from "./LeftSidebar";
 import { BottomNavigation } from "./BottomNavigation";
 import { useUserMode } from "@/contexts/UserModeContext";
@@ -409,6 +410,17 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
 
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Desktop Header - hidden on mobile */}
+        <div className="hidden lg:block">
+          <DesktopHeader
+            onOpenSearch={onOpenSearch}
+            onViewProfile={onViewCreatorProfile}
+            onGoLive={onGoLive}
+            onOpenStudio={onGoLive}
+            onLogout={onLogout}
+            hideLogo
+          />
+        </div>
 
         {/* Main Layout Container */}
         <div className="flex-1">
