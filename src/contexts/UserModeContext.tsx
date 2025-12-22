@@ -17,9 +17,12 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
   const [isVerifiedCreator, setVerifiedCreator] = useState(false);
 
   const toggleMode = () => {
-    if (isVerifiedCreator) {
-      setMode(mode === "audience" ? "creator" : "audience");
-    }
+    // Allow creators to always return to audience mode.
+    // Only allow entering creator mode once the user is verified.
+    setMode((prev) => {
+      if (prev === "creator") return "audience";
+      return isVerifiedCreator ? "creator" : prev;
+    });
   };
 
   return (
