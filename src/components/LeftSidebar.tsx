@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { triggerHaptic } from "@/lib/haptics";
-import { Pencil, Droplets, Palette, Brush, Scissors, Container, Gem } from "lucide-react";
+import { Pencil, Droplets, Palette, Brush, Scissors, Container, Gem, LayoutGrid } from "lucide-react";
 
 const categories = [
+  { id: "all", name: "All", icon: LayoutGrid },
   { id: "1", name: "Pencil Art", icon: Pencil },
   { id: "2", name: "Watercolor", icon: Droplets },
   { id: "3", name: "Oil Painting", icon: Palette },
@@ -18,7 +19,7 @@ interface LeftSidebarProps {
   activeCategory?: string;
 }
 
-export function LeftSidebar({ onSelectCategory, activeCategory }: LeftSidebarProps) {
+export function LeftSidebar({ onSelectCategory, activeCategory = "All" }: LeftSidebarProps) {
   const { mode } = useUserMode();
 
   return (
@@ -42,6 +43,8 @@ export function LeftSidebar({ onSelectCategory, activeCategory }: LeftSidebarPro
         <div className="space-y-1">
           {categories.map((cat, index) => {
             const IconComponent = cat.icon;
+            const isActive = activeCategory === cat.name;
+            
             return (
               <motion.button
                 key={cat.id}
@@ -53,13 +56,19 @@ export function LeftSidebar({ onSelectCategory, activeCategory }: LeftSidebarPro
                   onSelectCategory?.(cat.name);
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
-                  activeCategory === cat.name
+                  isActive
                     ? "bg-electric/15 text-electric border border-electric/30"
                     : "text-foreground/80 hover:bg-white/5 hover:text-foreground"
                 }`}
               >
-                <IconComponent className={`w-4 h-4 ${activeCategory === cat.name ? "text-electric" : "text-muted-foreground"}`} />
+                <IconComponent className={`w-4 h-4 ${isActive ? "text-electric" : "text-muted-foreground"}`} />
                 {cat.name}
+                {isActive && (
+                  <motion.div
+                    layoutId="category-indicator"
+                    className="ml-auto w-1.5 h-1.5 rounded-full bg-electric"
+                  />
+                )}
               </motion.button>
             );
           })}
