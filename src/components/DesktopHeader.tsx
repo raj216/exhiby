@@ -21,9 +21,10 @@ interface DesktopHeaderProps {
   onGoLive?: () => void;
   hideLogo?: boolean;
   onOpenStudio?: () => void;
+  onLogout?: () => void;
 }
 
-export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo = false, onOpenStudio }: DesktopHeaderProps) {
+export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo = false, onOpenStudio, onLogout }: DesktopHeaderProps) {
   const { mode, isVerifiedCreator } = useUserMode();
   const [showSettings, setShowSettings] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
@@ -165,7 +166,10 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator className="bg-border/30" />
-                  <DropdownMenuItem className="cursor-pointer text-crimson focus:text-crimson">
+                  <DropdownMenuItem 
+                    onClick={onLogout}
+                    className="cursor-pointer text-crimson focus:text-crimson focus:bg-crimson/10"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>

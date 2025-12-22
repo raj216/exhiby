@@ -7,7 +7,7 @@ import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { SearchOverlay } from "@/components/SearchOverlay";
-import { PassportStamp } from "@/components/auth";
+import { PassportStamp, LogoutOverlay } from "@/components/auth";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ function IndexContent() {
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
   const [showWelcomeStamp, setShowWelcomeStamp] = useState(false);
   const [userName, setUserName] = useState("Guest");
+  const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
 
   // Check for returning user and show stamp animation
   useEffect(() => {
@@ -114,6 +115,14 @@ function IndexContent() {
     setActiveTab(tab);
   };
 
+  const handleLogout = () => {
+    setShowLogoutOverlay(true);
+  };
+
+  const handleLogoutComplete = () => {
+    setShowLogoutOverlay(false);
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -169,6 +178,13 @@ function IndexContent() {
           setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
         onOpenSearch={() => setShowSearch(true)}
+        onLogout={handleLogout}
+      />
+
+      {/* Cinematic Logout Overlay */}
+      <LogoutOverlay 
+        isActive={showLogoutOverlay} 
+        onComplete={handleLogoutComplete} 
       />
 
       {/* Search Overlay */}
