@@ -40,9 +40,9 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useUserMode() {
+export function useUserMode(): UserModeContextType {
   const context = useContext(UserModeContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useUserMode must be used within UserModeProvider");
   }
   return context;
