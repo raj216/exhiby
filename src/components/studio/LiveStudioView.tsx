@@ -275,88 +275,90 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
       </AnimatePresence>
 
       {/* UI Overlay - Only visible in Active state */}
+      {/* Top Bar - Hide when Materials is open */}
       <AnimatePresence>
-        {isUIVisible && !isCapturing && (
-          <>
-            {/* Top Bar */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-20"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Left: Live Indicator */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                  </span>
-                  <span className="text-xs font-medium text-white uppercase tracking-wider">Live</span>
-                </div>
+        {isUIVisible && !isCapturing && !showMaterials && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Left: Live Indicator */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span className="text-xs font-medium text-white uppercase tracking-wider">Live</span>
               </div>
+            </div>
 
-              {/* Center: Title (fades in/out) */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="absolute left-1/2 -translate-x-1/2 max-w-[50%]"
-              >
-                <h1 className="text-sm sm:text-base font-medium text-white/90 truncate text-center">
-                  {room.title}
-                </h1>
-              </motion.div>
-
-              {/* Right: Close Button */}
-              <button
-                onClick={handleClose}
-                className="p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:bg-black/60 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            {/* Center: Title (fades in/out) */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="absolute left-1/2 -translate-x-1/2 max-w-[50%]"
+            >
+              <h1 className="text-sm sm:text-base font-medium text-white/90 truncate text-center">
+                {room.title}
+              </h1>
             </motion.div>
 
-            {/* Bottom Toolbelt - Floating Glass Island */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 30 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="absolute bottom-6 sm:bottom-8 left-0 right-0 flex justify-center z-20 px-4"
-              onClick={(e) => e.stopPropagation()}
+            {/* Right: Close Button */}
+            <button
+              onClick={handleClose}
+              className="p-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/80 hover:text-white hover:bg-black/60 transition-all"
             >
-              <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-3.5 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 shadow-2xl">
-                {toolbeltButtons.map((button, index) => (
-                  <button
-                    key={button.label}
-                    onClick={button.onClick}
-                    className={`
-                      relative p-3 sm:p-3.5 rounded-full transition-all duration-200
-                      ${button.active 
-                        ? "bg-white/20 text-white" 
-                        : "text-white/70 hover:text-white hover:bg-white/10"
-                      }
-                    `}
-                    title={button.label}
-                  >
-                    <button.icon className="w-5 h-5 sm:w-6 sm:h-6" />
-                    
-                    {/* Active indicator dot */}
-                    {button.active && (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white"
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </>
+              <X className="w-5 h-5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom Toolbelt - Hide when Chat is open */}
+      <AnimatePresence>
+        {isUIVisible && !isCapturing && !showChat && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="absolute bottom-6 sm:bottom-8 left-0 right-0 flex justify-center z-20 px-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-3.5 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 shadow-2xl">
+              {toolbeltButtons.map((button, index) => (
+                <button
+                  key={button.label}
+                  onClick={button.onClick}
+                  className={`
+                    relative p-3 sm:p-3.5 rounded-full transition-all duration-200
+                    ${button.active 
+                      ? "bg-white/20 text-white" 
+                      : "text-white/70 hover:text-white hover:bg-white/10"
+                    }
+                  `}
+                  title={button.label}
+                >
+                  <button.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  
+                  {/* Active indicator dot */}
+                  {button.active && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white"
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
