@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
-  Upload,
   DollarSign,
   Ticket,
-  TrendingUp,
-  Users,
   Eye,
   EyeOff,
-  Play,
-  Image,
-  ShoppingBag,
-  MoreHorizontal,
   BadgeCheck,
   ChevronRight,
   Share2,
@@ -24,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
 import { ScheduleEventModal } from "./ScheduleEventModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
+import { PortfolioGrid } from "./PortfolioGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import defaultCover from "@/assets/default-cover.jpg";
@@ -72,32 +66,20 @@ const mockBadges = [
 const mockAnalytics = {
   earnings: 2450,
   ticketsSold: 47,
-  followerGrowth: 12,
-  conversionRate: 8.5,
 };
 
-const mockReplays = [
-  { id: "1", title: "Portrait Masterclass", views: 234, date: "Dec 15", thumbnail: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&q=80" },
-  { id: "2", title: "Pencil Techniques", views: 189, date: "Dec 10", thumbnail: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400&q=80" },
+// Portfolio items for masonry grid
+const mockPortfolio = [
+  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=600&q=80", title: "Portrait Study I" },
+  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=600&q=80", title: "Eyes of Wonder" },
+  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&q=80", title: "Charcoal Dreams" },
+  { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&q=80", title: "Abstract Motion" },
+  { id: "5", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=600&q=80", title: "Sketch Study" },
 ];
-
-const mockFinishedWork = [
-  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&q=80", title: "Portrait Study I", price: 150 },
-  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400&q=80", title: "Eyes of Wonder", price: 200 },
-  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", title: "Charcoal Dreams", price: 175 },
-];
-
-const mockInventory = [
-  { id: "1", name: "Signed Print #1", stock: 5, price: 45 },
-  { id: "2", name: "Original Sketch", stock: 1, price: 350 },
-];
-
-type PortfolioTab = "replays" | "finished" | "shop";
 
 export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: StudioDashboardProps) {
   const { user } = useAuth();
   const [showEarnings, setShowEarnings] = useState(true);
-  const [portfolioTab, setPortfolioTab] = useState<PortfolioTab>("replays");
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [localProfile, setLocalProfile] = useState(profile);
@@ -163,11 +145,6 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
   const displayCover = localProfile?.coverUrl || defaultCover;
   const displayBio = localProfile?.bio;
 
-  const portfolioTabs: { id: PortfolioTab; label: string; icon: typeof Play }[] = [
-    { id: "replays", label: "Replays", icon: Play },
-    { id: "finished", label: "Work", icon: Image },
-    { id: "shop", label: "Shop", icon: ShoppingBag },
-  ];
 
   const handleScheduleClick = () => {
     triggerClickHaptic();
@@ -367,183 +344,34 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
           </button>
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
-          {/* Earnings */}
-          <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="w-4 h-4 text-gold" />
-              <span className="text-xs text-muted-foreground">This Month</span>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Earnings - 50% width */}
+          <div className="bg-obsidian rounded-2xl p-5 border border-border/30">
+            <div className="flex items-center gap-2 mb-3">
+              <DollarSign className="w-5 h-5 text-gold" />
+              <span className="text-sm text-muted-foreground">This Month</span>
             </div>
-            <p className="font-display text-2xl text-gold">
+            <p className="font-display text-3xl text-gold">
               {showEarnings ? `$${mockAnalytics.earnings.toLocaleString()}` : "••••"}
             </p>
           </div>
           
-          {/* Tickets Sold */}
-          <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
-            <div className="flex items-center gap-2 mb-2">
-              <Ticket className="w-4 h-4 text-electric" />
-              <span className="text-xs text-muted-foreground">Tickets</span>
+          {/* Tickets Sold - 50% width */}
+          <div className="bg-obsidian rounded-2xl p-5 border border-border/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Ticket className="w-5 h-5 text-electric" />
+              <span className="text-sm text-muted-foreground">Tickets</span>
             </div>
-            <p className="font-display text-2xl text-foreground">
+            <p className="font-display text-3xl text-foreground">
               {mockAnalytics.ticketsSold}
-            </p>
-          </div>
-          
-          {/* Follower Growth */}
-          <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-4 h-4 text-electric" />
-              <span className="text-xs text-muted-foreground">Growth</span>
-            </div>
-            <p className="font-display text-2xl text-foreground">
-              +{mockAnalytics.followerGrowth}%
-            </p>
-          </div>
-          
-          {/* Conversion */}
-          <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-electric" />
-              <span className="text-xs text-muted-foreground">Conversion</span>
-            </div>
-            <p className="font-display text-2xl text-foreground">
-              {mockAnalytics.conversionRate}%
             </p>
           </div>
         </div>
       </div>
 
-      {/* Portfolio Manager */}
-      <div className="mt-6">
-        <div className="px-4 mb-3">
-          <h2 className="font-display text-lg text-foreground">Portfolio Manager</h2>
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex gap-2 px-4 mb-4">
-          {portfolioTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                triggerClickHaptic();
-                setPortfolioTab(tab.id);
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                portfolioTab === tab.id
-                  ? "bg-destructive text-foreground"
-                  : "bg-obsidian text-muted-foreground border border-border/50"
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        <div className="px-4 pb-24">
-          <AnimatePresence mode="wait">
-            {/* Replays */}
-            {portfolioTab === "replays" && (
-              <motion.div
-                key="replays"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-3"
-              >
-                {mockReplays.map((replay) => (
-                  <div 
-                    key={replay.id}
-                    className="flex gap-3 bg-obsidian rounded-xl p-3 border border-border/30"
-                  >
-                    <div className="w-24 h-16 rounded-lg overflow-hidden relative">
-                      <img 
-                        src={replay.thumbnail}
-                        alt={replay.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-carbon/50">
-                        <Play className="w-6 h-6 text-foreground" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground text-sm">{replay.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {replay.views} views • {replay.date}
-                      </p>
-                    </div>
-                    <button className="p-2">
-                      <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                  </div>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Finished Work */}
-            {portfolioTab === "finished" && (
-              <motion.div
-                key="finished"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="grid grid-cols-3 gap-2"
-              >
-                {mockFinishedWork.map((work) => (
-                  <div 
-                    key={work.id}
-                    className="aspect-square rounded-xl overflow-hidden relative group"
-                  >
-                    <img 
-                      src={work.image}
-                      alt={work.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-carbon/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                      <div>
-                        <p className="text-xs text-foreground font-medium line-clamp-1">{work.title}</p>
-                        <p className="text-xs text-gold">${work.price}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Shop Inventory */}
-            {portfolioTab === "shop" && (
-              <motion.div
-                key="shop"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-3"
-              >
-                {mockInventory.map((item) => (
-                  <div 
-                    key={item.id}
-                    className="flex justify-between items-center bg-obsidian rounded-xl p-4 border border-border/30"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">{item.stock} in stock</p>
-                    </div>
-                    <p className="font-display text-gold">${item.price}</p>
-                  </div>
-                ))}
-                <button 
-                  onClick={() => toast({ title: "Add Product", description: "Opening product form..." })}
-                  className="w-full py-4 rounded-xl border-2 border-dashed border-border/50 text-muted-foreground text-sm flex items-center justify-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Add New Product
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+      {/* Portfolio Section - Masonry Grid */}
+      <div className="mt-6 px-4 pb-24">
+        <PortfolioGrid items={mockPortfolio} />
       </div>
 
       {/* Edit Profile Modal */}
