@@ -671,6 +671,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
           onOpenSearch={onOpenSearch}
           onViewProfile={onViewAudienceProfile}
           onOpenStudio={onOpenStudio}
+          onGoLive={onGoLive}
           onLogout={onLogout}
         />
       </div>
