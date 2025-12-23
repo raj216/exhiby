@@ -98,7 +98,7 @@ export function ClosedDoor({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          I have a Pass
+          Enter Studio
         </motion.button>
       </motion.div>
 
