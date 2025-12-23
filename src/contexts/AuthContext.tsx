@@ -11,6 +11,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Ensure profile exists for user (creates one if missing)
+async function ensureProfileExists(user: User) {
+  try {
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      // Profile doesn't exist, create one
+      const { error } = await supabase.from("profiles").insert({
+        user_id: user.id,
+        name: user.user_metadata?.name || user.user_metadata?.full_name || "Guest",
+        email: user.email || "",
+      });
+
+      if (error && !error.message.includes("duplicate")) {
+        console.error("Failed to create profile:", error);
+      }
+    }
+  } catch (error) {
+    console.error("Error ensuring profile exists:", error);
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -23,6 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        // Ensure profile exists when user signs in
+        if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
+          setTimeout(() => {
+            ensureProfileExists(session.user);
+          }, 0);
+        }
       }
     );
 
@@ -31,6 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+
+      // Ensure profile exists for existing session
+      if (session?.user) {
+        ensureProfileExists(session.user);
+      }
     });
 
     return () => subscription.unsubscribe();
