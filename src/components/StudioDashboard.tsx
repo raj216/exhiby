@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -17,14 +17,15 @@ import {
   MoreHorizontal,
   BadgeCheck,
   ChevronRight,
-  Camera,
   Share2,
   Pencil,
   Award
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
-import { ProfileImageEditor } from "./ProfileImageEditor";
+import { EditProfileModal } from "./EditProfileModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface UserProfile {
@@ -33,6 +34,9 @@ interface UserProfile {
   avatarUrl: string | null;
   email: string;
   memberSince: string;
+  bio?: string | null;
+  website?: string | null;
+  coverUrl?: string | null;
 }
 
 interface StudioDashboardProps {
@@ -82,19 +86,51 @@ const mockInventory = [
 type PortfolioTab = "replays" | "finished" | "shop";
 
 export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: StudioDashboardProps) {
+  const { user } = useAuth();
   const [showEarnings, setShowEarnings] = useState(true);
   const [portfolioTab, setPortfolioTab] = useState<PortfolioTab>("replays");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
-  const [showCoverEditor, setShowCoverEditor] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [localProfile, setLocalProfile] = useState(profile);
+  
+  // Sync local profile with prop changes
+  useEffect(() => {
+    setLocalProfile(profile);
+  }, [profile]);
+
+  // Fetch updated profile data
+  const refreshProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("name, handle, avatar_url, email, created_at, bio, website, cover_url")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    
+    if (data) {
+      const createdDate = new Date(data.created_at);
+      const memberSince = createdDate.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+      setLocalProfile({
+        name: data.name,
+        handle: data.handle,
+        avatarUrl: data.avatar_url,
+        email: data.email,
+        memberSince,
+        bio: data.bio,
+        website: data.website,
+        coverUrl: data.cover_url,
+      });
+    }
+  };
   
   // Use real profile data or fallback
-  const displayName = profile?.name || fallbackCreator.name;
-  const displayHandle = profile?.handle ? `@${profile.handle}` : "";
-  const displayMemberSince = profile?.memberSince || fallbackCreator.memberSince;
-  const displayAvatar = avatarUrl || profile?.avatarUrl || fallbackCreator.avatarImage;
-  const displayCover = coverUrl || defaultCover;
+  const displayName = localProfile?.name || fallbackCreator.name;
+  const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : "";
+  const displayMemberSince = localProfile?.memberSince || fallbackCreator.memberSince;
+  const displayAvatar = localProfile?.avatarUrl || fallbackCreator.avatarImage;
+  const displayCover = (localProfile as any)?.coverUrl || defaultCover;
 
   const portfolioTabs: { id: PortfolioTab; label: string; icon: typeof Play }[] = [
     { id: "replays", label: "Replays", icon: Play },
@@ -121,25 +157,14 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
 
   return (
     <div className="min-h-screen bg-carbon">
-      {/* Cover Photo - Full Width, Editable */}
-      <div 
-        className="relative h-48 sm:h-56 w-full overflow-hidden cursor-pointer group"
-        onClick={() => setShowCoverEditor(true)}
-      >
+      {/* Cover Photo - Full Width (NOT clickable - edit through Edit Profile) */}
+      <div className="relative h-48 sm:h-56 w-full overflow-hidden">
         <img
           src={displayCover}
           alt="Cover"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/40 to-transparent" />
-        
-        {/* Cover edit overlay */}
-        <div className="absolute inset-0 bg-carbon/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50">
-            <Camera className="w-4 h-4 text-foreground" />
-            <span className="text-sm text-foreground">Change Cover Photo</span>
-          </div>
-        </div>
 
         {/* Header Controls */}
         <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
@@ -172,13 +197,12 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
       {/* Profile Section - Avatar overlapping cover (matches Audience) */}
       <div className="relative px-4 -mt-16">
         <div className="flex items-end gap-4">
-          {/* Avatar - Editable */}
+          {/* Avatar (NOT clickable - edit through Edit Profile) */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="relative cursor-pointer group"
-            onClick={() => setShowAvatarEditor(true)}
+            className="relative"
           >
             <div className="w-28 h-28 rounded-full border-4 border-carbon overflow-hidden bg-obsidian shadow-deep">
               <img
@@ -190,10 +214,6 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
             {/* Verified badge */}
             <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-destructive flex items-center justify-center">
               <BadgeCheck className="w-5 h-5 text-foreground" />
-            </div>
-            {/* Avatar edit overlay */}
-            <div className="absolute inset-0 rounded-full bg-carbon/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Camera className="w-6 h-6 text-foreground" />
             </div>
           </motion.div>
         </div>
@@ -229,7 +249,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
           <button
             onClick={() => {
               triggerClickHaptic();
-              toast({ title: "Edit Profile", description: "Opening profile editor..." });
+              setShowEditProfile(true);
             }}
             className="px-5 py-2.5 rounded-full bg-surface-elevated border border-border/50 text-foreground text-sm font-medium flex items-center gap-2"
           >
@@ -513,20 +533,12 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         </div>
       </div>
 
-      {/* Image Editors */}
-      <ProfileImageEditor
-        isOpen={showAvatarEditor}
-        onClose={() => setShowAvatarEditor(false)}
-        type="avatar"
-        currentImage={displayAvatar}
-        onImageUpdated={setAvatarUrl}
-      />
-      <ProfileImageEditor
-        isOpen={showCoverEditor}
-        onClose={() => setShowCoverEditor(false)}
-        type="cover"
-        currentImage={displayCover}
-        onImageUpdated={setCoverUrl}
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        profile={localProfile}
+        onProfileUpdated={refreshProfile}
       />
     </div>
   );

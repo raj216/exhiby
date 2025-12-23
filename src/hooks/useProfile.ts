@@ -8,6 +8,9 @@ export interface UserProfile {
   avatarUrl: string | null;
   email: string;
   memberSince: string;
+  bio?: string | null;
+  website?: string | null;
+  coverUrl?: string | null;
 }
 
 export function useProfile() {
@@ -26,7 +29,7 @@ export function useProfile() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("name, handle, avatar_url, email, created_at")
+          .select("name, handle, avatar_url, email, created_at, bio, website, cover_url")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -49,6 +52,9 @@ export function useProfile() {
             avatarUrl: data.avatar_url,
             email: data.email,
             memberSince,
+            bio: data.bio,
+            website: data.website,
+            coverUrl: data.cover_url,
           });
         }
       } catch (error) {
