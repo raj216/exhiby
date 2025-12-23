@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -8,13 +8,14 @@ import {
   Ticket,
   ChevronRight,
   Clock,
-  Camera,
   Share2,
   Pencil
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
-import { ProfileImageEditor } from "./ProfileImageEditor";
+import { EditProfileModal } from "./EditProfileModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface UserProfile {
@@ -23,6 +24,9 @@ interface UserProfile {
   avatarUrl: string | null;
   email: string;
   memberSince: string;
+  bio?: string | null;
+  website?: string | null;
+  coverUrl?: string | null;
 }
 
 interface AudienceProfileProps {
@@ -73,20 +77,54 @@ export function AudienceProfile({
   onOpenStudio,
   profile
 }: AudienceProfileProps) {
+  const { user } = useAuth();
+  const [localProfile, setLocalProfile] = useState(profile);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  
+  // Sync local profile with prop changes
+  useEffect(() => {
+    setLocalProfile(profile);
+  }, [profile]);
+
+  // Fetch updated profile data
+  const refreshProfile = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("name, handle, avatar_url, email, created_at, bio, website, cover_url")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    
+    if (data) {
+      const createdDate = new Date(data.created_at);
+      const memberSince = createdDate.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+      setLocalProfile({
+        name: data.name,
+        handle: data.handle,
+        avatarUrl: data.avatar_url,
+        email: data.email,
+        memberSince,
+        bio: data.bio,
+        website: data.website,
+        coverUrl: data.cover_url,
+      });
+    }
+  };
+
   // Use real profile data or fallback
-  const displayName = profile?.name || fallbackUser.name;
-  const displayHandle = profile?.handle ? `@${profile.handle}` : fallbackUser.username;
-  const displayMemberSince = profile?.memberSince || fallbackUser.memberSince;
+  const displayName = localProfile?.name || fallbackUser.name;
+  const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : fallbackUser.username;
+  const displayMemberSince = localProfile?.memberSince || fallbackUser.memberSince;
+  const displayBio = localProfile?.bio;
   
   const [activeTab, setActiveTab] = useState<TabType>("tickets");
   const [collectionFilter, setCollectionFilter] = useState<"all" | "handcraft" | "artworks">("all");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
-  const [showCoverEditor, setShowCoverEditor] = useState(false);
 
-  const displayAvatar = avatarUrl || profile?.avatarUrl || fallbackUser.avatarImage;
-  const displayCover = coverUrl || defaultCover;
+  const displayAvatar = localProfile?.avatarUrl || fallbackUser.avatarImage;
+  const displayCover = localProfile?.coverUrl || defaultCover;
 
   const tabs: { id: TabType; label: string; icon: typeof Ticket }[] = [
     { id: "tickets", label: "Tickets", icon: Ticket },
@@ -107,25 +145,14 @@ export function AudienceProfile({
       {/* Main Container */}
       <div className="max-w-screen-xl mx-auto lg:px-8">
         
-        {/* Cover Photo - Full Width, Editable */}
-        <div 
-          className="relative h-48 sm:h-56 w-full overflow-hidden cursor-pointer group"
-          onClick={() => setShowCoverEditor(true)}
-        >
+        {/* Cover Photo - Full Width (NOT clickable - edit through Edit Profile) */}
+        <div className="relative h-48 sm:h-56 w-full overflow-hidden">
           <img
             src={displayCover}
             alt="Cover"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/40 to-transparent" />
-          
-          {/* Cover edit overlay */}
-          <div className="absolute inset-0 bg-carbon/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50">
-              <Camera className="w-4 h-4 text-foreground" />
-              <span className="text-sm text-foreground">Change Cover Photo</span>
-            </div>
-          </div>
 
           {/* Header Controls */}
           <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
@@ -160,13 +187,12 @@ export function AudienceProfile({
         {/* Profile Section - Avatar overlapping cover */}
         <div className="relative px-4 -mt-16">
           <div className="flex items-end gap-4">
-            {/* Avatar - Editable */}
+            {/* Avatar (NOT clickable - edit through Edit Profile) */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="relative cursor-pointer group"
-              onClick={() => setShowAvatarEditor(true)}
+              className="relative"
             >
               <div className="w-28 h-28 rounded-full border-4 border-carbon overflow-hidden bg-obsidian shadow-deep">
                 <img
@@ -175,14 +201,10 @@ export function AudienceProfile({
                   className="w-full h-full object-cover"
                 />
               </div>
-              {/* Avatar edit overlay */}
-              <div className="absolute inset-0 rounded-full bg-carbon/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera className="w-6 h-6 text-foreground" />
-              </div>
             </motion.div>
           </div>
 
-          {/* Name & Handle */}
+          {/* Name & Handle & Bio */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -191,6 +213,9 @@ export function AudienceProfile({
           >
             <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">{displayHandle}</p>
+            {displayBio && (
+              <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>
+            )}
           </motion.div>
 
           {/* Stats Row - Clean, grounded */}
@@ -213,7 +238,7 @@ export function AudienceProfile({
             <button
               onClick={() => {
                 triggerClickHaptic();
-                toast({ title: "Edit Profile", description: "Opening profile editor..." });
+                setShowEditProfile(true);
               }}
               className="px-5 py-2.5 rounded-full bg-surface-elevated border border-border/50 text-foreground text-sm font-medium flex items-center gap-2"
             >
@@ -465,20 +490,12 @@ export function AudienceProfile({
         </div>
       </div>
 
-      {/* Image Editors */}
-      <ProfileImageEditor
-        isOpen={showAvatarEditor}
-        onClose={() => setShowAvatarEditor(false)}
-        type="avatar"
-        currentImage={displayAvatar}
-        onImageUpdated={setAvatarUrl}
-      />
-      <ProfileImageEditor
-        isOpen={showCoverEditor}
-        onClose={() => setShowCoverEditor(false)}
-        type="cover"
-        currentImage={displayCover}
-        onImageUpdated={setCoverUrl}
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        profile={localProfile}
+        onProfileUpdated={refreshProfile}
       />
     </div>
   );

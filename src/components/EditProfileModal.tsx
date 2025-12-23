@@ -116,6 +116,25 @@ export function EditProfileModal({
   const handleSave = async () => {
     if (!user) return;
 
+    // Validate required fields
+    if (!name.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!username.trim()) {
+      toast({
+        title: "Username required",
+        description: "Please enter a username",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
     triggerClickHaptic();
 

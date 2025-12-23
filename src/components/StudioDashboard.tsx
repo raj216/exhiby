@@ -130,7 +130,8 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
   const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : "";
   const displayMemberSince = localProfile?.memberSince || fallbackCreator.memberSince;
   const displayAvatar = localProfile?.avatarUrl || fallbackCreator.avatarImage;
-  const displayCover = (localProfile as any)?.coverUrl || defaultCover;
+  const displayCover = localProfile?.coverUrl || defaultCover;
+  const displayBio = localProfile?.bio;
 
   const portfolioTabs: { id: PortfolioTab; label: string; icon: typeof Play }[] = [
     { id: "replays", label: "Replays", icon: Play },
@@ -218,7 +219,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
           </motion.div>
         </div>
 
-        {/* Name & Handle */}
+        {/* Name & Handle & Bio */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -227,6 +228,9 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         >
           <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
           {displayHandle && <p className="text-muted-foreground text-sm mt-0.5">{displayHandle}</p>}
+          {displayBio && (
+            <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>
+          )}
         </motion.div>
 
         {/* Stats Row - Clean, grounded (matches Audience style) */}
