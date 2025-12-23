@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { ImageCropper } from "@/components/ImageCropper";
 
 interface ScheduleEventModalProps {
   isOpen: boolean;
@@ -19,6 +20,9 @@ interface ScheduleEventModalProps {
 
 const MAX_TITLE_LENGTH = 50;
 const MAX_DESCRIPTION_LENGTH = 300;
+
+// Aspect ratio matching the Live Now cards (2/3 = 0.666...)
+const COVER_ASPECT_RATIO = 2 / 3;
 
 export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: ScheduleEventModalProps) {
   const { user } = useAuth();
@@ -30,20 +34,39 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
   const [scheduledTime, setScheduledTime] = useState("");
   const [isFree, setIsFree] = useState(true);
   const [price, setPrice] = useState("");
-  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImage, setCoverImage] = useState<Blob | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCoverImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
+        setRawImageSrc(reader.result as string);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
     }
+    // Reset file input so user can select the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    setCoverImage(croppedBlob);
+    const url = URL.createObjectURL(croppedBlob);
+    setCoverPreview(url);
+    setShowCropper(false);
+    setRawImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setRawImageSrc(null);
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,14 +141,15 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
     try {
       let coverUrl: string | null = null;
 
-      // Upload cover image if selected
+      // Upload cropped cover image if selected
       if (coverImage) {
-        const fileExt = coverImage.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        const fileName = `${user.id}/${Date.now()}.jpg`;
         
         const { error: uploadError } = await supabase.storage
           .from('event-covers')
-          .upload(fileName, coverImage);
+          .upload(fileName, coverImage, {
+            contentType: 'image/jpeg',
+          });
 
         if (uploadError) throw uploadError;
 
@@ -230,7 +254,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
             {/* Form */}
             <div className="p-5 space-y-5">
-              {/* Cover Image Upload */}
+              {/* Cover Image Upload - matches Live Now card 2/3 aspect ratio */}
               <div>
                 <Label className="text-sm text-muted-foreground mb-2 block">Cover Image</Label>
                 <input
@@ -242,7 +266,8 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-40 rounded-2xl border-2 border-dashed border-border/50 bg-surface flex flex-col items-center justify-center gap-2 overflow-hidden"
+                  className="w-full rounded-2xl border-2 border-dashed border-border/50 bg-surface flex flex-col items-center justify-center gap-2 overflow-hidden"
+                  style={{ aspectRatio: "2/3" }}
                 >
                   {coverPreview ? (
                     <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
@@ -387,6 +412,19 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
               <div className="h-6" />
             </div>
           </motion.div>
+
+          {/* Image Cropper Modal */}
+          <AnimatePresence>
+            {showCropper && rawImageSrc && (
+              <ImageCropper
+                imageSrc={rawImageSrc}
+                aspectRatio={COVER_ASPECT_RATIO}
+                circularCrop={false}
+                onCropComplete={handleCropComplete}
+                onCancel={handleCropCancel}
+              />
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>
