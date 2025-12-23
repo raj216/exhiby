@@ -325,10 +325,10 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 30 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-20"
+              className="absolute bottom-6 sm:bottom-8 left-0 right-0 flex justify-center z-20 px-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 shadow-2xl">
+              <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-3.5 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 shadow-2xl">
                 {toolbeltButtons.map((button, index) => (
                   <button
                     key={button.label}
