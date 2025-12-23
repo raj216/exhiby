@@ -29,15 +29,16 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
   }
 
   const formatEventDate = (dateStr: string) => {
+    // Parse UTC timestamp and display in user's local timezone
     const date = new Date(dateStr);
     
     if (isToday(date)) {
-      return `Today at ${format(date, "h:mm a")}`;
+      return `Today • ${format(date, "h:mm a")}`;
     }
     if (isTomorrow(date)) {
-      return `Tomorrow at ${format(date, "h:mm a")}`;
+      return `Tomorrow • ${format(date, "h:mm a")}`;
     }
-    return format(date, "MMM d 'at' h:mm a");
+    return format(date, "MMM d • h:mm a");
   };
 
   const handleDelete = async (eventId: string) => {
@@ -109,7 +110,7 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
                     ? "bg-electric/20 text-electric" 
                     : "bg-gold/20 text-gold"
                 }`}>
-                  {event.is_free ? "Free" : `$${event.price}`}
+                  {event.is_free ? "Free" : `$${event.price.toFixed(2)}`}
                 </span>
               </div>
 

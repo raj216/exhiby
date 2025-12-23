@@ -17,6 +17,9 @@ interface ScheduleEventModalProps {
   onEventCreated: () => void;
 }
 
+const MAX_TITLE_LENGTH = 50;
+const MAX_DESCRIPTION_LENGTH = 300;
+
 export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: ScheduleEventModalProps) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +46,58 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
     }
   };
 
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length <= MAX_TITLE_LENGTH) {
+      setTitle(value);
+    }
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    if (value.length <= MAX_DESCRIPTION_LENGTH) {
+      setDescription(value);
+    }
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow numeric input with decimals
+    if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
+      setPrice(value);
+    }
+  };
+
+  const validateDateTime = (): boolean => {
+    if (!scheduledDate || !scheduledTime) {
+      toast({ title: "Error", description: "Please select date and time", variant: "destructive" });
+      return false;
+    }
+
+    // Create date in user's local timezone
+    const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+    const now = new Date();
+
+    if (scheduledDateTime <= now) {
+      toast({ title: "Error", description: "Please select a future date and time", variant: "destructive" });
+      return false;
+    }
+
+    return true;
+  };
+
+  const validatePrice = (): boolean => {
+    if (isFree) return true;
+
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum < 1) {
+      toast({ title: "Error", description: "Minimum ticket price is $1.00", variant: "destructive" });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
@@ -54,10 +109,8 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
       return;
     }
 
-    if (!scheduledDate || !scheduledTime) {
-      toast({ title: "Error", description: "Please select date and time", variant: "destructive" });
-      return;
-    }
+    if (!validateDateTime()) return;
+    if (!validatePrice()) return;
 
     setIsSubmitting(true);
     triggerClickHaptic();
@@ -83,8 +136,9 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
         coverUrl = publicUrl;
       }
 
-      // Combine date and time
-      const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+      // Combine date and time in user's local timezone, then convert to UTC ISO string
+      const localDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+      const scheduledAt = localDateTime.toISOString(); // Automatically converts to UTC
 
       // Insert event
       const { error } = await supabase
@@ -132,6 +186,9 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
       onClose();
     }
   };
+
+  // Get today's date for min attribute
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <AnimatePresence>
@@ -200,29 +257,41 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
               {/* Title */}
               <div>
-                <Label htmlFor="title" className="text-sm text-muted-foreground mb-2 block">
-                  Title
-                </Label>
+                <div className="flex justify-between items-center mb-2">
+                  <Label htmlFor="title" className="text-sm text-muted-foreground">
+                    Title
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    {title.length}/{MAX_TITLE_LENGTH}
+                  </span>
+                </div>
                 <Input
                   id="title"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={handleTitleChange}
                   placeholder="Enter event title..."
+                  maxLength={MAX_TITLE_LENGTH}
                   className="bg-surface border-border/30"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <Label htmlFor="description" className="text-sm text-muted-foreground mb-2 block">
-                  Description
-                </Label>
+                <div className="flex justify-between items-center mb-2">
+                  <Label htmlFor="description" className="text-sm text-muted-foreground">
+                    Description
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    {description.length}/{MAX_DESCRIPTION_LENGTH}
+                  </span>
+                </div>
                 <Textarea
                   id="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={handleDescriptionChange}
                   placeholder="What will you be creating?"
                   rows={3}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
                   className="bg-surface border-border/30 resize-none"
                 />
               </div>
@@ -238,6 +307,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                     type="date"
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
+                    min={today}
                     className="bg-surface border-border/30"
                   />
                 </div>
@@ -276,18 +346,23 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                     exit={{ opacity: 0, height: 0 }}
                   >
                     <Label htmlFor="price" className="text-sm text-muted-foreground mb-2 block">
-                      Ticket Price ($)
+                      Ticket Price (USD)
                     </Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0.00"
-                      className="bg-surface border-border/30"
-                    />
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                        $
+                      </div>
+                      <Input
+                        id="price"
+                        type="text"
+                        inputMode="decimal"
+                        value={price}
+                        onChange={handlePriceChange}
+                        placeholder="5.00"
+                        className="bg-surface border-border/30 pl-7"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Minimum: $1.00</p>
                   </motion.div>
                 )}
               </AnimatePresence>
