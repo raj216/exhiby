@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { LiveStudioView, StudioRoom } from "./studio";
@@ -8,8 +8,10 @@ import { DesktopHeader } from "./DesktopHeader";
 import { LeftSidebar } from "./LeftSidebar";
 import { BottomNavigation } from "./BottomNavigation";
 import { useUserMode } from "@/contexts/UserModeContext";
-import { ChevronRight, Play, Clock } from "lucide-react";
+import { ChevronRight, Clock, Calendar, Bell } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface HomeScreenProps {
   onGoLive: () => void;
@@ -21,7 +23,7 @@ interface HomeScreenProps {
   onLogout?: () => void;
 }
 
-// Content item with category
+// Content item with category (Live streams only)
 interface ContentItem {
   id: string;
   coverImage: string;
@@ -31,14 +33,21 @@ interface ContentItem {
   artistName: string;
   materials?: string[];
   category: "Pencil Art" | "Watercolor" | "Oil Painting" | "Acrylic" | "Handmade Art" | "Pottery" | "Jewelry";
-  type: "live" | "masterclass" | "replay";
   isLive: boolean;
-  duration?: string;
 }
 
-// Mock data with categories
-const allContent: ContentItem[] = [
-  // LIVE STREAMS
+// Upcoming event from database
+interface UpcomingEvent {
+  id: string;
+  title: string;
+  cover_url: string | null;
+  scheduled_at: string;
+  is_free: boolean;
+  price: number | null;
+}
+
+// Mock data - Live streams only
+const liveStreams: ContentItem[] = [
   {
     id: "live-1",
     coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
@@ -48,7 +57,6 @@ const allContent: ContentItem[] = [
     artistName: "Sarah Chen",
     materials: ["Prismacolor Premier Pencil (Black)", "Fabriano Bristol Paper (Smooth)", "Kneaded Eraser"],
     category: "Pencil Art",
-    type: "live",
     isLive: true,
   },
   {
@@ -60,7 +68,6 @@ const allContent: ContentItem[] = [
     artistName: "Marcus Webb",
     materials: ["Winsor & Newton Cotman Set", "Arches Cold Press 140lb Paper"],
     category: "Watercolor",
-    type: "live",
     isLive: true,
   },
   {
@@ -72,7 +79,6 @@ const allContent: ContentItem[] = [
     artistName: "Luna Park",
     materials: ["Golden Heavy Body Acrylics", "Palette Knives (assorted)"],
     category: "Acrylic",
-    type: "live",
     isLive: true,
   },
   {
@@ -84,7 +90,6 @@ const allContent: ContentItem[] = [
     artistName: "Maya Rodriguez",
     materials: ["Stoneware Clay (10 lbs)", "Wire Clay Cutter"],
     category: "Pottery",
-    type: "live",
     isLive: true,
   },
   {
@@ -96,7 +101,6 @@ const allContent: ContentItem[] = [
     artistName: "Jake Thompson",
     materials: ["Liquitex Pouring Medium", "Primary Color Acrylic Set"],
     category: "Acrylic",
-    type: "live",
     isLive: true,
   },
   {
@@ -108,7 +112,6 @@ const allContent: ContentItem[] = [
     artistName: "Elena Volkov",
     materials: ["Conte Crayons", "Newsprint Pad 18x24"],
     category: "Pencil Art",
-    type: "live",
     isLive: true,
   },
   {
@@ -120,7 +123,6 @@ const allContent: ContentItem[] = [
     artistName: "Nina Chen",
     materials: ["Oil Paint Set (Gamblin)", "Linen Canvas Panel"],
     category: "Oil Painting",
-    type: "live",
     isLive: true,
   },
   {
@@ -132,154 +134,7 @@ const allContent: ContentItem[] = [
     artistName: "Tom Harris",
     materials: ["Sumi Ink", "Rice Paper Roll"],
     category: "Watercolor",
-    type: "live",
     isLive: true,
-  },
-  // MASTERCLASSES
-  {
-    id: "master-1",
-    coverImage: "https://images.unsplash.com/photo-1513519245088-0e12902e35a9?w=400&h=600&fit=crop",
-    title: "Pencil Portraits Masterclass",
-    price: 25,
-    viewers: 1240,
-    artistName: "David Kim",
-    category: "Pencil Art",
-    type: "masterclass",
-    isLive: false,
-    duration: "2h 30m",
-  },
-  {
-    id: "master-2",
-    coverImage: "https://images.unsplash.com/photo-1579762715118-a6f1d4b934f1?w=400&h=600&fit=crop",
-    title: "Watercolor Botanicals",
-    price: 35,
-    viewers: 890,
-    artistName: "Emma Rose",
-    category: "Watercolor",
-    type: "masterclass",
-    isLive: false,
-    duration: "3h 15m",
-  },
-  {
-    id: "master-3",
-    coverImage: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop",
-    title: "Oil Painting Fundamentals",
-    price: 45,
-    viewers: 2100,
-    artistName: "Robert Vale",
-    category: "Oil Painting",
-    type: "masterclass",
-    isLive: false,
-    duration: "4h 00m",
-  },
-  {
-    id: "master-4",
-    coverImage: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=400&h=600&fit=crop",
-    title: "Acrylic Texture Techniques",
-    price: 30,
-    viewers: 756,
-    artistName: "Lisa Wong",
-    category: "Acrylic",
-    type: "masterclass",
-    isLive: false,
-    duration: "2h 45m",
-  },
-  {
-    id: "master-5",
-    coverImage: "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=400&h=600&fit=crop",
-    title: "Handmade Paper Crafts",
-    price: 20,
-    viewers: 432,
-    artistName: "Amy Chen",
-    category: "Handmade Art",
-    type: "masterclass",
-    isLive: false,
-    duration: "1h 50m",
-  },
-  {
-    id: "master-6",
-    coverImage: "https://images.unsplash.com/photo-1493106641515-6b5631de4bb9?w=400&h=600&fit=crop",
-    title: "Pottery Wheel Basics",
-    price: 40,
-    viewers: 1560,
-    artistName: "James Potter",
-    category: "Pottery",
-    type: "masterclass",
-    isLive: false,
-    duration: "3h 30m",
-  },
-  {
-    id: "master-7",
-    coverImage: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=600&fit=crop",
-    title: "Silver Ring Making",
-    price: 55,
-    viewers: 678,
-    artistName: "Maria Santos",
-    category: "Jewelry",
-    type: "masterclass",
-    isLive: false,
-    duration: "2h 20m",
-  },
-  // REPLAYS
-  {
-    id: "replay-1",
-    coverImage: "https://images.unsplash.com/photo-1513519245088-0e12902e35a9?w=400&h=600&fit=crop",
-    title: "Yesterday's Sketch Session",
-    price: 0,
-    viewers: 342,
-    artistName: "Sarah Chen",
-    category: "Pencil Art",
-    type: "replay",
-    isLive: false,
-    duration: "1h 45m",
-  },
-  {
-    id: "replay-2",
-    coverImage: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=600&fit=crop",
-    title: "Sunset Watercolor Session",
-    price: 0,
-    viewers: 567,
-    artistName: "Marcus Webb",
-    category: "Watercolor",
-    type: "replay",
-    isLive: false,
-    duration: "2h 10m",
-  },
-  {
-    id: "replay-3",
-    coverImage: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=600&fit=crop",
-    title: "Oil Portrait Demo",
-    price: 0,
-    viewers: 890,
-    artistName: "Nina Chen",
-    category: "Oil Painting",
-    type: "replay",
-    isLive: false,
-    duration: "1h 30m",
-  },
-  {
-    id: "replay-4",
-    coverImage: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=400&h=600&fit=crop",
-    title: "Clay Throwing Basics",
-    price: 0,
-    viewers: 445,
-    artistName: "Maya Rodriguez",
-    category: "Pottery",
-    type: "replay",
-    isLive: false,
-    duration: "1h 55m",
-  },
-  {
-    id: "replay-5",
-    coverImage: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=600&fit=crop",
-    title: "Beaded Necklace Workshop",
-    price: 0,
-    viewers: 234,
-    artistName: "Maria Santos",
-    category: "Jewelry",
-    type: "replay",
-    isLive: false,
-    duration: "1h 20m",
   },
 ];
 
@@ -290,31 +145,44 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
   const [showLiveRoom, setShowLiveRoom] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
-  // Filter content based on selected category
-  const filteredContent = useMemo(() => {
-    if (selectedCategory === "All") {
-      return {
-        live: allContent.filter(item => item.type === "live"),
-        masterclasses: allContent.filter(item => item.type === "masterclass"),
-        replays: allContent.filter(item => item.type === "replay"),
-      };
-    }
-    return {
-      live: allContent.filter(item => item.type === "live" && item.category === selectedCategory),
-      masterclasses: allContent.filter(item => item.type === "masterclass" && item.category === selectedCategory),
-      replays: allContent.filter(item => item.type === "replay" && item.category === selectedCategory),
+  // Fetch upcoming events from database
+  useEffect(() => {
+    const fetchUpcomingEvents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('id, title, cover_url, scheduled_at, is_free, price')
+          .gt('scheduled_at', new Date().toISOString())
+          .order('scheduled_at', { ascending: true });
+        
+        if (error) throw error;
+        setUpcomingEvents(data || []);
+      } catch (err) {
+        console.error('Error fetching upcoming events:', err);
+      } finally {
+        setLoadingEvents(false);
+      }
     };
+    
+    fetchUpcomingEvents();
+  }, []);
+
+  // Filter live content based on selected category
+  const filteredLive = useMemo(() => {
+    if (selectedCategory === "All") {
+      return liveStreams;
+    }
+    return liveStreams.filter(item => item.category === selectedCategory);
   }, [selectedCategory]);
 
-  const hasLiveContent = filteredContent.live.length > 0;
-  const hasMasterclasses = filteredContent.masterclasses.length > 0;
-  const hasReplays = filteredContent.replays.length > 0;
-  const hasAnyContent = hasLiveContent || hasMasterclasses || hasReplays;
+  const hasLiveContent = filteredLive.length > 0;
+  const hasUpcomingEvents = upcomingEvents.length > 0;
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    // Smooth scroll to top when changing category
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -345,61 +213,11 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
     toast({ title: "You're on the list!", description: "We'll notify you when Season 2 launches." });
   };
 
-  // Content card for masterclasses and replays
-  const ContentCard = ({ item, index }: { item: ContentItem; index: number }) => (
-    <motion.div
-      key={item.id}
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.03 }}
-      onClick={() => handleLiveCardTap(item)}
-      className="group cursor-pointer"
-    >
-      <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-obsidian border border-border/20 hover:border-electric/30 transition-all duration-300">
-        <img
-          src={item.coverImage}
-          alt={item.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/20 to-transparent" />
-        
-        {/* Type badge */}
-        <div className="absolute top-3 left-3">
-          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-            item.type === "masterclass" 
-              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-              : "bg-electric/20 text-electric border border-electric/30"
-          }`}>
-            {item.type === "masterclass" ? <Play className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-            {item.type === "masterclass" ? "Masterclass" : "Replay"}
-          </span>
-        </div>
-
-        {/* Price badge */}
-        {item.price > 0 && (
-          <div className="absolute top-3 right-3">
-            <span className="px-2 py-1 rounded-full bg-electric text-obsidian text-xs font-bold">
-              ${item.price}
-            </span>
-          </div>
-        )}
-
-        {/* Duration badge */}
-        {item.duration && (
-          <div className="absolute bottom-16 right-3">
-            <span className="px-2 py-1 rounded-md bg-obsidian/80 text-foreground/80 text-xs">
-              {item.duration}
-            </span>
-          </div>
-        )}
-        
-        <div className="absolute bottom-0 left-0 right-0 p-3">
-          <h3 className="text-sm font-medium text-foreground line-clamp-2 mb-1">{item.title}</h3>
-          <p className="text-xs text-muted-foreground">{item.artistName}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
+  // Format event date for display
+  const formatEventDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return format(date, "MMM d • h:mm a");
+  };
 
   return (
     <div className="min-h-screen bg-carbon flex">
@@ -454,7 +272,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                       {/* Mobile: Horizontal scroll carousel */}
                       <div className="px-4 lg:hidden">
                         <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-                          {filteredContent.live.map((event, index) => (
+                          {filteredLive.map((event, index) => (
                             <motion.div
                               key={event.id}
                               initial={{ opacity: 0, scale: 0.9 }}
@@ -475,7 +293,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                       {/* Desktop: Responsive grid - 4 columns, max 2 rows */}
                       <div className="hidden lg:block px-6">
                         <div className="grid grid-cols-4 gap-4 xl:gap-5">
-                          {filteredContent.live.slice(0, 8).map((event, index) => (
+                          {filteredLive.slice(0, 8).map((event, index) => (
                             <motion.div
                               key={event.id}
                               initial={{ opacity: 0, scale: 0.9 }}
@@ -494,113 +312,156 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                     </section>
                   )}
 
-                  {/* Empty Live State - Show when no live streams for selected category */}
-                  {!hasLiveContent && selectedCategory !== "All" && (
-                    <section className="py-6 px-4 lg:px-6">
-                      <div className="mb-4">
-                        <h2 className="font-display text-xl lg:text-2xl text-foreground">
-                          Live {selectedCategory} Streams
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          No one is live right now. {hasMasterclasses ? "Watch these Masterclasses instead:" : hasReplays ? "Check out these Replays:" : ""}
-                        </p>
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Section B: Masterclasses */}
-                  {hasMasterclasses && (
-                    <section className="py-6">
-                      <div className="flex items-center justify-between px-4 lg:px-6 mb-4">
-                        <div>
-                          <h2 className="font-display text-xl lg:text-2xl text-foreground">
-                            {selectedCategory === "All" ? "Masterclasses" : `${selectedCategory} Masterclasses`}
-                          </h2>
-                          <p className="text-sm text-muted-foreground">Learn from the best</p>
-                        </div>
-                        <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
-                          See all <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Mobile: Horizontal scroll */}
-                      <div className="px-4 lg:hidden">
-                        <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-                          {filteredContent.masterclasses.map((item, index) => (
-                            <div key={item.id} className="snap-start flex-shrink-0 w-[45vw] sm:w-[35vw]">
-                              <ContentCard item={item} index={index} />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Desktop: Grid */}
-                      <div className="hidden lg:block px-6">
-                        <div className="grid grid-cols-4 xl:grid-cols-5 gap-4">
-                          {filteredContent.masterclasses.slice(0, 5).map((item, index) => (
-                            <ContentCard key={item.id} item={item} index={index} />
-                          ))}
-                        </div>
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Section C: Replays */}
-                  {hasReplays && (
-                    <section className="py-6">
-                      <div className="flex items-center justify-between px-4 lg:px-6 mb-4">
-                        <div>
-                          <h2 className="font-display text-xl lg:text-2xl text-foreground">
-                            {selectedCategory === "All" ? "Replays" : `${selectedCategory} Replays`}
-                          </h2>
-                          <p className="text-sm text-muted-foreground">Watch anytime</p>
-                        </div>
-                        <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
-                          See all <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      {/* Mobile: Horizontal scroll */}
-                      <div className="px-4 lg:hidden">
-                        <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-                          {filteredContent.replays.map((item, index) => (
-                            <div key={item.id} className="snap-start flex-shrink-0 w-[45vw] sm:w-[35vw]">
-                              <ContentCard item={item} index={index} />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Desktop: Grid */}
-                      <div className="hidden lg:block px-6">
-                        <div className="grid grid-cols-4 xl:grid-cols-5 gap-4">
-                          {filteredContent.replays.slice(0, 5).map((item, index) => (
-                            <ContentCard key={item.id} item={item} index={index} />
-                          ))}
-                        </div>
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Fallback: Nothing available */}
-                  {!hasAnyContent && selectedCategory !== "All" && (
-                    <section className="py-12 px-4 lg:px-6">
-                      <div className="text-center max-w-md mx-auto">
-                        <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center mx-auto mb-4">
+                  {/* Empty Live State - Show when no one is live */}
+                  {!hasLiveContent && (
+                    <section className="py-8 px-4 lg:px-6">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center py-12 px-6 rounded-2xl bg-obsidian/50 border border-border/20"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-muted/10 flex items-center justify-center mx-auto mb-4">
                           <Clock className="w-8 h-8 text-muted-foreground" />
                         </div>
                         <h3 className="font-display text-lg text-foreground mb-2">
-                          Nothing available yet
+                          The Studios are Quiet
                         </h3>
-                        <p className="text-sm text-muted-foreground mb-6">
-                          There's no {selectedCategory} content right now. Check back soon or explore other categories.
+                        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                          Check back soon or schedule an event.
                         </p>
-                        <button
-                          onClick={() => setSelectedCategory("All")}
-                          className="btn-electric px-6 py-2.5 text-sm font-medium"
-                        >
-                          Browse All Categories
+                      </motion.div>
+                    </section>
+                  )}
+
+                  {/* Section B: Box Office (Upcoming Events) */}
+                  {hasUpcomingEvents && (
+                    <section className="py-6">
+                      <div className="flex items-center justify-between px-4 lg:px-6 mb-4">
+                        <div>
+                          <h2 className="font-display text-xl lg:text-2xl text-foreground">Box Office</h2>
+                          <p className="text-sm text-muted-foreground">Upcoming events</p>
+                        </div>
+                        <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
+                          See all <ChevronRight className="w-4 h-4" />
                         </button>
+                      </div>
+
+                      {/* Mobile: Vertical list */}
+                      <div className="px-4 lg:hidden space-y-4">
+                        {upcomingEvents.map((event, index) => (
+                          <motion.div
+                            key={event.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="group cursor-pointer"
+                          >
+                            <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-obsidian border border-border/20 hover:border-electric/30 transition-all duration-300">
+                              <img
+                                src={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"}
+                                alt={event.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent" />
+                              
+                              {/* Price badge */}
+                              <div className="absolute top-3 right-3">
+                                <span className="px-2 py-1 rounded-full bg-electric text-obsidian text-xs font-bold">
+                                  {event.is_free ? "Free" : `$${event.price}`}
+                                </span>
+                              </div>
+
+                              {/* Date badge */}
+                              <div className="absolute top-3 left-3">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-obsidian/80 text-foreground text-xs">
+                                  <Calendar className="w-3 h-3" />
+                                  {formatEventDate(event.scheduled_at)}
+                                </span>
+                              </div>
+                              
+                              <div className="absolute bottom-0 left-0 right-0 p-4">
+                                <h3 className="text-base font-medium text-foreground line-clamp-2 mb-2">{event.title}</h3>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemind(event.id);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-electric/10 text-electric text-xs font-medium hover:bg-electric/20 transition-colors"
+                                >
+                                  <Bell className="w-3 h-3" />
+                                  Remind Me
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+
+                      {/* Desktop: Grid of event posters */}
+                      <div className="hidden lg:block px-6">
+                        <div className="grid grid-cols-4 xl:grid-cols-5 gap-4">
+                          {upcomingEvents.map((event, index) => (
+                            <motion.div
+                              key={event.id}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: index * 0.03 }}
+                              className="group cursor-pointer"
+                            >
+                              <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-obsidian border border-border/20 hover:border-electric/30 transition-all duration-300">
+                                <img
+                                  src={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"}
+                                  alt={event.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/20 to-transparent" />
+                                
+                                {/* Price badge */}
+                                <div className="absolute top-3 right-3">
+                                  <span className="px-2 py-1 rounded-full bg-electric text-obsidian text-xs font-bold">
+                                    {event.is_free ? "Free" : `$${event.price}`}
+                                  </span>
+                                </div>
+
+                                {/* Date badge */}
+                                <div className="absolute top-3 left-3">
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-obsidian/80 text-foreground text-xs">
+                                    <Calendar className="w-3 h-3" />
+                                    {formatEventDate(event.scheduled_at)}
+                                  </span>
+                                </div>
+                                
+                                <div className="absolute bottom-0 left-0 right-0 p-3">
+                                  <h3 className="text-sm font-medium text-foreground line-clamp-2 mb-2">{event.title}</h3>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemind(event.id);
+                                    }}
+                                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-electric/10 text-electric text-xs font-medium hover:bg-electric/20 transition-colors"
+                                  >
+                                    <Bell className="w-3 h-3" />
+                                    Remind
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Empty Box Office State */}
+                  {!hasUpcomingEvents && !loadingEvents && (
+                    <section className="py-6 px-4 lg:px-6">
+                      <div className="mb-4">
+                        <h2 className="font-display text-xl lg:text-2xl text-foreground">Box Office</h2>
+                        <p className="text-sm text-muted-foreground">Upcoming events</p>
+                      </div>
+                      <div className="text-center py-8 px-6 rounded-2xl bg-obsidian/30 border border-border/10">
+                        <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground">No upcoming events scheduled yet.</p>
                       </div>
                     </section>
                   )}
