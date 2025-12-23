@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
-  Video, 
-  Calendar, 
   Upload,
   DollarSign,
   Ticket,
@@ -307,36 +305,16 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         </motion.p>
       </div>
 
-      {/* Action Center - Big Buttons */}
+      {/* Schedule Event Button - Glass Morphism */}
       <div className="px-4 mt-6">
-        <div className="grid grid-cols-3 gap-3">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleAction("live")}
-            className="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-gradient-to-br from-electric to-crimson"
-          >
-            <Video className="w-7 h-7 text-foreground" />
-            <span className="text-xs font-semibold text-foreground">GO LIVE</span>
-          </motion.button>
-          
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleAction("schedule")}
-            className="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-obsidian border border-border/50"
-          >
-            <Calendar className="w-7 h-7 text-electric" />
-            <span className="text-xs font-semibold text-foreground">SCHEDULE</span>
-          </motion.button>
-          
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleAction("upload")}
-            className="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-obsidian border border-border/50"
-          >
-            <Upload className="w-7 h-7 text-electric" />
-            <span className="text-xs font-semibold text-foreground">UPLOAD</span>
-          </motion.button>
-        </div>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={() => handleAction("schedule")}
+          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-obsidian/80 backdrop-blur-md border border-border/30 shadow-deep"
+        >
+          <span className="text-lg">📅</span>
+          <span className="text-sm font-semibold text-foreground">Schedule Upcoming Event</span>
+        </motion.button>
       </div>
 
       {/* Business Bar - Analytics Cards */}
