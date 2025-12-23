@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Check, Sparkles, Link as LinkIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
+import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import { useUserMode } from "@/contexts/UserModeContext";
+import { ImageCropper } from "./ImageCropper";
+import { toast } from "@/hooks/use-toast";
 
 interface CreatorActivationModalProps {
   isOpen: boolean;
@@ -15,6 +17,11 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
   const [socialLink, setSocialLink] = useState("");
   const [pledgeChecked, setPledgeChecked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [cropperState, setCropperState] = useState<{ isOpen: boolean; imageSrc: string; index: number }>({
+    isOpen: false,
+    imageSrc: "",
+    index: 0,
+  });
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null]);
   const { setVerifiedCreator, setMode } = useUserMode();
 
@@ -25,16 +32,77 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
     fileInputRefs.current[index]?.click();
   };
 
+  // Check if an image is already uploaded (prevent duplicates)
+  const isDuplicateImage = (newImageData: string): boolean => {
+    return uploadedImages.some(img => img === newImageData);
+  };
+
   const handleFileChange = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const newImages = [...uploadedImages];
-        newImages[index] = e.target?.result as string;
-        setUploadedImages(newImages);
+        const imageData = e.target?.result as string;
+        
+        // Check for duplicate
+        if (isDuplicateImage(imageData)) {
+          toast({
+            title: "Duplicate Image",
+            description: "This image has already been uploaded. Please select a different image.",
+            variant: "destructive",
+          });
+          // Reset the file input
+          if (fileInputRefs.current[index]) {
+            fileInputRefs.current[index]!.value = "";
+          }
+          return;
+        }
+        
+        // Open cropper instead of directly setting the image
+        setCropperState({
+          isOpen: true,
+          imageSrc: imageData,
+          index,
+        });
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const croppedImageData = e.target?.result as string;
+      
+      // Check for duplicate after cropping
+      if (isDuplicateImage(croppedImageData)) {
+        toast({
+          title: "Duplicate Image",
+          description: "This image appears to be a duplicate. Please select a different image.",
+          variant: "destructive",
+        });
+        setCropperState({ isOpen: false, imageSrc: "", index: 0 });
+        return;
+      }
+      
+      const newImages = [...uploadedImages];
+      newImages[cropperState.index] = croppedImageData;
+      setUploadedImages(newImages);
+      setCropperState({ isOpen: false, imageSrc: "", index: 0 });
+      
+      // Reset the file input
+      if (fileInputRefs.current[cropperState.index]) {
+        fileInputRefs.current[cropperState.index]!.value = "";
+      }
+    };
+    reader.readAsDataURL(croppedBlob);
+  };
+
+  const handleCropCancel = () => {
+    setCropperState({ isOpen: false, imageSrc: "", index: 0 });
+    // Reset the file input
+    if (fileInputRefs.current[cropperState.index]) {
+      fileInputRefs.current[cropperState.index]!.value = "";
     }
   };
 
@@ -262,6 +330,19 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
           </div>
         </motion.div>
       </DialogPortal>
+      
+      {/* Image Cropper */}
+      <AnimatePresence>
+        {cropperState.isOpen && (
+          <ImageCropper
+            imageSrc={cropperState.imageSrc}
+            aspectRatio={1}
+            circularCrop={false}
+            onCropComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+          />
+        )}
+      </AnimatePresence>
     </Dialog>
   );
 }
