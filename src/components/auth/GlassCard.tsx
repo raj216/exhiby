@@ -111,7 +111,8 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       }
 
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/`;
+      // Redirect to /auth for password reset flow
+      const redirectUrl = `${window.location.origin}/auth`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -123,7 +124,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       }
 
       setForgotPasswordSent(true);
-      toast.success("Password reset email sent!");
+      toast.success("Password reset email sent! Check your inbox.");
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
     } finally {
