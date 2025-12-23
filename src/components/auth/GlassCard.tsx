@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Mail, Loader2 } from "lucide-react";
+import { X, Loader2, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -13,22 +13,31 @@ interface GlassCardProps {
 
 const emailSchema = z.string().email("Please enter a valid email");
 const nameSchema = z.string().min(1, "Please enter your name").max(100);
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
 export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
 
   const isSignup = mode === "signup";
 
-  const handleMagicLink = async () => {
+  const handleSubmit = async () => {
     try {
       // Validate inputs
       const emailResult = emailSchema.safeParse(email);
       if (!emailResult.success) {
         toast.error(emailResult.error.errors[0].message);
+        return;
+      }
+
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        toast.error(passwordResult.error.errors[0].message);
         return;
       }
 
@@ -45,10 +54,9 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       const redirectUrl = `${window.location.origin}/`;
 
       if (isSignup) {
-        // For signup, use signUp with magic link
         const { error } = await supabase.auth.signUp({
           email,
-          password: crypto.randomUUID(), // Random password since we use magic link
+          password,
           options: {
             emailRedirectTo: redirectUrl,
             data: {
@@ -60,29 +68,62 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
 
         if (error) {
           if (error.message.includes("already registered")) {
-            toast.error("This email is already registered. Try 'I have a Pass' instead.");
+            toast.error("This email is already registered. Try signing in instead.");
           } else {
             toast.error(error.message);
           }
           return;
         }
+
+        toast.success("Account created! You can now sign in.");
+        onSuccess(name);
       } else {
-        // For login, use magic link OTP
-        const { error } = await supabase.auth.signInWithOtp({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
-          options: {
-            emailRedirectTo: redirectUrl,
-          },
+          password,
         });
 
         if (error) {
-          toast.error(error.message);
+          if (error.message.includes("Invalid login credentials")) {
+            toast.error("Invalid email or password. Please try again.");
+          } else {
+            toast.error(error.message);
+          }
           return;
         }
+
+        toast.success("Welcome back!");
+        onSuccess("");
+      }
+    } catch (error) {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    try {
+      const emailResult = emailSchema.safeParse(email);
+      if (!emailResult.success) {
+        toast.error("Please enter your email address first");
+        return;
       }
 
-      setMagicLinkSent(true);
-      toast.success("Check your email for your ticket!");
+      setIsLoading(true);
+      const redirectUrl = `${window.location.origin}/`;
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      setForgotPasswordSent(true);
+      toast.success("Password reset email sent!");
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -157,7 +198,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
             transition={{ delay: 0.1 }}
           >
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              {isSignup ? "Get Your Pass" : "Welcome Back"}
+              {isSignup ? "Create Account" : "Welcome Back"}
             </h2>
             <p className="text-muted-foreground text-sm">
               {isSignup 
@@ -167,24 +208,24 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
             </p>
           </motion.div>
 
-          {magicLinkSent ? (
+          {forgotPasswordSent ? (
             <motion.div
               className="text-center py-8"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
             >
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
-                <Mail className="w-8 h-8 text-primary" />
+                <Lock className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Check Your Email</h3>
               <p className="text-muted-foreground text-sm">
-                We sent your ticket to <span className="text-foreground">{email}</span>
+                We sent a password reset link to <span className="text-foreground">{email}</span>
               </p>
               <button
-                onClick={() => setMagicLinkSent(false)}
+                onClick={() => setForgotPasswordSent(false)}
                 className="mt-6 text-sm text-primary hover:underline"
               >
-                Use a different email
+                Back to Sign In
               </button>
             </motion.div>
           ) : (
@@ -217,7 +258,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                   transition={{ delay: 0.2 }}
                 >
                   <label className="block text-sm text-muted-foreground mb-2">
-                    {isSignup ? "Where do we send your ticket?" : "Your email"}
+                    Email
                   </label>
                   <input
                     type="email"
@@ -228,30 +269,66 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                     maxLength={255}
                   />
                 </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.25 }}
+                >
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="premium-input pr-12"
+                      maxLength={128}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {!isSignup && (
+                    <button
+                      onClick={handleForgotPassword}
+                      className="mt-2 text-xs text-primary hover:underline"
+                    >
+                      Forgot Password?
+                    </button>
+                  )}
+                </motion.div>
               </div>
 
-              {/* Magic Link Button */}
+              {/* Submit Button */}
               <motion.button
                 className="w-full py-4 rounded-2xl font-semibold text-white mb-4 flex items-center justify-center gap-2"
                 style={{
                   background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
                   boxShadow: "0 0 30px hsl(7 100% 67% / 0.4)",
                 }}
-                onClick={handleMagicLink}
+                onClick={handleSubmit}
                 disabled={isLoading}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
+                transition={{ delay: 0.3 }}
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  <>
-                    <Mail className="w-5 h-5" />
-                    Email me my Ticket
-                  </>
+                  isSignup ? "Create Account" : "Sign In"
                 )}
               </motion.button>
 
@@ -260,7 +337,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                 className="flex items-center gap-4 my-6"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.35 }}
               >
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">or</span>
@@ -276,7 +353,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                 whileTap={{ scale: 0.98 }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
+                transition={{ delay: 0.4 }}
               >
                 {isGoogleLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -310,15 +387,15 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                 className="text-center mt-6 text-sm text-muted-foreground"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.45 }}
               >
-                {isSignup ? "Already have a pass?" : "Need a new pass?"}
+                {isSignup ? "Already have an account?" : "Don't have an account?"}
                 {" "}
                 <button
                   onClick={onClose}
                   className="text-primary hover:underline"
                 >
-                  Go back
+                  {isSignup ? "Sign In" : "Sign Up"}
                 </button>
               </motion.p>
             </>
