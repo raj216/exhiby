@@ -269,16 +269,17 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                         </button>
                       </div>
 
-                      {/* Mobile: Horizontal scroll carousel */}
+                      {/* Mobile & Tablet: Horizontal scroll carousel */}
                       <div className="px-4 lg:hidden">
-                        <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
+                        <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
                           {filteredLive.map((event, index) => (
                             <motion.div
                               key={event.id}
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: index * 0.05 }}
-                              className="snap-start flex-shrink-0 w-[65vw] sm:w-[45vw]"
+                              className="snap-start flex-shrink-0"
+                              style={{ width: 'min(65vw, 280px)' }}
                             >
                               <LiveMarqueeCard
                                 {...event}

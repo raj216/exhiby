@@ -54,7 +54,8 @@ export function LiveMarqueeCard({
   return (
     <motion.div
       layoutId={layoutId || `room-card-${id}`}
-      className="poster-card w-full flex-shrink-0 snap-center cursor-pointer"
+      className="poster-card w-full h-full flex-shrink-0 snap-center cursor-pointer"
+      style={{ minHeight: '300px' }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={handleCardTap}
