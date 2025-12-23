@@ -14,6 +14,8 @@ interface CreatorActivationModalProps {
 
 export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorActivationModalProps) {
   const [uploadedImages, setUploadedImages] = useState<(string | null)[]>([null, null, null]);
+  // Track original file data (before cropping) to detect duplicates
+  const [originalFileData, setOriginalFileData] = useState<(string | null)[]>([null, null, null]);
   const [socialLink, setSocialLink] = useState("");
   const [pledgeChecked, setPledgeChecked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -32,9 +34,9 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
     fileInputRefs.current[index]?.click();
   };
 
-  // Check if an image is already uploaded (prevent duplicates)
+  // Check if an image is already uploaded (prevent duplicates using original file data)
   const isDuplicateImage = (newImageData: string): boolean => {
-    return uploadedImages.some(img => img === newImageData);
+    return originalFileData.some(data => data === newImageData);
   };
 
   const handleFileChange = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,20 +76,16 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
     reader.onload = (e) => {
       const croppedImageData = e.target?.result as string;
       
-      // Check for duplicate after cropping
-      if (isDuplicateImage(croppedImageData)) {
-        toast({
-          title: "Duplicate Image",
-          description: "This image appears to be a duplicate. Please select a different image.",
-          variant: "destructive",
-        });
-        setCropperState({ isOpen: false, imageSrc: "", index: 0 });
-        return;
-      }
-      
+      // Save cropped image for display
       const newImages = [...uploadedImages];
       newImages[cropperState.index] = croppedImageData;
       setUploadedImages(newImages);
+      
+      // Store original file data for duplicate detection
+      const newOriginalData = [...originalFileData];
+      newOriginalData[cropperState.index] = cropperState.imageSrc;
+      setOriginalFileData(newOriginalData);
+      
       setCropperState({ isOpen: false, imageSrc: "", index: 0 });
       
       // Reset the file input
@@ -110,6 +108,11 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
     const newImages = [...uploadedImages];
     newImages[index] = null;
     setUploadedImages(newImages);
+    
+    // Also clear the original data for this slot
+    const newOriginalData = [...originalFileData];
+    newOriginalData[index] = null;
+    setOriginalFileData(newOriginalData);
   };
 
   const handleUnlock = async () => {
@@ -132,6 +135,7 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
   const handleClose = () => {
     if (!isUnlocking) {
       setUploadedImages([null, null, null]);
+      setOriginalFileData([null, null, null]);
       setSocialLink("");
       setPledgeChecked(false);
       onClose();
