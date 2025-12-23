@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -22,9 +22,20 @@ import {
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
+import { ScheduleEventModal } from "./ScheduleEventModal";
+import { UpcomingEventsList } from "./UpcomingEventsList";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import defaultCover from "@/assets/default-cover.jpg";
+
+interface ScheduledEvent {
+  id: string;
+  title: string;
+  cover_url: string | null;
+  scheduled_at: string;
+  is_free: boolean;
+  price: number;
+}
 
 interface UserProfile {
   name: string;
@@ -88,9 +99,30 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
   const [showEarnings, setShowEarnings] = useState(true);
   const [portfolioTab, setPortfolioTab] = useState<PortfolioTab>("replays");
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [localProfile, setLocalProfile] = useState(profile);
+  const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
   
-  // Sync local profile with prop changes
+  // Fetch upcoming events
+  const fetchUpcomingEvents = useCallback(async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('events')
+      .select('id, title, cover_url, scheduled_at, is_free, price')
+      .eq('creator_id', user.id)
+      .gte('scheduled_at', new Date().toISOString())
+      .order('scheduled_at', { ascending: true });
+
+    if (!error && data) {
+      setUpcomingEvents(data);
+    }
+  }, [user]);
+
+  // Fetch events on mount
+  useEffect(() => {
+    fetchUpcomingEvents();
+  }, [fetchUpcomingEvents]);
   useEffect(() => {
     setLocalProfile(profile);
   }, [profile]);
@@ -137,16 +169,9 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
     { id: "shop", label: "Shop", icon: ShoppingBag },
   ];
 
-  const handleAction = (action: string) => {
+  const handleScheduleClick = () => {
     triggerClickHaptic();
-    if (action === "live") {
-      onGoLive();
-    } else {
-      toast({
-        title: action === "schedule" ? "Schedule Event" : "Upload Content",
-        description: "Opening " + action + " flow...",
-      });
-    }
+    setShowScheduleModal(true);
   };
 
   const handleShare = () => {
@@ -309,13 +334,19 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
       <div className="px-4 mt-6">
         <motion.button
           whileTap={{ scale: 0.98 }}
-          onClick={() => handleAction("schedule")}
+          onClick={handleScheduleClick}
           className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-obsidian/80 backdrop-blur-md border border-border/30 shadow-deep"
         >
           <span className="text-lg">📅</span>
           <span className="text-sm font-semibold text-foreground">Schedule Upcoming Event</span>
         </motion.button>
       </div>
+
+      {/* Upcoming Events List */}
+      <UpcomingEventsList 
+        events={upcomingEvents} 
+        onEventDeleted={fetchUpcomingEvents} 
+      />
 
       {/* Business Bar - Analytics Cards */}
       <div className="px-4 mt-6">
@@ -521,6 +552,13 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         onClose={() => setShowEditProfile(false)}
         profile={localProfile}
         onProfileUpdated={refreshProfile}
+      />
+
+      {/* Schedule Event Modal */}
+      <ScheduleEventModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        onEventCreated={fetchUpcomingEvents}
       />
     </div>
   );
