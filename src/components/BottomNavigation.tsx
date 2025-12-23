@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Search, User, Compass, BarChart3, Menu, Palette, Settings, LogOut, LayoutDashboard } from "lucide-react";
+import { Home, Search, User, Compass, BarChart3, Menu, Palette, Settings, LogOut, LayoutDashboard, Video } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -10,7 +10,7 @@ import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
 
 type AudienceTab = "home" | "search" | "passport" | "profile";
-type CreatorTab = "studio" | "insights" | "menu" | "profile";
+type CreatorTab = "home" | "search" | "profile";
 
 interface BottomNavigationProps {
   mode: "audience" | "creator";
@@ -19,6 +19,7 @@ interface BottomNavigationProps {
   onOpenSearch?: () => void;
   onViewProfile?: () => void;
   onOpenStudio?: () => void;
+  onGoLive?: () => void;
   onLogout?: () => void;
 }
 
@@ -29,10 +30,13 @@ const audienceTabs: { id: AudienceTab; label: string; icon: typeof Home }[] = [
   { id: "profile", label: "Profile", icon: User },
 ];
 
-const creatorTabs: { id: CreatorTab; label: string; icon: typeof Palette }[] = [
-  { id: "studio", label: "Studio", icon: Palette },
-  { id: "insights", label: "Insights", icon: BarChart3 },
-  { id: "menu", label: "Menu", icon: Menu },
+// Creator tabs: Home, Search on left side | FAB center | Profile on right side
+const creatorTabsLeft: { id: CreatorTab; label: string; icon: typeof Home }[] = [
+  { id: "home", label: "Home", icon: Home },
+  { id: "search", label: "Search", icon: Search },
+];
+
+const creatorTabsRight: { id: CreatorTab; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Profile", icon: User },
 ];
 
@@ -43,6 +47,7 @@ export function BottomNavigation({
   onOpenSearch,
   onViewProfile,
   onOpenStudio,
+  onGoLive,
   onLogout 
 }: BottomNavigationProps) {
   const { isVerifiedCreator, setMode } = useUserMode();
@@ -53,7 +58,6 @@ export function BottomNavigation({
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const tabs = mode === "audience" ? audienceTabs : creatorTabs;
   const accentColor = mode === "creator" ? "text-electric" : "text-foreground";
 
   // Get initials from user's name
@@ -233,66 +237,184 @@ export function BottomNavigation({
         </AnimatePresence>
 
         {/* Bottom Navigation Bar */}
-        <div className="bg-carbon/95 backdrop-blur-xl border-t border-border/30 px-2 pb-6 pt-2 max-w-lg mx-auto">
-          <div className="flex items-center justify-around">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id || (tab.id === "profile" && showProfileMenu);
-              const isProfileTab = tab.id === "profile";
-              
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabClick(tab.id)}
-                  className="flex flex-col items-center gap-1 py-2 px-4 relative"
-                >
-                  <motion.div
-                    animate={{
-                      scale: isActive ? 1.1 : 1,
-                    }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        <div className="bg-carbon/95 backdrop-blur-xl border-t border-border/30 px-2 pb-6 pt-2 max-w-lg mx-auto relative">
+          {mode === "audience" ? (
+            // Audience Mode: Standard 4-tab layout
+            <div className="flex items-center justify-around">
+              {audienceTabs.map((tab) => {
+                const isActive = activeTab === tab.id || (tab.id === "profile" && showProfileMenu);
+                const isProfileTab = tab.id === "profile";
+                
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabClick(tab.id)}
+                    className="flex flex-col items-center gap-1 py-2 px-4 relative"
                   >
-                    {isProfileTab ? (
-                      // Profile tab shows user avatar/initials
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-electric to-crimson p-0.5">
-                        <div className="w-full h-full rounded-full bg-obsidian flex items-center justify-center overflow-hidden">
-                          {profile?.avatarUrl ? (
-                            <img 
-                              src={profile.avatarUrl} 
-                              alt={displayName} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-foreground font-bold text-[10px]">{initials}</span>
-                          )}
+                    <motion.div
+                      animate={{
+                        scale: isActive ? 1.1 : 1,
+                      }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    >
+                      {isProfileTab ? (
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-electric to-crimson p-0.5">
+                          <div className="w-full h-full rounded-full bg-obsidian flex items-center justify-center overflow-hidden">
+                            {profile?.avatarUrl ? (
+                              <img 
+                                src={profile.avatarUrl} 
+                                alt={displayName} 
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-foreground font-bold text-[10px]">{initials}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <tab.icon
-                        className={`w-5 h-5 transition-colors ${
-                          isActive ? accentColor : "text-muted-foreground"
-                        }`}
+                      ) : (
+                        <tab.icon
+                          className={`w-5 h-5 transition-colors ${
+                            isActive ? accentColor : "text-muted-foreground"
+                          }`}
+                        />
+                      )}
+                    </motion.div>
+                    <span
+                      className={`text-[10px] font-medium transition-colors ${
+                        isActive ? accentColor : "text-muted-foreground"
+                      }`}
+                    >
+                      {tab.label}
+                    </span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="navIndicator"
+                        className="absolute -top-1 w-8 h-0.5 rounded-full bg-foreground"
                       />
                     )}
-                  </motion.div>
-                  <span
-                    className={`text-[10px] font-medium transition-colors ${
-                      isActive ? accentColor : "text-muted-foreground"
-                    }`}
-                  >
-                    {tab.label}
-                  </span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="navIndicator"
-                      className={`absolute -top-1 w-8 h-0.5 rounded-full ${
-                        mode === "creator" ? "bg-electric" : "bg-foreground"
-                      }`}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            // Creator Mode: 2 tabs left | FAB center | 1 tab right
+            <div className="flex items-center justify-between px-4">
+              {/* Left side tabs */}
+              <div className="flex items-center gap-6">
+                {creatorTabsLeft.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabClick(tab.id)}
+                      className="flex flex-col items-center gap-1 py-2 relative"
+                    >
+                      <motion.div
+                        animate={{
+                          scale: isActive ? 1.1 : 1,
+                        }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      >
+                        <tab.icon
+                          className={`w-5 h-5 transition-colors ${
+                            isActive ? "text-electric" : "text-muted-foreground"
+                          }`}
+                        />
+                      </motion.div>
+                      <span
+                        className={`text-[10px] font-medium transition-colors ${
+                          isActive ? "text-electric" : "text-muted-foreground"
+                        }`}
+                      >
+                        {tab.label}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="creatorNavIndicator"
+                          className="absolute -top-1 w-8 h-0.5 rounded-full bg-electric"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Center FAB - Go Live Button */}
+              <motion.button
+                onClick={() => {
+                  triggerClickHaptic();
+                  onGoLive?.();
+                }}
+                className="absolute left-1/2 -translate-x-1/2 -top-6 w-14 h-14 rounded-full flex items-center justify-center shadow-electric"
+                style={{
+                  background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Video className="w-6 h-6 text-primary-foreground" />
+              </motion.button>
+
+              {/* Right side tabs */}
+              <div className="flex items-center gap-6">
+                {creatorTabsRight.map((tab) => {
+                  const isActive = activeTab === tab.id || (tab.id === "profile" && showProfileMenu);
+                  const isProfileTab = tab.id === "profile";
+                  
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabClick(tab.id)}
+                      className="flex flex-col items-center gap-1 py-2 relative"
+                    >
+                      <motion.div
+                        animate={{
+                          scale: isActive ? 1.1 : 1,
+                        }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      >
+                        {isProfileTab ? (
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-electric to-crimson p-0.5">
+                            <div className="w-full h-full rounded-full bg-obsidian flex items-center justify-center overflow-hidden">
+                              {profile?.avatarUrl ? (
+                                <img 
+                                  src={profile.avatarUrl} 
+                                  alt={displayName} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-foreground font-bold text-[10px]">{initials}</span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <tab.icon
+                            className={`w-5 h-5 transition-colors ${
+                              isActive ? "text-electric" : "text-muted-foreground"
+                            }`}
+                          />
+                        )}
+                      </motion.div>
+                      <span
+                        className={`text-[10px] font-medium transition-colors ${
+                          isActive ? "text-electric" : "text-muted-foreground"
+                        }`}
+                      >
+                        {tab.label}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="creatorNavIndicatorRight"
+                          className="absolute -top-1 w-8 h-0.5 rounded-full bg-electric"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
 
