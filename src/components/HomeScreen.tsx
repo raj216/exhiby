@@ -271,7 +271,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
 
                       {/* Mobile & Tablet: Horizontal scroll carousel */}
                       <div className="px-4 lg:hidden">
-                        <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+                        <div className="flex items-stretch gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide min-h-[300px]">
                           {filteredLive.map((event, index) => (
                             <motion.div
                               key={event.id}
