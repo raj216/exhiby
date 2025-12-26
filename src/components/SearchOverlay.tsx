@@ -248,8 +248,8 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                       </div>
                     </section>
 
-                    {/* Recommended Categories */}
-                    <section>
+                    {/* Recommended Categories - hidden on desktop since they're in left sidebar */}
+                    <section className="lg:hidden">
                       <h3 className="font-display text-xs text-muted-foreground mb-2 uppercase tracking-wider">Categories</h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {recommendedCategories.map((cat) => (
@@ -375,9 +375,9 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                       </section>
                     )}
 
-                    {/* CATEGORIES */}
+                    {/* CATEGORIES - hidden on desktop since they're in left sidebar */}
                     {filteredResults?.matchingCategories && filteredResults.matchingCategories.length > 0 && (
-                      <section>
+                      <section className="lg:hidden">
                         <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">Categories</h3>
                         <div className="flex flex-wrap gap-2">
                           {filteredResults.matchingCategories.map((cat) => (
