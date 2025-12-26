@@ -68,7 +68,7 @@ const mockPastEvents = [
   { id: "p2", event: "Abstract Expressions", creator: "Luna Kim", date: "Fri, Dec 13", time: "4 PM EST", price: 12 },
 ];
 
-type TabType = "tickets" | "vault";
+type TabType = "tickets" | "collection";
 
 export function AudienceProfile({ 
   onBack, 
@@ -128,7 +128,7 @@ export function AudienceProfile({
 
   const tabs: { id: TabType; label: string; icon: typeof Ticket }[] = [
     { id: "tickets", label: "Tickets", icon: Ticket },
-    { id: "vault", label: "Vault", icon: ShoppingBag },
+    { id: "collection", label: "Collection", icon: ShoppingBag },
   ];
 
   const filteredArt = collectionFilter === "all" 
@@ -419,10 +419,10 @@ export function AudienceProfile({
               </motion.div>
             )}
 
-            {/* Vault Tab */}
-            {activeTab === "vault" && (
+            {/* Collection Tab */}
+            {activeTab === "collection" && (
               <motion.div
-                key="vault"
+                key="collection"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
