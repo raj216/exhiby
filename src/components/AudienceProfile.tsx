@@ -53,10 +53,8 @@ const mockCollectedArt = [
   { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&q=80", title: "Motion Study", artist: "Sarah Park", type: "handcraft" },
 ];
 
-const mockBadges = [
-  { id: "1", title: "Founding Member", type: "special" },
-  { id: "2", title: "Hair Masterclass Alumni", type: "event" },
-];
+// Founding Member badge shown for early adopters (first month / first 1000 users)
+const isFoundingMember = true; // MVP: Display for all current users
 
 const mockTickets = [
   { id: "1", event: "Realistic Eye Workshop", creator: "Elena Voss", date: "Sat, Dec 21", time: "8 PM EST", price: 5, startsIn: 45 },
@@ -250,33 +248,28 @@ export function AudienceProfile({
             </button>
           </motion.div>
 
-          {/* Badges / Passport Stamps */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-wrap gap-2 mt-4"
-          >
-            {mockBadges.map((badge) => (
+          {/* Founding Member Badge - Centered, Premium */}
+          {isFoundingMember && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex justify-center mt-5"
+            >
               <div 
-                key={badge.id}
-                className="px-3 py-1.5 rounded-full border flex items-center gap-1.5"
+                className="px-4 py-2 rounded-full border-2 flex items-center gap-2 shadow-gold"
                 style={{
-                  background: badge.type === "special" 
-                    ? "hsl(43 72% 52% / 0.15)"
-                    : "hsl(var(--surface))",
-                  borderColor: badge.type === "special" 
-                    ? "hsl(43 72% 52% / 0.4)" 
-                    : "hsl(var(--border) / 0.3)"
+                  background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
+                  borderColor: "hsl(43 72% 52% / 0.6)"
                 }}
               >
-                <Award className={`w-3.5 h-3.5 ${badge.type === "special" ? "text-gold" : "text-muted-foreground"}`} />
-                <span className={`text-xs font-medium ${badge.type === "special" ? "text-gold" : "text-foreground"}`}>
-                  {badge.title}
+                <Award className="w-4 h-4 text-gold" />
+                <span className="text-sm font-semibold text-gold">
+                  Founding Member
                 </span>
               </div>
-            ))}
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Passport Line */}
           <motion.p
