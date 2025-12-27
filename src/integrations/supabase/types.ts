@@ -20,38 +20,82 @@ export type Database = {
           created_at: string
           creator_id: string
           description: string | null
+          duration_minutes: number | null
+          end_time: string | null
           id: string
           is_free: boolean
+          is_live: boolean | null
+          live_started_at: string | null
           price: number | null
           scheduled_at: string
           title: string
           updated_at: string
+          viewer_count: number | null
         }
         Insert: {
           cover_url?: string | null
           created_at?: string
           creator_id: string
           description?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
           id?: string
           is_free?: boolean
+          is_live?: boolean | null
+          live_started_at?: string | null
           price?: number | null
           scheduled_at: string
           title: string
           updated_at?: string
+          viewer_count?: number | null
         }
         Update: {
           cover_url?: string | null
           created_at?: string
           creator_id?: string
           description?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
           id?: string
           is_free?: boolean
+          is_live?: boolean | null
+          live_started_at?: string | null
           price?: number | null
           scheduled_at?: string
           title?: string
           updated_at?: string
+          viewer_count?: number | null
         }
         Relationships: []
+      }
+      live_viewers: {
+        Row: {
+          event_id: string
+          id: string
+          joined_at: string | null
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          joined_at?: string | null
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          joined_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_viewers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -100,7 +144,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_live_viewer_count: { Args: { event_uuid: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

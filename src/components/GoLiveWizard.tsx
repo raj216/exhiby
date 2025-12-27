@@ -4,19 +4,23 @@ import { Upload, Image as ImageIcon, ChevronRight, X, Clock, Zap } from "lucide-
 import { SlideToAction } from "./SlideToAction";
 import { PriceSlider } from "./PriceSlider";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface GoLiveWizardProps {
   onClose: () => void;
   onGoLive: (data: EventData) => void;
 }
 
-interface EventData {
+export interface EventData {
   coverImage: string | null;
   category: string;
   title: string;
   description: string;
   price: number;
   scheduleType: "now" | "scheduled";
+  eventId?: string;
 }
 
 const categories = [
@@ -26,6 +30,7 @@ const categories = [
 ];
 
 export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [category, setCategory] = useState<string>("");
@@ -33,6 +38,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState(0);
   const [scheduleType, setScheduleType] = useState<"now" | "scheduled">("now");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canProceedStep1 = coverImage !== null;
   const canProceedStep2 = category !== "" && title.trim().length > 0;
@@ -48,16 +54,96 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
     }
   };
 
-  const handleGoLive = () => {
+  const handleGoLive = async () => {
+    if (!user || isSubmitting) return;
+    
     triggerClickHaptic();
-    onGoLive({
-      coverImage,
-      category,
-      title,
-      description,
-      price,
-      scheduleType,
-    });
+    setIsSubmitting(true);
+
+    try {
+      // Upload cover image if exists
+      let coverUrl: string | null = null;
+      if (coverImage && coverImage.startsWith("data:")) {
+        const base64Data = coverImage.split(",")[1];
+        const mimeType = coverImage.split(";")[0].split(":")[1];
+        const ext = mimeType.split("/")[1] || "jpg";
+        const fileName = `${user.id}/${Date.now()}.${ext}`;
+
+        // Convert base64 to Uint8Array for browser compatibility
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("event-covers")
+          .upload(fileName, bytes, {
+            contentType: mimeType,
+          });
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          // Use base64 as fallback
+          coverUrl = coverImage;
+        } else {
+          const { data: urlData } = supabase.storage
+            .from("event-covers")
+            .getPublicUrl(uploadData.path);
+          coverUrl = urlData.publicUrl;
+        }
+      }
+
+      const now = new Date();
+      const durationMinutes = 60; // Default 1 hour
+      const endTime = new Date(now.getTime() + durationMinutes * 60 * 1000);
+
+      const eventRecord = {
+        creator_id: user.id,
+        title: title || "Untitled Session",
+        description: category, // Store category in description for now
+        cover_url: coverUrl,
+        price: price,
+        is_free: price === 0,
+        scheduled_at: now.toISOString(),
+        end_time: endTime.toISOString(),
+        duration_minutes: durationMinutes,
+        is_live: scheduleType === "now",
+        live_started_at: scheduleType === "now" ? now.toISOString() : null,
+        viewer_count: 0,
+      };
+
+      const { data: insertedEvent, error: insertError } = await supabase
+        .from("events")
+        .insert(eventRecord)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Error creating event:", insertError);
+        toast.error("Failed to create event", {
+          description: insertError.message,
+        });
+        return;
+      }
+
+      console.log("Event created:", insertedEvent);
+
+      onGoLive({
+        coverImage: coverUrl || coverImage,
+        category,
+        title,
+        description,
+        price,
+        scheduleType,
+        eventId: insertedEvent.id,
+      });
+    } catch (err) {
+      console.error("Error in handleGoLive:", err);
+      toast.error("Something went wrong");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const stepVariants = {

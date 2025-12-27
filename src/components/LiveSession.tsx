@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Users, MessageCircle, Gift, Package } from "lucide-react";
 import { ProductDropCard } from "./ProductDropCard";
+import { useLiveViewers } from "@/hooks/useLiveViewers";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LiveSessionProps {
   eventData: {
@@ -9,13 +11,28 @@ interface LiveSessionProps {
     title: string;
     category: string;
     price: number;
+    eventId?: string;
   };
   onClose: () => void;
 }
 
 export function LiveSession({ eventData, onClose }: LiveSessionProps) {
   const [showProductDrop, setShowProductDrop] = useState(false);
-  const [viewers] = useState(12);
+  const { viewerCount } = useLiveViewers(eventData.eventId || null);
+
+  // End session: set is_live to false
+  const handleClose = async () => {
+    if (eventData.eventId) {
+      await supabase
+        .from("events")
+        .update({
+          is_live: false,
+          end_time: new Date().toISOString(),
+        })
+        .eq("id", eventData.eventId);
+    }
+    onClose();
+  };
 
   const handleDropProduct = () => {
     setShowProductDrop(true);
@@ -56,12 +73,19 @@ export function LiveSession({ eventData, onClose }: LiveSessionProps) {
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass">
             <Users className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs">{viewers}</span>
+            <motion.span 
+              key={viewerCount}
+              initial={{ scale: 1.2 }}
+              animate={{ scale: 1 }}
+              className="text-xs"
+            >
+              {viewerCount}
+            </motion.span>
           </div>
         </div>
 
         {/* Close */}
-        <button onClick={onClose} className="p-2 rounded-full glass">
+        <button onClick={handleClose} className="p-2 rounded-full glass">
           <X className="w-5 h-5" />
         </button>
       </div>

@@ -14,14 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
-interface EventData {
-  coverImage: string | null;
-  category: string;
-  title: string;
-  description: string;
-  price: number;
-  scheduleType: "now" | "scheduled";
-}
+import { EventData } from "@/components/GoLiveWizard";
 
 type Screen = "home" | "wizard" | "live" | "creatorProfile" | "profile";
 

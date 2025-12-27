@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Palette, Camera, Hand } from "lucide-react";
+import { X, MessageCircle, Palette, Camera, Hand, Users } from "lucide-react";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { StudioChat } from "./StudioChat";
 import { MaterialsDrawer } from "./MaterialsDrawer";
+import { useLiveViewers } from "@/hooks/useLiveViewers";
 
 // Room data model
 export interface StudioRoom {
@@ -32,6 +33,17 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const videoRef = useRef<HTMLDivElement>(null);
+  
+  // Track viewer presence
+  const { viewerCount, joinAsViewer, leaveAsViewer, isJoined } = useLiveViewers(room.id);
+  
+  // Join as viewer when entering
+  useEffect(() => {
+    joinAsViewer();
+    return () => {
+      leaveAsViewer();
+    };
+  }, [joinAsViewer, leaveAsViewer]);
 
   // Auto-hide UI after 3 seconds of inactivity
   const resetHideTimer = useCallback(() => {
@@ -90,6 +102,7 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
 
   const handleClose = () => {
     triggerHaptic("medium");
+    leaveAsViewer();
     onClose();
   };
 
@@ -286,7 +299,7 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
             className="absolute top-0 left-0 right-0 p-4 sm:p-6 flex items-center justify-between z-20"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Left: Live Indicator */}
+            {/* Left: Live Indicator + Viewer Count */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                 <span className="relative flex h-2 w-2">
@@ -294,6 +307,17 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                 </span>
                 <span className="text-xs font-medium text-white uppercase tracking-wider">Live</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                <Users className="w-3.5 h-3.5 text-white/70" />
+                <motion.span 
+                  key={viewerCount}
+                  initial={{ scale: 1.2 }}
+                  animate={{ scale: 1 }}
+                  className="text-xs font-medium text-white"
+                >
+                  {viewerCount || room.viewers}
+                </motion.span>
               </div>
             </div>
 
