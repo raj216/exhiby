@@ -14,24 +14,26 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
   const [viewerCount, setViewerCount] = useState(0);
   const [isJoined, setIsJoined] = useState(false);
 
-  // Fetch initial viewer count
+  // Fetch viewer count using the secure RPC function
+  const fetchViewerCount = useCallback(async () => {
+    if (!eventId) return;
+    
+    const { data, error } = await supabase.rpc("get_live_viewer_count", {
+      event_uuid: eventId,
+    });
+
+    if (!error && data !== null) {
+      setViewerCount(data);
+    }
+  }, [eventId]);
+
+  // Fetch initial viewer count and subscribe to realtime changes
   useEffect(() => {
     if (!eventId) return;
 
-    const fetchViewerCount = async () => {
-      const { count, error } = await supabase
-        .from("live_viewers")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", eventId);
-
-      if (!error && count !== null) {
-        setViewerCount(count);
-      }
-    };
-
     fetchViewerCount();
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes - use the RPC function to get updated count
     const channel = supabase
       .channel(`live_viewers_${eventId}`)
       .on(
@@ -42,16 +44,9 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
           table: "live_viewers",
           filter: `event_id=eq.${eventId}`,
         },
-        async () => {
-          // Refetch count on any change
-          const { count } = await supabase
-            .from("live_viewers")
-            .select("*", { count: "exact", head: true })
-            .eq("event_id", eventId);
-          
-          if (count !== null) {
-            setViewerCount(count);
-          }
+        () => {
+          // Refetch count on any change using secure RPC
+          fetchViewerCount();
         }
       )
       .subscribe();
@@ -59,7 +54,7 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId]);
+  }, [eventId, fetchViewerCount]);
 
   const joinAsViewer = useCallback(async () => {
     if (!eventId || !user || isJoined) return;
