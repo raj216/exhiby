@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Users, MessageCircle, Gift, Package } from "lucide-react";
 import { ProductDropCard } from "./ProductDropCard";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface LiveSessionProps {
@@ -22,18 +21,10 @@ interface LiveSessionProps {
 export function LiveSession({ eventData, onClose }: LiveSessionProps) {
   const [showProductDrop, setShowProductDrop] = useState(false);
   const { viewerCount } = useLiveViewers(eventData.eventId || null);
-  const { user } = useAuth();
 
-  // End session: set is_live to false (with creator verification)
+  // End session: set is_live to false (RLS handles authorization)
   const handleClose = async () => {
     if (eventData.eventId) {
-      // Verify current user is the creator before attempting update
-      if (!user || (eventData.creatorId && user.id !== eventData.creatorId)) {
-        toast.error("You don't have permission to end this session");
-        onClose();
-        return;
-      }
-      
       const { error } = await supabase
         .from("events")
         .update({
@@ -42,6 +33,7 @@ export function LiveSession({ eventData, onClose }: LiveSessionProps) {
         })
         .eq("id", eventData.eventId);
       
+      // RLS handles authorization - treat all errors uniformly with generic message
       if (error) {
         toast.error("Failed to end session");
       }
