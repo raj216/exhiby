@@ -35,8 +35,8 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   return (
     <div className="relative">
-      {/* Dynamic Banner */}
-      <div className="relative h-64 w-full overflow-hidden">
+      {/* Dynamic Banner with Cinematic Vignette */}
+      <div className="relative h-64 w-full overflow-hidden cinematic-vignette">
         {isLive && livePreviewUrl ? (
           <video
             src={livePreviewUrl}
@@ -53,9 +53,6 @@ export function ProfileHeader({
             className="w-full h-full object-cover"
           />
         )}
-        
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/40 to-transparent" />
         
         {/* Live indicator with Hyper-Crimson glow */}
         {isLive && (
