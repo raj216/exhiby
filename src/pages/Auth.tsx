@@ -30,6 +30,8 @@ export default function Auth() {
 
         if (!error) {
           setIsPasswordReset(true);
+          // Clear tokens from URL to prevent exposure in browser history
+          window.history.replaceState(null, '', window.location.pathname);
         }
       }
 
