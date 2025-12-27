@@ -44,17 +44,7 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
     return format(date, "MMM d • h:mm a");
   };
 
-  const handleDelete = async (eventId: string, creatorId: string) => {
-    // Verify current user is the creator before attempting delete
-    if (!user || user.id !== creatorId) {
-      toast({ 
-        title: "Error", 
-        description: "You don't have permission to delete this event", 
-        variant: "destructive" 
-      });
-      return;
-    }
-
+  const handleDelete = async (eventId: string) => {
     triggerClickHaptic();
     setDeletingId(eventId);
 
@@ -64,11 +54,13 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
         .delete()
         .eq('id', eventId);
 
+      // RLS handles authorization - treat all errors uniformly
       if (error) throw error;
 
       toast({ title: "Event deleted" });
       onEventDeleted();
     } catch (error: any) {
+      // Generic error message to avoid leaking authorization info
       toast({ 
         title: "Error", 
         description: "Failed to delete event", 
@@ -129,7 +121,7 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
               {/* Delete Button - only show for event creator */}
               {user?.id === event.creator_id && (
                 <button
-                  onClick={() => handleDelete(event.id, event.creator_id)}
+                  onClick={() => handleDelete(event.id)}
                   disabled={deletingId === event.id}
                   className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0"
                 >
