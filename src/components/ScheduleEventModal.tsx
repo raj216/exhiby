@@ -418,8 +418,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
             {showCropper && rawImageSrc && (
               <ImageCropper
                 imageSrc={rawImageSrc}
-                aspectRatio={COVER_ASPECT_RATIO}
-                circularCrop={false}
+                mode="poster"
                 onCropComplete={handleCropComplete}
                 onCancel={handleCropCancel}
               />

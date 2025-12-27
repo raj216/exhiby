@@ -387,8 +387,7 @@ export function EditProfileModal({
       {showAvatarCropper && tempImage && (
         <ImageCropper
           imageSrc={tempImage}
-          aspectRatio={1}
-          circularCrop={true}
+          mode="avatar"
           onCropComplete={(blob) => handleCropComplete(blob, "avatar")}
           onCancel={() => {
             setShowAvatarCropper(false);
@@ -401,8 +400,7 @@ export function EditProfileModal({
       {showCoverCropper && tempImage && (
         <ImageCropper
           imageSrc={tempImage}
-          aspectRatio={16 / 9}
-          circularCrop={false}
+          mode="cover"
           onCropComplete={(blob) => handleCropComplete(blob, "cover")}
           onCancel={() => {
             setShowCoverCropper(false);

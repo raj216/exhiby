@@ -340,8 +340,7 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
         {cropperState.isOpen && (
           <ImageCropper
             imageSrc={cropperState.imageSrc}
-            aspectRatio={1}
-            circularCrop={false}
+            mode="avatar"
             onCropComplete={handleCropComplete}
             onCancel={handleCropCancel}
           />
