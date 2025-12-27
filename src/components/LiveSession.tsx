@@ -4,6 +4,8 @@ import { X, Users, MessageCircle, Gift, Package } from "lucide-react";
 import { ProductDropCard } from "./ProductDropCard";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface LiveSessionProps {
   eventData: {
@@ -12,6 +14,7 @@ interface LiveSessionProps {
     category: string;
     price: number;
     eventId?: string;
+    creatorId?: string;
   };
   onClose: () => void;
 }
@@ -19,17 +22,29 @@ interface LiveSessionProps {
 export function LiveSession({ eventData, onClose }: LiveSessionProps) {
   const [showProductDrop, setShowProductDrop] = useState(false);
   const { viewerCount } = useLiveViewers(eventData.eventId || null);
+  const { user } = useAuth();
 
-  // End session: set is_live to false
+  // End session: set is_live to false (with creator verification)
   const handleClose = async () => {
     if (eventData.eventId) {
-      await supabase
+      // Verify current user is the creator before attempting update
+      if (!user || (eventData.creatorId && user.id !== eventData.creatorId)) {
+        toast.error("You don't have permission to end this session");
+        onClose();
+        return;
+      }
+      
+      const { error } = await supabase
         .from("events")
         .update({
           is_live: false,
           end_time: new Date().toISOString(),
         })
         .eq("id", eventData.eventId);
+      
+      if (error) {
+        toast.error("Failed to end session");
+      }
     }
     onClose();
   };

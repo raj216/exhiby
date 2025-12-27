@@ -27,7 +27,7 @@ export function ResetPassword() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
           if (event === "PASSWORD_RECOVERY") {
             // User clicked the recovery link, we're ready to update password
-            console.log("Password recovery session active");
+            // Session is now active for password update
           }
         });
         

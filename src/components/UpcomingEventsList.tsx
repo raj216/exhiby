@@ -5,6 +5,7 @@ import { format, isToday, isTomorrow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Event {
   id: string;
@@ -13,6 +14,7 @@ interface Event {
   scheduled_at: string;
   is_free: boolean;
   price: number;
+  creator_id: string;
 }
 
 interface UpcomingEventsListProps {
@@ -22,6 +24,7 @@ interface UpcomingEventsListProps {
 
 export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { user } = useAuth();
 
   // Don't render if no events
   if (events.length === 0) {
@@ -41,7 +44,17 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
     return format(date, "MMM d • h:mm a");
   };
 
-  const handleDelete = async (eventId: string) => {
+  const handleDelete = async (eventId: string, creatorId: string) => {
+    // Verify current user is the creator before attempting delete
+    if (!user || user.id !== creatorId) {
+      toast({ 
+        title: "Error", 
+        description: "You don't have permission to delete this event", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     triggerClickHaptic();
     setDeletingId(eventId);
 
@@ -56,7 +69,6 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
       toast({ title: "Event deleted" });
       onEventDeleted();
     } catch (error: any) {
-      console.error("Error deleting event:", error);
       toast({ 
         title: "Error", 
         description: "Failed to delete event", 
@@ -114,18 +126,20 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
                 </span>
               </div>
 
-              {/* Delete Button */}
-              <button
-                onClick={() => handleDelete(event.id)}
-                disabled={deletingId === event.id}
-                className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0"
-              >
-                {deletingId === event.id ? (
-                  <Loader2 className="w-4 h-4 text-destructive animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                )}
-              </button>
+              {/* Delete Button - only show for event creator */}
+              {user?.id === event.creator_id && (
+                <button
+                  onClick={() => handleDelete(event.id, event.creator_id)}
+                  disabled={deletingId === event.id}
+                  className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0"
+                >
+                  {deletingId === event.id ? (
+                    <Loader2 className="w-4 h-4 text-destructive animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  )}
+                </button>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>

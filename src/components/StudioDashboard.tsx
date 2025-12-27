@@ -29,6 +29,7 @@ interface ScheduledEvent {
   scheduled_at: string;
   is_free: boolean;
   price: number;
+  creator_id: string;
 }
 
 interface UserProfile {
@@ -91,7 +92,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
     
     const { data, error } = await supabase
       .from('events')
-      .select('id, title, cover_url, scheduled_at, is_free, price')
+      .select('id, title, cover_url, scheduled_at, is_free, price, creator_id')
       .eq('creator_id', user.id)
       .gte('scheduled_at', new Date().toISOString())
       .order('scheduled_at', { ascending: true });
