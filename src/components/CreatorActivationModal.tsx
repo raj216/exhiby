@@ -174,12 +174,12 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
                         <motion.div
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
-                          className="relative aspect-square rounded-xl overflow-hidden group"
+                          className="relative aspect-square rounded-xl overflow-hidden group bg-surface border border-border/30"
                         >
                           <img
                             src={uploadedImages[index]!}
                             alt={`Artwork ${index + 1}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <button
