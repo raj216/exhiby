@@ -46,16 +46,21 @@ export function useLiveEvents() {
         return;
       }
 
-      // Fetch creator profiles separately
+      // Fetch creator profiles using secure RPC function (excludes email)
       if (data && data.length > 0) {
         const creatorIds = [...new Set(data.map((e) => e.creator_id))];
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, name, avatar_url")
-          .in("user_id", creatorIds);
+        
+        // Fetch all public profiles using secure RPC, then filter client-side
+        const { data: allProfiles } = await supabase.rpc("get_all_public_profiles");
+        
+        const profiles = allProfiles?.filter((p: { user_id: string }) => 
+          creatorIds.includes(p.user_id)
+        );
 
         const profileMap = new Map(
-          profiles?.map((p) => [p.user_id, { name: p.name, avatar_url: p.avatar_url }])
+          profiles?.map((p: { user_id: string; name: string; avatar_url: string | null }) => 
+            [p.user_id, { name: p.name, avatar_url: p.avatar_url }]
+          )
         );
 
         const eventsWithCreators = data.map((event) => ({
