@@ -1,9 +1,8 @@
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { X, Plus, Check, Sparkles, Link as LinkIcon } from "lucide-react";
 import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import { useUserMode } from "@/contexts/UserModeContext";
-import { ImageCropper } from "./ImageCropper";
 import { toast } from "@/hooks/use-toast";
 
 interface CreatorActivationModalProps {
@@ -19,11 +18,6 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
   const [socialLink, setSocialLink] = useState("");
   const [pledgeChecked, setPledgeChecked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
-  const [cropperState, setCropperState] = useState<{ isOpen: boolean; imageSrc: string; index: number }>({
-    isOpen: false,
-    imageSrc: "",
-    index: 0,
-  });
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null]);
   const { setVerifiedCreator, setMode } = useUserMode();
 
@@ -60,47 +54,22 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
           return;
         }
         
-        // Open cropper instead of directly setting the image
-        setCropperState({
-          isOpen: true,
-          imageSrc: imageData,
-          index,
-        });
+        // Use original image directly without cropping
+        const newImages = [...uploadedImages];
+        newImages[index] = imageData;
+        setUploadedImages(newImages);
+        
+        // Store original file data for duplicate detection
+        const newOriginalData = [...originalFileData];
+        newOriginalData[index] = imageData;
+        setOriginalFileData(newOriginalData);
+        
+        // Reset the file input
+        if (fileInputRefs.current[index]) {
+          fileInputRefs.current[index]!.value = "";
+        }
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCropComplete = (croppedBlob: Blob) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const croppedImageData = e.target?.result as string;
-      
-      // Save cropped image for display
-      const newImages = [...uploadedImages];
-      newImages[cropperState.index] = croppedImageData;
-      setUploadedImages(newImages);
-      
-      // Store original file data for duplicate detection
-      const newOriginalData = [...originalFileData];
-      newOriginalData[cropperState.index] = cropperState.imageSrc;
-      setOriginalFileData(newOriginalData);
-      
-      setCropperState({ isOpen: false, imageSrc: "", index: 0 });
-      
-      // Reset the file input
-      if (fileInputRefs.current[cropperState.index]) {
-        fileInputRefs.current[cropperState.index]!.value = "";
-      }
-    };
-    reader.readAsDataURL(croppedBlob);
-  };
-
-  const handleCropCancel = () => {
-    setCropperState({ isOpen: false, imageSrc: "", index: 0 });
-    // Reset the file input
-    if (fileInputRefs.current[cropperState.index]) {
-      fileInputRefs.current[cropperState.index]!.value = "";
     }
   };
 
@@ -335,17 +304,6 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
         </motion.div>
       </DialogPortal>
       
-      {/* Image Cropper */}
-      <AnimatePresence>
-        {cropperState.isOpen && (
-          <ImageCropper
-            imageSrc={cropperState.imageSrc}
-            mode="avatar"
-            onCropComplete={handleCropComplete}
-            onCancel={handleCropCancel}
-          />
-        )}
-      </AnimatePresence>
     </Dialog>
   );
 }
