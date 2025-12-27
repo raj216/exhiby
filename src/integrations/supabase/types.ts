@@ -141,48 +141,40 @@ export type Database = {
       }
     }
     Views: {
-      public_profiles: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          cover_url: string | null
-          created_at: string | null
-          handle: string | null
-          id: string | null
-          name: string | null
-          updated_at: string | null
-          user_id: string | null
-          website: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          handle?: string | null
-          id?: string | null
-          name?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          website?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          handle?: string | null
-          id?: string | null
-          name?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          website?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_all_public_profiles: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          bio: string
+          cover_url: string
+          created_at: string
+          handle: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+          website: string
+        }[]
+      }
       get_live_viewer_count: { Args: { event_uuid: string }; Returns: number }
+      get_public_profile: {
+        Args: { profile_user_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          cover_url: string
+          created_at: string
+          handle: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+          website: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
