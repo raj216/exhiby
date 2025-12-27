@@ -121,7 +121,7 @@ export function AudienceProfile({
   const displayBio = localProfile?.bio;
   
   const [activeTab, setActiveTab] = useState<TabType>("tickets");
-  const [collectionFilter, setCollectionFilter] = useState<"all" | "handcraft" | "artworks">("all");
+  
 
   const displayAvatar = localProfile?.avatarUrl || fallbackUser.avatarImage;
   const displayCover = localProfile?.coverUrl || defaultCover;
@@ -131,9 +131,6 @@ export function AudienceProfile({
     { id: "collection", label: "Collection", icon: ShoppingBag },
   ];
 
-  const filteredArt = collectionFilter === "all" 
-    ? mockCollectedArt 
-    : mockCollectedArt.filter(a => a.type === collectionFilter);
 
   const handleShare = () => {
     triggerClickHaptic();
@@ -428,54 +425,27 @@ export function AudienceProfile({
                 exit={{ opacity: 0, y: -10 }}
                 className="p-4"
               >
-                {/* Filters */}
-                <div className="flex gap-2 mb-4">
-                  {(["all", "handcraft", "artworks"] as const).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => {
-                        triggerClickHaptic();
-                        setCollectionFilter(filter);
-                      }}
-                      className={`px-4 py-2 rounded-full text-xs font-medium capitalize transition-all ${
-                        collectionFilter === filter
-                          ? "bg-destructive text-foreground"
-                          : "bg-obsidian text-muted-foreground border border-border/50"
-                      }`}
-                    >
-                      {filter === "all" ? "All" : filter === "handcraft" ? "Handcraft" : "Artworks"}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Grid */}
-                {filteredArt.length === 0 ? (
+                {/* Masonry Grid */}
+                {mockCollectedArt.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
                     <p className="text-muted-foreground">No items collected yet</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {filteredArt.map((art, index) => (
+                  <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
+                    {mockCollectedArt.map((art, index) => (
                       <motion.div
                         key={art.id}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: index * 0.05 }}
-                        className="rounded-2xl overflow-hidden bg-obsidian border border-border/30"
+                        className="break-inside-avoid rounded-2xl overflow-hidden bg-obsidian border border-border/30"
                       >
-                        <div className="aspect-square relative">
-                          <img
-                            src={art.image}
-                            alt={art.title}
-                            className="w-full h-full object-cover"
-                          />
-                          <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                            art.type === "handcraft" ? "bg-electric/90 text-carbon" : "bg-gold/90 text-carbon"
-                          }`}>
-                            {art.type === "handcraft" ? "Handcraft" : "Artworks"}
-                          </span>
-                        </div>
+                        <img
+                          src={art.image}
+                          alt={art.title}
+                          className="w-full object-cover"
+                        />
                         <div className="p-3">
                           <p className="font-medium text-foreground text-sm line-clamp-1">{art.title}</p>
                           <p className="text-xs text-muted-foreground">by {art.artist}</p>
