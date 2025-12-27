@@ -12,6 +12,7 @@ import { ChevronRight, Clock, Calendar, Bell } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useLiveEvents, LiveEvent } from "@/hooks/useLiveEvents";
 
 interface HomeScreenProps {
   onGoLive: () => void;
@@ -46,8 +47,8 @@ interface UpcomingEvent {
   price: number | null;
 }
 
-// Mock data - Live streams only
-const liveStreams: ContentItem[] = [
+// Fallback mock data for when no live events exist
+const fallbackLiveStreams: ContentItem[] = [
   {
     id: "live-1",
     coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
@@ -92,50 +93,6 @@ const liveStreams: ContentItem[] = [
     category: "Pottery",
     isLive: true,
   },
-  {
-    id: "live-5",
-    coverImage: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=400&h=600&fit=crop",
-    title: "Acrylic Pour Art",
-    price: 8,
-    viewers: 156,
-    artistName: "Jake Thompson",
-    materials: ["Liquitex Pouring Medium", "Primary Color Acrylic Set"],
-    category: "Acrylic",
-    isLive: true,
-  },
-  {
-    id: "live-6",
-    coverImage: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&h=600&fit=crop",
-    title: "Figure Drawing Live",
-    price: 0,
-    viewers: 234,
-    artistName: "Elena Volkov",
-    materials: ["Conte Crayons", "Newsprint Pad 18x24"],
-    category: "Pencil Art",
-    isLive: true,
-  },
-  {
-    id: "live-7",
-    coverImage: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400&h=600&fit=crop",
-    title: "Portrait Mastery",
-    price: 12,
-    viewers: 78,
-    artistName: "Nina Chen",
-    materials: ["Oil Paint Set (Gamblin)", "Linen Canvas Panel"],
-    category: "Oil Painting",
-    isLive: true,
-  },
-  {
-    id: "live-8",
-    coverImage: "https://images.unsplash.com/photo-1605721911519-3dfeb3be25e7?w=400&h=600&fit=crop",
-    title: "Ink Wash Techniques",
-    price: 0,
-    viewers: 145,
-    artistName: "Tom Harris",
-    materials: ["Sumi Ink", "Rice Paper Roll"],
-    category: "Watercolor",
-    isLive: true,
-  },
 ];
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch, onOpenStudio, onLogout }: HomeScreenProps) {
@@ -147,6 +104,27 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  
+  // Fetch real live events from database
+  const { liveEvents, loading: loadingLiveEvents } = useLiveEvents();
+  
+  // Convert live events from DB to ContentItem format
+  const dbLiveStreams: ContentItem[] = useMemo(() => {
+    return liveEvents.map((event) => ({
+      id: event.id,
+      coverImage: event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
+      title: event.title,
+      price: event.is_free ? 0 : (event.price || 0),
+      viewers: event.viewer_count || 0,
+      artistName: event.creator?.name || "Unknown Artist",
+      materials: [],
+      category: "Handmade Art" as const, // Default category
+      isLive: true,
+    }));
+  }, [liveEvents]);
+  
+  // Use real live events if available, otherwise show fallback
+  const liveStreams = dbLiveStreams.length > 0 ? dbLiveStreams : fallbackLiveStreams;
 
   // Fetch upcoming events from database
   useEffect(() => {
