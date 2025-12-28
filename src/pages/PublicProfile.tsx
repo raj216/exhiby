@@ -10,16 +10,11 @@ import { triggerHaptic } from "@/lib/haptics";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface PublicProfileData {
-  id: string;
   user_id: string;
-  handle: string | null;
   name: string;
+  handle: string | null;
   avatar_url: string | null;
   bio: string | null;
-  cover_url: string | null;
-  website: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 export default function PublicProfile() {
@@ -37,15 +32,15 @@ export default function PublicProfile() {
       console.log("[PublicProfile] Fetching profile for identifier:", userId);
       
       if (!userId) {
-        console.error("[PublicProfile] No userId provided");
+        console.error("[PublicProfile] No userId provided in route params");
         setError("Invalid profile ID");
         setIsLoading(false);
         return;
       }
 
       try {
-        // First try with user_id (preferred)
-        console.log("[PublicProfile] Trying get_public_profile with user_id:", userId);
+        // First try with user_id (preferred - matches auth.users.id)
+        console.log("[PublicProfile] Calling get_public_profile with user_id:", userId);
         const { data, error: rpcError } = await supabase.rpc("get_public_profile", {
           profile_user_id: userId,
         });
@@ -61,14 +56,31 @@ export default function PublicProfile() {
 
         // The RPC returns an array, take the first result
         if (data && Array.isArray(data) && data.length > 0) {
-          console.log("[PublicProfile] Profile found:", data[0]);
+          console.log("[PublicProfile] Profile found via user_id:", data[0]);
           setProfile(data[0] as PublicProfileData);
         } else {
-          console.log("[PublicProfile] No profile found for userId:", userId);
-          setError("Profile not found");
+          // Fallback: try by profile row id
+          console.log("[PublicProfile] No profile found via user_id, trying profile row id...");
+          const { data: fallbackData, error: fallbackError } = await supabase.rpc(
+            "get_public_profile_by_profile_id",
+            { profile_id: userId }
+          );
+
+          console.log("[PublicProfile] Fallback RPC response:", { fallbackData, fallbackError });
+
+          if (fallbackError) {
+            console.error("[PublicProfile] Fallback RPC error:", fallbackError);
+            setError("Profile not found");
+          } else if (fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
+            console.log("[PublicProfile] Profile found via profile row id:", fallbackData[0]);
+            setProfile(fallbackData[0] as PublicProfileData);
+          } else {
+            console.log("[PublicProfile] No profile found for identifier:", userId);
+            setError("Profile not found");
+          }
         }
       } catch (err) {
-        console.error("[PublicProfile] Fetch error:", err);
+        console.error("[PublicProfile] Unexpected fetch error:", err);
         setError("Failed to load profile");
       } finally {
         setIsLoading(false);
@@ -116,6 +128,7 @@ export default function PublicProfile() {
     return (
       <div className="min-h-screen bg-carbon flex flex-col items-center justify-center px-4">
         <p className="text-muted-foreground mb-4">{error || "Profile not found"}</p>
+        <p className="text-xs text-muted-foreground/50 mb-4">ID: {userId}</p>
         <Button variant="outline" onClick={handleBack}>
           Go Back
         </Button>
@@ -128,7 +141,7 @@ export default function PublicProfile() {
       {/* Cover Image */}
       <div className="relative h-48 md:h-64">
         <img
-          src={profile.cover_url || defaultCover}
+          src={defaultCover}
           alt="Cover"
           className="w-full h-full object-cover"
         />
@@ -194,32 +207,39 @@ export default function PublicProfile() {
         </motion.div>
 
         {/* Bio */}
-        {profile.bio && (
-          <motion.p
-            className="mt-4 text-foreground/80 text-sm leading-relaxed"
-            initial={{ y: 10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            {profile.bio}
-          </motion.p>
-        )}
+        <motion.div
+          className="mt-4"
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          {profile.bio ? (
+            <p className="text-foreground/80 text-sm leading-relaxed">
+              {profile.bio}
+            </p>
+          ) : (
+            <p className="text-muted-foreground/50 text-sm italic">
+              No bio yet
+            </p>
+          )}
+        </motion.div>
 
-        {/* Website */}
-        {profile.website && (
-          <motion.a
-            href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 flex items-center gap-2 text-electric text-sm hover:underline"
-            initial={{ y: 10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.25 }}
-          >
-            <LinkIcon className="w-4 h-4" />
-            {profile.website.replace(/^https?:\/\//, "")}
-          </motion.a>
-        )}
+        {/* Stats placeholder */}
+        <motion.div
+          className="mt-6 flex gap-6"
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.25 }}
+        >
+          <div className="text-center">
+            <p className="font-display text-lg text-foreground">0</p>
+            <p className="text-xs text-muted-foreground">Followers</p>
+          </div>
+          <div className="text-center">
+            <p className="font-display text-lg text-foreground">0</p>
+            <p className="text-xs text-muted-foreground">Sessions</p>
+          </div>
+        </motion.div>
 
         {/* Action Buttons */}
         <motion.div
@@ -238,11 +258,23 @@ export default function PublicProfile() {
               Edit Profile
             </Button>
           ) : (
-            <>
+            <div className="flex-1">
               {/* Follow button will be added in the next iteration */}
-              <div className="flex-1" />
-            </>
+            </div>
           )}
+        </motion.div>
+
+        {/* Portfolio placeholder */}
+        <motion.div
+          className="mt-8 pb-8"
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.35 }}
+        >
+          <h2 className="font-display text-lg text-foreground mb-4">Portfolio</h2>
+          <div className="rounded-xl border border-border/30 bg-obsidian/50 p-8 text-center">
+            <p className="text-muted-foreground/50 text-sm">No artwork yet</p>
+          </div>
         </motion.div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface SearchResult {
+  id: string;
   user_id: string;
   handle: string | null;
   name: string;
