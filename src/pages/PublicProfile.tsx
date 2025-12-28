@@ -67,6 +67,13 @@ export default function PublicProfile() {
   }, [user]);
 
   useEffect(() => {
+    // If this is the current user's profile, redirect to their own profile screen
+    if (user && userId === user.id) {
+      console.log("[PublicProfile] Detected own profile, redirecting to own profile screen");
+      navigate("/", { state: { openProfile: true }, replace: true });
+      return;
+    }
+
     const fetchProfile = async () => {
       if (!userId) {
         console.error("[PublicProfile] No userId provided in route params");
