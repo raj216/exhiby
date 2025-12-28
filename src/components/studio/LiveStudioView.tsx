@@ -316,7 +316,7 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
                   animate={{ scale: 1 }}
                   className="text-xs font-medium text-white"
                 >
-                  {viewerCount || room.viewers}
+                  {viewerCount}
                 </motion.span>
               </div>
             </div>

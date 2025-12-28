@@ -32,6 +32,7 @@ interface ContentItem {
   price: number;
   viewers: number;
   artistName: string;
+  artistAvatar?: string;
   materials?: string[];
   category: "Pencil Art" | "Watercolor" | "Oil Painting" | "Acrylic" | "Handmade Art" | "Pottery" | "Jewelry";
   isLive: boolean;
@@ -60,15 +61,17 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   // Fetch real live events from database
   const { liveEvents, loading: loadingLiveEvents } = useLiveEvents();
   
-  // Convert live events from DB to ContentItem format - no fallback mock data
+  // Convert live events from DB to ContentItem format - using real-time viewer counts
   const liveStreams: ContentItem[] = useMemo(() => {
+    console.log("[HomeScreen] Converting live events to content items:", liveEvents.length);
     return liveEvents.map((event) => ({
       id: event.id,
       coverImage: event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
       title: event.title,
       price: event.is_free ? 0 : (event.price || 0),
-      viewers: event.viewer_count || 0,
+      viewers: event.viewer_count, // Real-time viewer count from database
       artistName: event.creator?.name || "Unknown Artist",
+      artistAvatar: event.creator?.avatar_url || undefined,
       materials: [],
       category: "Handmade Art" as const,
       isLive: true,
@@ -488,6 +491,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
               title: portalEvent.title,
               isLive: portalEvent.isLive,
               artistName: portalEvent.artistName,
+              artistAvatar: portalEvent.artistAvatar,
               coverImage: portalEvent.coverImage,
               materials: portalEvent.materials || [],
               price: portalEvent.price,

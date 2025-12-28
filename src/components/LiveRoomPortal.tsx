@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Users, Send, Gift, MessageCircle } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { FloatingHearts, useFloatingHearts } from "./FloatingHearts";
 import { LiveChatOverlay, useLiveChat } from "./LiveChatOverlay";
+import { useLiveViewers } from "@/hooks/useLiveViewers";
 
 interface LiveRoomPortalProps {
   eventId: string;
@@ -11,7 +12,6 @@ interface LiveRoomPortalProps {
   title: string;
   artistName: string;
   artistAvatar?: string;
-  viewers: number;
   onClose: () => void;
 }
 
@@ -21,7 +21,6 @@ export function LiveRoomPortal({
   title,
   artistName,
   artistAvatar,
-  viewers,
   onClose,
 }: LiveRoomPortalProps) {
   const [showVideo, setShowVideo] = useState(false);
@@ -29,19 +28,32 @@ export function LiveRoomPortal({
   const lastTapRef = useRef<number>(0);
   const { hearts, triggerHeart } = useFloatingHearts();
   const { messages } = useLiveChat();
+  
+  // Use real-time viewer count with join/leave logic
+  const { viewerCount, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId);
+
+  // Join as viewer when component mounts
+  useEffect(() => {
+    console.log("[LiveRoomPortal] Mounting, joining as viewer...");
+    joinAsViewer();
+
+    return () => {
+      console.log("[LiveRoomPortal] Unmounting, leaving as viewer...");
+      leaveAsViewer();
+    };
+  }, [joinAsViewer, leaveAsViewer]);
 
   // Start video fade-in after portal animation
-  useState(() => {
+  useEffect(() => {
     const timer = setTimeout(() => setShowVideo(true), 400);
     return () => clearTimeout(timer);
-  });
+  }, []);
 
   const handleDoubleTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     
     if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      // Double tap detected
       const rect = (e.target as HTMLElement).getBoundingClientRect();
       let clientX: number, clientY: number;
       
@@ -59,10 +71,11 @@ export function LiveRoomPortal({
     lastTapRef.current = now;
   }, [triggerHeart]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(async () => {
     triggerClickHaptic();
+    await leaveAsViewer();
     onClose();
-  };
+  }, [leaveAsViewer, onClose]);
 
   return (
     <motion.div
@@ -141,7 +154,14 @@ export function LiveRoomPortal({
                     </div>
                     <div className="flex items-center gap-1 text-white/70">
                       <Users className="w-3 h-3" />
-                      <span className="text-xs">{viewers}</span>
+                      <motion.span 
+                        key={viewerCount}
+                        initial={{ scale: 1.2 }}
+                        animate={{ scale: 1 }}
+                        className="text-xs"
+                      >
+                        {viewerCount}
+                      </motion.span>
                     </div>
                   </div>
                 </div>
@@ -237,6 +257,17 @@ export function LiveRoomPortal({
           <div className="p-6 border-b border-border">
             <h2 className="font-display text-xl text-foreground mb-2">{title}</h2>
             <p className="text-sm text-muted-foreground">Live session with {artistName}</p>
+            <div className="flex items-center gap-2 mt-2 text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <motion.span 
+                key={viewerCount}
+                initial={{ scale: 1.1 }}
+                animate={{ scale: 1 }}
+                className="text-sm"
+              >
+                {viewerCount} watching
+              </motion.span>
+            </div>
           </div>
 
           {/* Chat Messages - Scrollable */}

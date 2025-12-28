@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface LiveEvent {
@@ -22,8 +22,10 @@ export function useLiveEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLiveEvents = async () => {
+  const fetchLiveEvents = useCallback(async () => {
     try {
+      console.log("[LiveEvents] Fetching live events...");
+      
       const { data, error: fetchError } = await supabase
         .from("events")
         .select(`
@@ -32,7 +34,6 @@ export function useLiveEvents() {
           cover_url,
           price,
           is_free,
-          viewer_count,
           creator_id,
           live_started_at,
           description
@@ -41,16 +42,17 @@ export function useLiveEvents() {
         .order("live_started_at", { ascending: false });
 
       if (fetchError) {
-        console.error("Error fetching live events:", fetchError);
+        console.error("[LiveEvents] Error fetching live events:", fetchError);
         setError(fetchError.message);
         return;
       }
 
-      // Fetch creator profiles using secure RPC function (excludes email)
+      console.log(`[LiveEvents] Found ${data?.length || 0} live events`);
+
       if (data && data.length > 0) {
+        // Fetch creator profiles using secure RPC function
         const creatorIds = [...new Set(data.map((e) => e.creator_id))];
         
-        // Fetch all public profiles using secure RPC, then filter client-side
         const { data: allProfiles } = await supabase.rpc("get_all_public_profiles");
         
         const profiles = allProfiles?.filter((p: { user_id: string }) => 
@@ -63,29 +65,39 @@ export function useLiveEvents() {
           )
         );
 
-        const eventsWithCreators = data.map((event) => ({
-          ...event,
-          category: event.description, // Using description as category for now
-          creator: profileMap.get(event.creator_id) || { name: "Unknown", avatar_url: null },
-        }));
+        // Fetch real-time viewer counts for each event
+        const eventsWithCounts = await Promise.all(
+          data.map(async (event) => {
+            const { data: viewerCount } = await supabase.rpc("get_active_viewer_count", {
+              event_uuid: event.id,
+            });
 
-        setLiveEvents(eventsWithCreators);
+            return {
+              ...event,
+              viewer_count: viewerCount || 0,
+              category: event.description,
+              creator: profileMap.get(event.creator_id) || { name: "Unknown", avatar_url: null },
+            };
+          })
+        );
+
+        setLiveEvents(eventsWithCounts);
       } else {
         setLiveEvents([]);
       }
     } catch (err) {
-      console.error("Error in fetchLiveEvents:", err);
+      console.error("[LiveEvents] Error in fetchLiveEvents:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLiveEvents();
 
-    // Subscribe to realtime changes
-    const channel = supabase
+    // Subscribe to realtime changes on events table
+    const eventsChannel = supabase
       .channel("live_events_changes")
       .on(
         "postgres_changes",
@@ -95,16 +107,39 @@ export function useLiveEvents() {
           table: "events",
         },
         (payload) => {
-          console.log("Event change detected:", payload);
+          console.log("[LiveEvents] Event change detected:", payload.eventType);
           fetchLiveEvents();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[LiveEvents] Events subscription status: ${status}`);
+      });
+
+    // Subscribe to realtime changes on live_viewers table for count updates
+    const viewersChannel = supabase
+      .channel("live_viewers_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_viewers",
+        },
+        (payload) => {
+          console.log("[LiveEvents] Viewer change detected:", payload.eventType);
+          // Refetch to update viewer counts
+          fetchLiveEvents();
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[LiveEvents] Viewers subscription status: ${status}`);
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(viewersChannel);
     };
-  }, []);
+  }, [fetchLiveEvents]);
 
   return { liveEvents, loading, error, refetch: fetchLiveEvents };
 }

@@ -94,19 +94,25 @@ export type Database = {
           event_id: string
           id: string
           joined_at: string | null
+          last_seen: string
           user_id: string
+          viewer_profile_id: string | null
         }
         Insert: {
           event_id: string
           id?: string
           joined_at?: string | null
+          last_seen?: string
           user_id: string
+          viewer_profile_id?: string | null
         }
         Update: {
           event_id?: string
           id?: string
           joined_at?: string | null
+          last_seen?: string
           user_id?: string
+          viewer_profile_id?: string | null
         }
         Relationships: [
           {
@@ -203,6 +209,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_active_viewer_count: { Args: { event_uuid: string }; Returns: number }
       get_all_public_profiles: {
         Args: never
         Returns: {
@@ -279,6 +286,10 @@ export type Database = {
         }[]
       }
       is_following: { Args: { target_user_id: string }; Returns: boolean }
+      remove_live_viewer: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: undefined
+      }
       search_public_profiles: {
         Args: { search_text: string }
         Returns: {
@@ -289,6 +300,10 @@ export type Database = {
           name: string
           user_id: string
         }[]
+      }
+      upsert_live_viewer: {
+        Args: { p_event_id: string; p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
