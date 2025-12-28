@@ -68,6 +68,27 @@ export type Database = {
         }
         Relationships: []
       }
+      follows: {
+        Row: {
+          created_at: string | null
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       live_viewers: {
         Row: {
           event_id: string
@@ -159,6 +180,8 @@ export type Database = {
           website: string
         }[]
       }
+      get_follower_count: { Args: { target_user_id: string }; Returns: number }
+      get_following_count: { Args: { target_user_id: string }; Returns: number }
       get_live_viewer_count: { Args: { event_uuid: string }; Returns: number }
       get_public_profile: {
         Args: { profile_user_id: string }
@@ -180,6 +203,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      is_following: { Args: { target_user_id: string }; Returns: boolean }
       search_public_profiles: {
         Args: { search_text: string }
         Returns: {
