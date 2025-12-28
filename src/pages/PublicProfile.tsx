@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, MapPin, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, Link as LinkIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -30,36 +30,45 @@ export default function PublicProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isOwnProfile = user?.id === userId;
+  const isOwnProfile = user?.id === profile?.user_id;
 
   useEffect(() => {
     const fetchProfile = async () => {
+      console.log("[PublicProfile] Fetching profile for identifier:", userId);
+      
       if (!userId) {
+        console.error("[PublicProfile] No userId provided");
         setError("Invalid profile ID");
         setIsLoading(false);
         return;
       }
 
       try {
+        // First try with user_id (preferred)
+        console.log("[PublicProfile] Trying get_public_profile with user_id:", userId);
         const { data, error: rpcError } = await supabase.rpc("get_public_profile", {
           profile_user_id: userId,
         });
 
+        console.log("[PublicProfile] RPC response:", { data, error: rpcError });
+
         if (rpcError) {
-          console.error("Error fetching profile:", rpcError);
+          console.error("[PublicProfile] RPC error:", rpcError);
           setError("Failed to load profile");
+          setIsLoading(false);
           return;
         }
 
         // The RPC returns an array, take the first result
         if (data && Array.isArray(data) && data.length > 0) {
+          console.log("[PublicProfile] Profile found:", data[0]);
           setProfile(data[0] as PublicProfileData);
         } else {
-          console.log("No profile data returned for userId:", userId);
+          console.log("[PublicProfile] No profile found for userId:", userId);
           setError("Profile not found");
         }
       } catch (err) {
-        console.error("Profile fetch error:", err);
+        console.error("[PublicProfile] Fetch error:", err);
         setError("Failed to load profile");
       } finally {
         setIsLoading(false);
