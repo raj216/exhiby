@@ -207,6 +207,7 @@ export type Database = {
           avatar_url: string
           bio: string
           cover_url: string
+          created_at: string
           handle: string
           name: string
           user_id: string
@@ -219,6 +220,7 @@ export type Database = {
           avatar_url: string
           bio: string
           cover_url: string
+          created_at: string
           handle: string
           name: string
           user_id: string
