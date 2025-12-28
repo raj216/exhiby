@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { ImageCropper } from "./ImageCropper";
-import defaultCover from "@/assets/default-cover.jpg";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -160,20 +159,20 @@ export function EditProfileModal({
         newAvatarUrl = publicUrl;
       }
 
-      // Upload cover if changed
+      // Upload cover if changed - use profile-covers bucket
       if (coverBlob) {
         const fileExt = "jpg";
         const fileName = `${user.id}/cover_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("avatars")
+          .from("profile-covers")
           .upload(fileName, coverBlob, { upsert: true });
 
         if (uploadError) throw uploadError;
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("avatars").getPublicUrl(fileName);
+        } = supabase.storage.from("profile-covers").getPublicUrl(fileName);
 
         newCoverUrl = publicUrl;
       }
@@ -218,11 +217,8 @@ export function EditProfileModal({
 
   if (!isOpen) return null;
 
-  const displayAvatar =
-    avatarPreview ||
-    profile?.avatarUrl ||
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80";
-  const displayCover = coverPreview || profile?.coverUrl || defaultCover;
+  const displayAvatar = avatarPreview || profile?.avatarUrl;
+  const displayCover = coverPreview || profile?.coverUrl;
 
   return (
     <AnimatePresence>
@@ -261,11 +257,15 @@ export function EditProfileModal({
               className="relative h-40 w-full cursor-pointer group"
               onClick={() => coverInputRef.current?.click()}
             >
-              <img
-                src={displayCover}
-                alt="Cover"
-                className="w-full h-full object-cover"
-              />
+              {displayCover ? (
+                <img
+                  src={displayCover}
+                  alt="Cover"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
+              )}
               <div className="absolute inset-0 bg-carbon/40 flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full bg-carbon/80 backdrop-blur-sm flex items-center justify-center">
                   <Camera className="w-6 h-6 text-foreground" />
@@ -276,14 +276,20 @@ export function EditProfileModal({
             {/* Profile Photo - overlapping */}
             <div className="absolute left-4 -bottom-12">
               <div
-                className="relative w-24 h-24 rounded-full border-4 border-carbon overflow-hidden cursor-pointer group"
+                className="relative w-24 h-24 rounded-full border-4 border-carbon overflow-hidden cursor-pointer group bg-obsidian"
                 onClick={() => avatarInputRef.current?.click()}
               >
-                <img
-                  src={displayAvatar}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
+                {displayAvatar ? (
+                  <img
+                    src={displayAvatar}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-2xl font-display text-muted-foreground">
+                    {(profile?.name || "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-carbon/50 flex items-center justify-center">
                   <Camera className="w-6 h-6 text-foreground" />
                 </div>

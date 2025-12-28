@@ -62,27 +62,29 @@ export function ProfileImageEditor({
       const fileExt = blob.type.split("/")[1];
       const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
 
+      // Use appropriate bucket based on type
+      const bucket = type === "avatar" ? "avatars" : "profile-covers";
+
       // Upload to storage
       const { error: uploadError } = await supabase.storage
-        .from("avatars")
+        .from(bucket)
         .upload(fileName, blob, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
+        .from(bucket)
         .getPublicUrl(fileName);
 
-      // Update profile - currently only avatar_url is in the schema
-      if (type === "avatar") {
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ avatar_url: publicUrl })
-          .eq("user_id", user.id);
+      // Update profile
+      const updateField = type === "avatar" ? "avatar_url" : "cover_url";
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ [updateField]: publicUrl })
+        .eq("user_id", user.id);
 
-        if (updateError) throw updateError;
-      }
+      if (updateError) throw updateError;
 
       onImageUpdated(publicUrl);
       toast({ title: "Success", description: `${type === "avatar" ? "Profile photo" : "Cover photo"} updated!` });
