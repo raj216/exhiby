@@ -206,9 +206,11 @@ export type Database = {
         Returns: {
           avatar_url: string
           bio: string
+          cover_url: string
           handle: string
           name: string
           user_id: string
+          website: string
         }[]
       }
       get_public_profile_by_profile_id: {
@@ -216,9 +218,11 @@ export type Database = {
         Returns: {
           avatar_url: string
           bio: string
+          cover_url: string
           handle: string
           name: string
           user_id: string
+          website: string
         }[]
       }
       is_following: { Args: { target_user_id: string }; Returns: boolean }

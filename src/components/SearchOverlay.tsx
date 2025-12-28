@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, CheckCircle2, Loader2 } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
 import { useProfileSearch, SearchResult } from "@/hooks/useProfileSearch";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LiveEvent {
   id: string;
@@ -51,6 +52,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { results: profileResults, isSearching, searchProfiles, clearResults } = useProfileSearch();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -114,7 +116,12 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
   const handleProfileClick = (profile: SearchResult) => {
     triggerHaptic("light");
     onClose();
-    navigate(`/profile/${profile.user_id}`);
+    // If clicking on own profile, navigate to home with profile tab active
+    if (user && profile.user_id === user.id) {
+      navigate("/", { state: { openProfile: true } });
+    } else {
+      navigate(`/profile/${profile.user_id}`);
+    }
   };
 
   const handleLiveClick = (event: LiveEvent) => {
