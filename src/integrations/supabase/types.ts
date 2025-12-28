@@ -125,8 +125,10 @@ export type Database = {
           cover_url: string | null
           created_at: string
           email: string
+          founding_number: number | null
           handle: string | null
           id: string
+          is_founding_member: boolean | null
           name: string
           updated_at: string
           user_id: string
@@ -138,8 +140,10 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           email: string
+          founding_number?: number | null
           handle?: string | null
           id?: string
+          is_founding_member?: boolean | null
           name: string
           updated_at?: string
           user_id: string
@@ -151,8 +155,10 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           email?: string
+          founding_number?: number | null
           handle?: string | null
           id?: string
+          is_founding_member?: boolean | null
           name?: string
           updated_at?: string
           user_id?: string
@@ -208,7 +214,9 @@ export type Database = {
           bio: string
           cover_url: string
           created_at: string
+          founding_number: number
           handle: string
+          is_founding_member: boolean
           name: string
           user_id: string
           website: string
@@ -221,7 +229,9 @@ export type Database = {
           bio: string
           cover_url: string
           created_at: string
+          founding_number: number
           handle: string
+          is_founding_member: boolean
           name: string
           user_id: string
           website: string

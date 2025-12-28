@@ -19,10 +19,9 @@ interface PublicProfileData {
   cover_url: string | null;
   website: string | null;
   created_at: string | null;
+  is_founding_member: boolean | null;
+  founding_number: number | null;
 }
-
-// Founding member cutoff - first month of launch or first 100 users
-const FOUNDING_MEMBER_CUTOFF = new Date("2025-02-01T00:00:00Z");
 
 export default function PublicProfile() {
   const { userId } = useParams<{ userId: string }>();
@@ -39,10 +38,9 @@ export default function PublicProfile() {
 
   const isOwnProfile = user?.id === profile?.user_id;
   
-  // Check if user is a founding member (signed up before cutoff date)
-  const isFoundingMember = profile?.created_at 
-    ? new Date(profile.created_at) < FOUNDING_MEMBER_CUTOFF 
-    : false;
+  // Check if user is a founding member from database
+  const isFoundingMember = profile?.is_founding_member ?? false;
+  const foundingNumber = profile?.founding_number;
 
   const fetchFollowData = useCallback(async (targetUserId: string) => {
     // Fetch follower count
@@ -414,7 +412,7 @@ export default function PublicProfile() {
             >
               <Award className="w-4 h-4 text-gold" />
               <span className="text-sm font-semibold text-gold">
-                Founding Member
+                Founding Member {foundingNumber ? `#${foundingNumber}` : ""}
               </span>
             </div>
           </motion.div>

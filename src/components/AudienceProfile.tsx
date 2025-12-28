@@ -30,6 +30,8 @@ interface UserProfile {
   bio?: string | null;
   website?: string | null;
   coverUrl?: string | null;
+  isFoundingMember?: boolean;
+  foundingNumber?: number | null;
 }
 
 interface AudienceProfileProps {
@@ -47,9 +49,6 @@ const fallbackUser = {
   avatarImage: "",
   memberSince: "Dec 2024",
 };
-
-// Founding Member badge shown for early adopters (first month / first 1000 users)
-const isFoundingMember = true; // MVP: Display for all current users
 
 type TabType = "tickets" | "collection";
 
@@ -77,7 +76,7 @@ export function AudienceProfile({
     if (!user) return;
     const { data } = await supabase
       .from("profiles")
-      .select("name, handle, avatar_url, email, created_at, bio, website, cover_url")
+      .select("name, handle, avatar_url, email, created_at, bio, website, cover_url, is_founding_member, founding_number")
       .eq("user_id", user.id)
       .maybeSingle();
     
@@ -96,6 +95,8 @@ export function AudienceProfile({
         bio: data.bio,
         website: data.website,
         coverUrl: data.cover_url,
+        isFoundingMember: data.is_founding_member ?? false,
+        foundingNumber: data.founding_number,
       });
     }
   };
@@ -254,7 +255,7 @@ export function AudienceProfile({
           </motion.div>
 
           {/* Founding Member Badge - Centered, Premium */}
-          {isFoundingMember && (
+          {localProfile?.isFoundingMember && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -270,7 +271,7 @@ export function AudienceProfile({
               >
                 <Award className="w-4 h-4 text-gold" />
                 <span className="text-sm font-semibold text-gold">
-                  Founding Member
+                  Founding Member {localProfile.foundingNumber ? `#${localProfile.foundingNumber}` : ""}
                 </span>
               </div>
             </motion.div>
