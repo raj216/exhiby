@@ -165,14 +165,19 @@ export type Database = {
         Returns: {
           avatar_url: string
           bio: string
-          cover_url: string
-          created_at: string
           handle: string
-          id: string
           name: string
-          updated_at: string
           user_id: string
-          website: string
+        }[]
+      }
+      get_public_profile_by_profile_id: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          handle: string
+          name: string
+          user_id: string
         }[]
       }
       search_public_profiles: {
@@ -181,6 +186,7 @@ export type Database = {
           avatar_url: string
           bio: string
           handle: string
+          id: string
           name: string
           user_id: string
         }[]
