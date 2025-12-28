@@ -1,23 +1,24 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Upload } from "lucide-react";
+import { Plus, X, Upload, Trash2, ImageIcon } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
-
-interface PortfolioItem {
-  id: string;
-  image: string;
-  title: string;
-}
+import { usePortfolioItems, PortfolioItem } from "@/hooks/usePortfolioItems";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface PortfolioGridProps {
-  items: PortfolioItem[];
-  onAddArt?: () => void;
+  userId?: string; // If provided, show that user's portfolio (for public profiles)
+  isOwner?: boolean; // Whether the current user owns this portfolio
 }
 
-export function PortfolioGrid({ items, onAddArt }: PortfolioGridProps) {
+export function PortfolioGrid({ userId, isOwner = false }: PortfolioGridProps) {
+  const { user } = useAuth();
+  const { items, isLoading, addItem, deleteItem } = usePortfolioItems(userId);
   const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const canEdit = isOwner && user;
 
   const handleImageClick = (item: PortfolioItem) => {
     triggerClickHaptic();
@@ -30,17 +31,45 @@ export function PortfolioGrid({ items, onAddArt }: PortfolioGridProps) {
 
   const handleAddClick = () => {
     triggerClickHaptic();
-    if (onAddArt) {
-      onAddArt();
-    } else {
-      fileInputRef.current?.click();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Image must be under 10MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    triggerClickHaptic();
+
+    try {
+      // Convert file to blob
+      const arrayBuffer = await file.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: file.type });
+      
+      await addItem(blob, file.name.replace(/\.[^/.]+$/, "")); // Use filename without extension as title
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      toast({ title: "Coming Soon", description: "Portfolio uploads will be available soon!" });
+  const handleDelete = async (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    triggerClickHaptic();
+    
+    if (confirm("Delete this artwork from your portfolio?")) {
+      await deleteItem(itemId);
+      setSelectedImage(null);
     }
   };
 
@@ -48,37 +77,70 @@ export function PortfolioGrid({ items, onAddArt }: PortfolioGridProps) {
   const leftColumn = items.filter((_, i) => i % 2 === 0);
   const rightColumn = items.filter((_, i) => i % 2 === 1);
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg text-foreground">Portfolio</h2>
+        </div>
+        <div className="flex gap-3">
+          <div className="flex-1 space-y-3">
+            <div className="h-32 rounded-xl bg-obsidian/50 animate-pulse" />
+            <div className="h-48 rounded-xl bg-obsidian/50 animate-pulse" />
+          </div>
+          <div className="flex-1 space-y-3">
+            <div className="h-48 rounded-xl bg-obsidian/50 animate-pulse" />
+            <div className="h-32 rounded-xl bg-obsidian/50 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileSelect}
-      />
+      {canEdit && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+      )}
 
-      {/* Header with Add Button */}
+      {/* Header with Add Button (only for owner) */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-lg text-foreground">Portfolio</h2>
-        <button
-          onClick={handleAddClick}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-elevated border border-border/50 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Art</span>
-        </button>
+        {canEdit && (
+          <button
+            onClick={handleAddClick}
+            disabled={isUploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-elevated border border-border/50 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{isUploading ? "Uploading..." : "Add Art"}</span>
+          </button>
+        )}
       </div>
 
       {/* Masonry Grid - 2 columns */}
       {items.length === 0 ? (
-        <button
-          onClick={handleAddClick}
-          className="w-full py-16 rounded-2xl border-2 border-dashed border-border/50 text-muted-foreground flex flex-col items-center justify-center gap-3"
-        >
-          <Upload className="w-8 h-8" />
-          <span className="text-sm">Upload your first artwork</span>
-        </button>
+        canEdit ? (
+          <button
+            onClick={handleAddClick}
+            disabled={isUploading}
+            className="w-full py-16 rounded-2xl border-2 border-dashed border-border/50 text-muted-foreground flex flex-col items-center justify-center gap-3 disabled:opacity-50"
+          >
+            <Upload className="w-8 h-8" />
+            <span className="text-sm">{isUploading ? "Uploading..." : "Upload your first artwork"}</span>
+          </button>
+        ) : (
+          <div className="w-full py-12 rounded-2xl bg-obsidian/50 border border-border/30 flex flex-col items-center justify-center gap-3">
+            <ImageIcon className="w-8 h-8 text-muted-foreground/50" />
+            <span className="text-sm text-muted-foreground/50">No artwork yet</span>
+          </div>
+        )
       ) : (
         <div className="flex gap-3">
           {/* Left Column */}
@@ -89,14 +151,22 @@ export function PortfolioGrid({ items, onAddArt }: PortfolioGridProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => handleImageClick(item)}
-                className="w-full rounded-xl overflow-hidden"
+                className="w-full rounded-xl overflow-hidden relative group"
               >
                 <img
-                  src={item.image}
-                  alt={item.title}
+                  src={item.image_url}
+                  alt={item.title || "Portfolio artwork"}
                   className="w-full h-auto object-cover"
                   loading="lazy"
                 />
+                {canEdit && (
+                  <button
+                    onClick={(e) => handleDelete(e, item.id)}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-carbon/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </button>
+                )}
               </motion.button>
             ))}
           </div>
@@ -109,14 +179,22 @@ export function PortfolioGrid({ items, onAddArt }: PortfolioGridProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => handleImageClick(item)}
-                className="w-full rounded-xl overflow-hidden"
+                className="w-full rounded-xl overflow-hidden relative group"
               >
                 <img
-                  src={item.image}
-                  alt={item.title}
+                  src={item.image_url}
+                  alt={item.title || "Portfolio artwork"}
                   className="w-full h-auto object-cover"
                   loading="lazy"
                 />
+                {canEdit && (
+                  <button
+                    onClick={(e) => handleDelete(e, item.id)}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-carbon/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </button>
+                )}
               </motion.button>
             ))}
           </div>
@@ -141,6 +219,16 @@ export function PortfolioGrid({ items, onAddArt }: PortfolioGridProps) {
               <X className="w-5 h-5 text-foreground" />
             </button>
 
+            {/* Delete Button (for owner) */}
+            {canEdit && (
+              <button
+                onClick={(e) => handleDelete(e, selectedImage.id)}
+                className="absolute top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-10"
+              >
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </button>
+            )}
+
             {/* Image */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -151,21 +239,23 @@ export function PortfolioGrid({ items, onAddArt }: PortfolioGridProps) {
               onClick={(e) => e.stopPropagation()}
             >
               <img
-                src={selectedImage.image}
-                alt={selectedImage.title}
+                src={selectedImage.image_url}
+                alt={selectedImage.title || "Portfolio artwork"}
                 className="max-w-full max-h-[85vh] object-contain"
               />
             </motion.div>
 
             {/* Title */}
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="absolute bottom-6 left-0 right-0 text-center text-foreground font-medium"
-            >
-              {selectedImage.title}
-            </motion.p>
+            {selectedImage.title && (
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="absolute bottom-6 left-0 right-0 text-center text-foreground font-medium"
+              >
+                {selectedImage.title}
+              </motion.p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

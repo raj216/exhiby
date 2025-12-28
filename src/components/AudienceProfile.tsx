@@ -8,8 +8,7 @@ import {
   Ticket,
   ChevronRight,
   Share2,
-  Pencil,
-  Users
+  Pencil
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
@@ -19,7 +18,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudienceStats } from "@/hooks/useAudienceStats";
 import { useFollowStats } from "@/hooks/useFollowStats";
-import defaultCover from "@/assets/default-cover.jpg";
 
 interface UserProfile {
   name: string;
@@ -110,8 +108,8 @@ export function AudienceProfile({
   const [activeTab, setActiveTab] = useState<TabType>("tickets");
   
 
-  const displayAvatar = localProfile?.avatarUrl || fallbackUser.avatarImage;
-  const displayCover = localProfile?.coverUrl || defaultCover;
+  const displayAvatar = localProfile?.avatarUrl;
+  const displayCover = localProfile?.coverUrl;
 
   const tabs: { id: TabType; label: string; icon: typeof Ticket }[] = [
     { id: "tickets", label: "Tickets", icon: Ticket },
@@ -131,11 +129,15 @@ export function AudienceProfile({
         
         {/* Cover Photo - Full Width (NOT clickable - edit through Edit Profile) */}
         <div className="relative h-48 sm:h-56 w-full overflow-hidden">
-          <img
-            src={displayCover}
-            alt="Cover"
-            className="w-full h-full object-cover"
-          />
+          {displayCover ? (
+            <img
+              src={displayCover}
+              alt="Cover"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/40 to-transparent" />
 
           {/* Header Controls */}
@@ -179,11 +181,17 @@ export function AudienceProfile({
               className="relative"
             >
               <div className="w-28 h-28 rounded-full border-4 border-carbon overflow-hidden bg-obsidian shadow-deep">
-                <img
-                  src={displayAvatar}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                />
+                {displayAvatar ? (
+                  <img
+                    src={displayAvatar}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

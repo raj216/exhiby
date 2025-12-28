@@ -10,8 +10,7 @@ import {
   ChevronRight,
   Share2,
   Pencil,
-  Award,
-  ImageIcon
+  Award
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
@@ -24,7 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
 import { useFollowStats } from "@/hooks/useFollowStats";
-import defaultCover from "@/assets/default-cover.jpg";
 
 interface ScheduledEvent {
   id: string;
@@ -132,8 +130,8 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
   const displayName = localProfile?.name || fallbackCreator.name;
   const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : "";
   const displayMemberSince = localProfile?.memberSince || fallbackCreator.memberSince;
-  const displayAvatar = localProfile?.avatarUrl || fallbackCreator.avatarImage;
-  const displayCover = localProfile?.coverUrl || defaultCover;
+  const displayAvatar = localProfile?.avatarUrl;
+  const displayCover = localProfile?.coverUrl;
   const displayBio = localProfile?.bio;
 
 
@@ -151,11 +149,15 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
     <div className="min-h-screen bg-carbon">
       {/* Cover Photo - Full Width (NOT clickable - edit through Edit Profile) */}
       <div className="relative h-48 sm:h-56 w-full overflow-hidden">
-        <img
-          src={displayCover}
-          alt="Cover"
-          className="w-full h-full object-cover"
-        />
+        {displayCover ? (
+          <img
+            src={displayCover}
+            alt="Cover"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/40 to-transparent" />
 
         {/* Header Controls */}
@@ -197,11 +199,17 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
             className="relative"
           >
             <div className="w-28 h-28 rounded-full border-4 border-carbon overflow-hidden bg-obsidian shadow-deep">
-              <img
-                src={displayAvatar}
-                alt={displayName}
-                className="w-full h-full object-cover"
-              />
+              {displayAvatar ? (
+                <img
+                  src={displayAvatar}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
             </div>
             {/* Verified badge */}
             <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-destructive flex items-center justify-center">
@@ -381,20 +389,9 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         </div>
       </div>
 
-      {/* Portfolio Section - Empty state until artworks table exists */}
+      {/* Portfolio Section */}
       <div className="mt-6 px-4 pb-24">
-        <h2 className="font-display text-lg text-foreground mb-4">Portfolio</h2>
-        <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
-          <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
-          <p className="text-muted-foreground mb-4">No artwork yet</p>
-          <button
-            onClick={() => toast({ title: "Coming Soon", description: "Portfolio uploads will be available soon!" })}
-            className="px-4 py-2 rounded-full bg-surface-elevated border border-border/50 text-foreground text-sm font-medium flex items-center gap-2"
-          >
-            <Pencil className="w-4 h-4" />
-            Add Art
-          </button>
-        </div>
+        <PortfolioGrid userId={user?.id} isOwner={true} />
       </div>
 
       {/* Edit Profile Modal */}

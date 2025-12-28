@@ -118,6 +118,38 @@ export type Database = {
           },
         ]
       }
+      portfolio_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          profile_id: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url: string
+          profile_id: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          profile_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -207,6 +239,15 @@ export type Database = {
         }[]
       }
       get_live_viewer_count: { Args: { event_uuid: string }; Returns: number }
+      get_portfolio_items: {
+        Args: { target_user_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          image_url: string
+          title: string
+        }[]
+      }
       get_public_profile: {
         Args: { profile_user_id: string }
         Returns: {

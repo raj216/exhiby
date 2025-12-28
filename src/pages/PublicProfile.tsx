@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { triggerHaptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import { FollowListModal } from "@/components/FollowListModal";
+import { PortfolioGrid } from "@/components/PortfolioGrid";
 
 interface PublicProfileData {
   user_id: string;
@@ -430,17 +431,14 @@ export default function PublicProfile() {
           </motion.p>
         )}
 
-        {/* Portfolio placeholder */}
+        {/* Portfolio Section */}
         <motion.div
           className="mt-8 pb-8"
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.45 }}
         >
-          <h2 className="font-display text-lg text-foreground mb-4">Portfolio</h2>
-          <div className="rounded-xl border border-border/30 bg-obsidian/50 p-8 text-center">
-            <p className="text-muted-foreground/50 text-sm">No artwork yet</p>
-          </div>
+          <PortfolioGrid userId={profile.user_id} isOwner={false} />
         </motion.div>
       </div>
 
