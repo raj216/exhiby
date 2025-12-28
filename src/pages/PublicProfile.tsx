@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,11 @@ interface PublicProfileData {
   bio: string | null;
   cover_url: string | null;
   website: string | null;
+  created_at: string | null;
 }
+
+// Founding member cutoff - first month of launch or first 100 users
+const FOUNDING_MEMBER_CUTOFF = new Date("2025-02-01T00:00:00Z");
 
 export default function PublicProfile() {
   const { userId } = useParams<{ userId: string }>();
@@ -34,6 +38,11 @@ export default function PublicProfile() {
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
 
   const isOwnProfile = user?.id === profile?.user_id;
+  
+  // Check if user is a founding member (signed up before cutoff date)
+  const isFoundingMember = profile?.created_at 
+    ? new Date(profile.created_at) < FOUNDING_MEMBER_CUTOFF 
+    : false;
 
   const fetchFollowData = useCallback(async (targetUserId: string) => {
     // Fetch follower count
@@ -177,6 +186,11 @@ export default function PublicProfile() {
       toast.success("Link copied to clipboard");
     }
   };
+
+  // Format member since date
+  const memberSince = profile?.created_at 
+    ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+    : null;
 
   if (isLoading) {
     return (
@@ -376,12 +390,47 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
+        {/* Founding Member Badge */}
+        {isFoundingMember && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.35 }}
+            className="flex justify-center mt-5"
+          >
+            <div 
+              className="px-4 py-2 rounded-full border-2 flex items-center gap-2 shadow-gold"
+              style={{
+                background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
+                borderColor: "hsl(43 72% 52% / 0.6)"
+              }}
+            >
+              <Award className="w-4 h-4 text-gold" />
+              <span className="text-sm font-semibold text-gold">
+                Founding Member
+              </span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Member Since */}
+        {memberSince && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-xs text-muted-foreground mt-4 text-center"
+          >
+            Member since {memberSince}
+          </motion.p>
+        )}
+
         {/* Portfolio placeholder */}
         <motion.div
           className="mt-8 pb-8"
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.35 }}
+          transition={{ delay: 0.45 }}
         >
           <h2 className="font-display text-lg text-foreground mb-4">Portfolio</h2>
           <div className="rounded-xl border border-border/30 bg-obsidian/50 p-8 text-center">
