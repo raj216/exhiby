@@ -1,16 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, CheckCircle2 } from "lucide-react";
+import { Search, X, CheckCircle2, Loader2 } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
-
-interface Artist {
-  id: string;
-  name: string;
-  avatar: string;
-  isVerified: boolean;
-  isLive?: boolean;
-  eventTitle?: string;
-}
+import { useProfileSearch, SearchResult } from "@/hooks/useProfileSearch";
 
 interface LiveEvent {
   id: string;
@@ -34,7 +27,7 @@ interface SearchOverlayProps {
   onSelectCategory: (tag: string) => void;
 }
 
-// Mock data
+// Mock data for non-profile content
 const trendingTags = ["#Realism", "#Clay", "#Charcoal", "#Watercolor", "#Pottery", "#Digital"];
 
 const recommendedCategories = [
@@ -44,15 +37,6 @@ const recommendedCategories = [
   { id: "4", name: "Oil Painting", tag: "oil" },
   { id: "5", name: "Digital Art", tag: "digital" },
   { id: "6", name: "Watercolor", tag: "watercolor" },
-];
-
-const allArtists: Artist[] = [
-  { id: "1", name: "Mia Torres", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop", isVerified: true, isLive: true, eventTitle: "Color Theory" },
-  { id: "2", name: "David Okonkwo", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop", isVerified: true },
-  { id: "3", name: "Sophie Martin", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop", isVerified: true },
-  { id: "4", name: "Kai Tanaka", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop", isVerified: false },
-  { id: "5", name: "Ana Perez", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop", isVerified: true, isLive: true, eventTitle: "Ocean Series" },
-  { id: "6", name: "Ben Wright", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop", isVerified: true },
 ];
 
 const liveEvents: LiveEvent[] = [
@@ -66,6 +50,9 @@ const recentSearches = ["Sophie Martin", "Pottery", "#Realism"];
 export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onSelectCategory }: SearchOverlayProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const { results: profileResults, isSearching, searchProfiles, clearResults } = useProfileSearch();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-focus when opened
   useEffect(() => {
@@ -74,40 +61,47 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
     }
     if (!isOpen) {
       setQuery("");
+      clearResults();
     }
-  }, [isOpen]);
+  }, [isOpen, clearResults]);
 
-  // Filter results based on query
-  const filteredResults = useMemo(() => {
-    if (!query.trim()) return null;
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
 
-    const q = query.toLowerCase();
-    
-    // Find top hit (verified artists first)
-    const topHit = allArtists
-      .filter(a => a.name.toLowerCase().includes(q))
-      .sort((a, b) => (b.isVerified ? 1 : 0) - (a.isVerified ? 1 : 0))[0];
+    if (query.trim()) {
+      searchTimeoutRef.current = setTimeout(() => {
+        searchProfiles(query);
+      }, 300);
+    } else {
+      clearResults();
+    }
 
-    // Live events matching query
-    const matchingLive = liveEvents.filter(
-      e => e.title.toLowerCase().includes(q) || e.artistName.toLowerCase().includes(q)
-    );
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [query, searchProfiles, clearResults]);
 
-    // Artists matching query
-    const matchingArtists = allArtists
-      .filter(a => a.name.toLowerCase().includes(q) && a.id !== topHit?.id)
-      .sort((a, b) => (b.isVerified ? 1 : 0) - (a.isVerified ? 1 : 0));
+  // Filter mock live events and categories based on query
+  const matchingLive = query.trim()
+    ? liveEvents.filter(
+        (e) => e.title.toLowerCase().includes(query.toLowerCase()) || e.artistName.toLowerCase().includes(query.toLowerCase())
+      )
+    : [];
 
-    // Categories matching query
-    const matchingCategories = recommendedCategories.filter(
-      c => c.name.toLowerCase().includes(q) || c.tag.toLowerCase().includes(q)
-    );
-
-    return { topHit, matchingLive, matchingArtists, matchingCategories };
-  }, [query]);
+  const matchingCategories = query.trim()
+    ? recommendedCategories.filter(
+        (c) => c.name.toLowerCase().includes(query.toLowerCase()) || c.tag.toLowerCase().includes(query.toLowerCase())
+      )
+    : [];
 
   const handleClear = () => {
     setQuery("");
+    clearResults();
     inputRef.current?.focus();
     triggerHaptic("light");
   };
@@ -117,14 +111,10 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
     setQuery(tag.replace("#", ""));
   };
 
-  const handleArtistClick = (artist: Artist) => {
+  const handleProfileClick = (profile: SearchResult) => {
     triggerHaptic("light");
-    if (artist.isLive) {
-      onJoinLive(artist.id);
-    } else {
-      onSelectArtist(artist.id);
-    }
     onClose();
+    navigate(`/profile/${profile.user_id}`);
   };
 
   const handleLiveClick = (event: LiveEvent) => {
@@ -138,6 +128,10 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
     onSelectCategory(category.tag);
     setQuery(category.name);
   };
+
+  const hasResults = profileResults.length > 0 || matchingLive.length > 0 || matchingCategories.length > 0;
+  const topHit = profileResults.length > 0 ? profileResults[0] : null;
+  const otherProfiles = profileResults.slice(1);
 
   return (
     <AnimatePresence>
@@ -159,7 +153,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
             exit={{ opacity: 0 }}
           />
 
-          {/* Search container - full on mobile, centered modal on desktop */}
+          {/* Search container */}
           <motion.div
             className="relative z-10 flex flex-col w-full h-full md:h-auto md:max-h-[80vh] md:max-w-2xl md:mx-4 md:rounded-2xl md:border md:border-border/30 md:bg-carbon/95 md:backdrop-blur-2xl md:shadow-2xl"
             style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
@@ -202,7 +196,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
               </div>
             </div>
 
-            {/* Content Area - scrollable within viewport */}
+            {/* Content Area */}
             <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4 md:px-6 md:pb-6">
               <AnimatePresence mode="wait">
                 {!query.trim() ? (
@@ -248,7 +242,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                       </div>
                     </section>
 
-                    {/* Recommended Categories - hidden on desktop since they're in left sidebar */}
+                    {/* Recommended Categories */}
                     <section className="lg:hidden">
                       <h3 className="font-display text-xs text-muted-foreground mb-2 uppercase tracking-wider">Categories</h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -274,35 +268,45 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                     transition={{ duration: 0.2 }}
                     className="space-y-6"
                   >
-                    {/* TOP HIT */}
-                    {filteredResults?.topHit && (
+                    {/* Loading State */}
+                    {isSearching && (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 text-electric animate-spin" />
+                      </div>
+                    )}
+
+                    {/* TOP HIT - First Profile Result */}
+                    {!isSearching && topHit && (
                       <section>
                         <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">Top Hit</h3>
                         <button
-                          onClick={() => handleArtistClick(filteredResults.topHit!)}
+                          onClick={() => handleProfileClick(topHit)}
                           className="w-full p-4 rounded-xl bg-obsidian border border-gold/30 flex items-center gap-4 hover:border-gold/60 transition-colors"
                         >
                           <div className="relative">
-                            <img
-                              src={filteredResults.topHit.avatar}
-                              alt={filteredResults.topHit.name}
-                              className="w-16 h-16 rounded-full object-cover"
-                            />
-                            {filteredResults.topHit.isLive && (
-                              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-crimson rounded-full flex items-center justify-center animate-pulse">
-                                <span className="w-2 h-2 bg-white rounded-full" />
-                              </span>
+                            {topHit.avatar_url ? (
+                              <img
+                                src={topHit.avatar_url}
+                                alt={topHit.name}
+                                className="w-16 h-16 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 rounded-full bg-obsidian border border-border/30 flex items-center justify-center">
+                                <span className="text-2xl font-display text-muted-foreground">
+                                  {topHit.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
                             )}
                           </div>
                           <div className="flex-1 text-left">
                             <div className="flex items-center gap-2">
-                              <span className="font-display text-lg text-foreground">{filteredResults.topHit.name}</span>
-                              {filteredResults.topHit.isVerified && (
-                                <CheckCircle2 className="w-4 h-4 text-gold fill-gold/20" />
-                              )}
+                              <span className="font-display text-lg text-foreground">{topHit.name}</span>
                             </div>
-                            {filteredResults.topHit.isLive && (
-                              <span className="text-sm text-crimson font-medium">LIVE • {filteredResults.topHit.eventTitle}</span>
+                            {topHit.handle && (
+                              <span className="text-sm text-muted-foreground">@{topHit.handle}</span>
+                            )}
+                            {topHit.bio && (
+                              <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">{topHit.bio}</p>
                             )}
                           </div>
                         </button>
@@ -310,14 +314,14 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                     )}
 
                     {/* LIVE NOW */}
-                    {filteredResults?.matchingLive && filteredResults.matchingLive.length > 0 && (
+                    {!isSearching && matchingLive.length > 0 && (
                       <section>
                         <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider flex items-center gap-2">
                           <span className="w-2 h-2 bg-crimson rounded-full animate-pulse" />
                           Live Now
                         </h3>
                         <div className="space-y-3">
-                          {filteredResults.matchingLive.map((event) => (
+                          {matchingLive.map((event) => (
                             <button
                               key={event.id}
                               onClick={() => handleLiveClick(event)}
@@ -347,26 +351,34 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                       </section>
                     )}
 
-                    {/* ARTISTS */}
-                    {filteredResults?.matchingArtists && filteredResults.matchingArtists.length > 0 && (
+                    {/* OTHER PROFILES */}
+                    {!isSearching && otherProfiles.length > 0 && (
                       <section>
-                        <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">Artists</h3>
+                        <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">People</h3>
                         <div className="space-y-2">
-                          {filteredResults.matchingArtists.map((artist) => (
+                          {otherProfiles.map((profile) => (
                             <button
-                              key={artist.id}
-                              onClick={() => handleArtistClick(artist)}
+                              key={profile.user_id}
+                              onClick={() => handleProfileClick(profile)}
                               className="w-full p-3 rounded-xl bg-obsidian border border-border/30 flex items-center gap-3 hover:border-electric/50 transition-colors"
                             >
-                              <img
-                                src={artist.avatar}
-                                alt={artist.name}
-                                className="w-12 h-12 rounded-full object-cover"
-                              />
-                              <div className="flex items-center gap-2">
-                                <span className="font-sans text-foreground">{artist.name}</span>
-                                {artist.isVerified && (
-                                  <CheckCircle2 className="w-4 h-4 text-gold fill-gold/20" />
+                              {profile.avatar_url ? (
+                                <img
+                                  src={profile.avatar_url}
+                                  alt={profile.name}
+                                  className="w-12 h-12 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-obsidian border border-border/30 flex items-center justify-center">
+                                  <span className="text-lg font-display text-muted-foreground">
+                                    {profile.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex-1 text-left">
+                                <span className="font-sans text-foreground">{profile.name}</span>
+                                {profile.handle && (
+                                  <p className="text-xs text-muted-foreground">@{profile.handle}</p>
                                 )}
                               </div>
                             </button>
@@ -375,12 +387,12 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                       </section>
                     )}
 
-                    {/* CATEGORIES - hidden on desktop since they're in left sidebar */}
-                    {filteredResults?.matchingCategories && filteredResults.matchingCategories.length > 0 && (
+                    {/* CATEGORIES */}
+                    {!isSearching && matchingCategories.length > 0 && (
                       <section className="lg:hidden">
                         <h3 className="font-display text-sm text-muted-foreground mb-3 uppercase tracking-wider">Categories</h3>
                         <div className="flex flex-wrap gap-2">
-                          {filteredResults.matchingCategories.map((cat) => (
+                          {matchingCategories.map((cat) => (
                             <button
                               key={cat.id}
                               onClick={() => handleCategoryClick(cat)}
@@ -394,11 +406,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                     )}
 
                     {/* No Results */}
-                    {filteredResults && 
-                     !filteredResults.topHit && 
-                     filteredResults.matchingLive.length === 0 && 
-                     filteredResults.matchingArtists.length === 0 && 
-                     filteredResults.matchingCategories.length === 0 && (
+                    {!isSearching && !hasResults && (
                       <div className="text-center py-12">
                         <p className="text-muted-foreground">No results for "{query}"</p>
                         <p className="text-sm text-muted-foreground/70 mt-1">Try a different search term</p>
