@@ -8,7 +8,8 @@ import {
   Ticket,
   ChevronRight,
   Share2,
-  Pencil
+  Pencil,
+  Users
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import { EditProfileModal } from "./EditProfileModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudienceStats } from "@/hooks/useAudienceStats";
+import { useFollowStats } from "@/hooks/useFollowStats";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface UserProfile {
@@ -59,6 +61,7 @@ export function AudienceProfile({
 }: AudienceProfileProps) {
   const { user } = useAuth();
   const { stats } = useAudienceStats(user?.id);
+  const { stats: followStats } = useFollowStats(user?.id);
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
   
@@ -196,15 +199,20 @@ export function AudienceProfile({
             )}
           </motion.div>
 
-          {/* Stats Row - Real data from database */}
-          <motion.p
+          {/* Stats Row - Following/Followers then Attended/Collected */}
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-sm text-muted-foreground mt-3"
+            className="flex flex-col gap-1 mt-3"
           >
-            {stats.eventsAttended} Attended · {stats.itemsCollected} Collected
-          </motion.p>
+            <p className="text-sm text-muted-foreground">
+              <span className="text-foreground font-medium">{followStats.followingCount}</span> Following · <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {stats.eventsAttended} Attended · {stats.itemsCollected} Collected
+            </p>
+          </motion.div>
 
           {/* Action Buttons */}
           <motion.div
