@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { triggerHaptic } from "@/lib/haptics";
 import { toast } from "sonner";
-import defaultCover from "@/assets/default-cover.jpg";
+import { FollowListModal } from "@/components/FollowListModal";
 
 interface PublicProfileData {
   user_id: string;
@@ -16,6 +16,8 @@ interface PublicProfileData {
   handle: string | null;
   avatar_url: string | null;
   bio: string | null;
+  cover_url: string | null;
+  website: string | null;
 }
 
 export default function PublicProfile() {
@@ -26,24 +28,32 @@ export default function PublicProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
 
   const isOwnProfile = user?.id === profile?.user_id;
 
   const fetchFollowData = useCallback(async (targetUserId: string) => {
     // Fetch follower count
-    const { data: count } = await supabase.rpc("get_follower_count", {
+    const { data: followers } = await supabase.rpc("get_follower_count", {
       target_user_id: targetUserId,
     });
-    setFollowerCount(count || 0);
+    setFollowerCount(followers || 0);
+
+    // Fetch following count
+    const { data: following } = await supabase.rpc("get_following_count", {
+      target_user_id: targetUserId,
+    });
+    setFollowingCount(following || 0);
 
     // Check if current user follows this profile
     if (user) {
-      const { data: following } = await supabase.rpc("is_following", {
+      const { data: isFollowingData } = await supabase.rpc("is_following", {
         target_user_id: targetUserId,
       });
-      setIsFollowing(following || false);
+      setIsFollowing(isFollowingData || false);
     }
   }, [user]);
 
@@ -198,11 +208,15 @@ export default function PublicProfile() {
     <div className="min-h-screen bg-carbon">
       {/* Cover Image */}
       <div className="relative h-48 md:h-64">
-        <img
-          src={defaultCover}
-          alt="Cover"
-          className="w-full h-full object-cover"
-        />
+        {profile.cover_url ? (
+          <img
+            src={profile.cover_url}
+            alt="Cover"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-carbon/80 to-transparent" />
         
         {/* Back Button */}
@@ -280,6 +294,16 @@ export default function PublicProfile() {
               No bio yet
             </p>
           )}
+          {profile.website && (
+            <a
+              href={profile.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-electric text-sm hover:underline mt-1 block"
+            >
+              {profile.website.replace(/^https?:\/\//, "")}
+            </a>
+          )}
         </motion.div>
 
         {/* Stats */}
@@ -289,14 +313,20 @@ export default function PublicProfile() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.25 }}
         >
-          <div className="text-center">
+          <button 
+            onClick={() => { triggerHaptic("light"); setShowFollowList("following"); }}
+            className="text-center hover:opacity-80 transition-opacity"
+          >
+            <p className="font-display text-lg text-foreground">{followingCount}</p>
+            <p className="text-xs text-muted-foreground">Following</p>
+          </button>
+          <button 
+            onClick={() => { triggerHaptic("light"); setShowFollowList("followers"); }}
+            className="text-center hover:opacity-80 transition-opacity"
+          >
             <p className="font-display text-lg text-foreground">{followerCount}</p>
             <p className="text-xs text-muted-foreground">Followers</p>
-          </div>
-          <div className="text-center">
-            <p className="font-display text-lg text-foreground">0</p>
-            <p className="text-xs text-muted-foreground">Sessions</p>
-          </div>
+          </button>
         </motion.div>
 
         {/* Action Buttons */}
@@ -359,6 +389,16 @@ export default function PublicProfile() {
           </div>
         </motion.div>
       </div>
+
+      {/* Follow List Modal */}
+      {profile && (
+        <FollowListModal
+          isOpen={showFollowList !== null}
+          onClose={() => setShowFollowList(null)}
+          userId={profile.user_id}
+          type={showFollowList || "followers"}
+        />
+      )}
     </div>
   );
 }
