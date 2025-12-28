@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
 import { GoLiveWizard } from "@/components/GoLiveWizard";
@@ -20,6 +20,7 @@ type Screen = "home" | "wizard" | "live" | "creatorProfile" | "profile";
 
 function IndexContent() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isLoading } = useAuth();
   const { mode } = useUserMode();
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
@@ -80,6 +81,25 @@ function IndexContent() {
       navigate("/auth", { replace: true });
     }
   }, [user, isLoading, navigate]);
+
+  // Handle navigation state for opening own profile from search
+  useEffect(() => {
+    const state = location.state as { openProfile?: boolean; openEditProfile?: boolean } | null;
+    if (state?.openProfile) {
+      console.log("[Index] Opening own profile from navigation state");
+      setCurrentScreen("profile");
+      setActiveTab(mode === "audience" ? "passport" : "profile");
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    if (state?.openEditProfile) {
+      console.log("[Index] Opening edit profile from navigation state");
+      setCurrentScreen("profile");
+      setActiveTab(mode === "audience" ? "passport" : "profile");
+      // Clear the state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, mode, navigate, location.pathname]);
 
   const handleStampComplete = () => {
     setShowWelcomeStamp(false);
@@ -230,6 +250,11 @@ function IndexContent() {
         }}
         onSelectCategory={(tag) => {
           toast.info(`Filtering by ${tag}`);
+        }}
+        onOpenOwnProfile={() => {
+          // Same logic as Profile tab - opens user's own profile screen
+          setCurrentScreen("profile");
+          setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
       />
 

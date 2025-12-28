@@ -26,6 +26,7 @@ interface SearchOverlayProps {
   onSelectArtist: (artistId: string) => void;
   onJoinLive: (eventId: string) => void;
   onSelectCategory: (tag: string) => void;
+  onOpenOwnProfile?: () => void;
 }
 
 // Mock data for non-profile content
@@ -48,7 +49,7 @@ const liveEvents: LiveEvent[] = [
 
 const recentSearches = ["Sophie Martin", "Pottery", "#Realism"];
 
-export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onSelectCategory }: SearchOverlayProps) {
+export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onSelectCategory, onOpenOwnProfile }: SearchOverlayProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -115,11 +116,25 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
 
   const handleProfileClick = (profile: SearchResult) => {
     triggerHaptic("light");
+    
+    const isSelf = user && profile.user_id === user.id;
+    console.log("[SearchOverlay] Profile clicked:", {
+      selectedUserId: profile.user_id,
+      currentUserId: user?.id || null,
+      isSelf,
+      destinationRoute: isSelf ? "Own Profile (via callback)" : `/profile/${profile.user_id}`
+    });
+    
     onClose();
-    // If clicking on own profile, navigate to home with profile tab active
-    if (user && profile.user_id === user.id) {
+    
+    // If clicking on own profile, use the same handler as Profile tab
+    if (isSelf && onOpenOwnProfile) {
+      onOpenOwnProfile();
+    } else if (isSelf) {
+      // Fallback: navigate to home and trigger profile view
       navigate("/", { state: { openProfile: true } });
     } else {
+      // Navigate to public profile for other users
       navigate(`/profile/${profile.user_id}`);
     }
   };
