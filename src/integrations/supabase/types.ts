@@ -175,6 +175,16 @@ export type Database = {
           website: string
         }[]
       }
+      search_public_profiles: {
+        Args: { search_text: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          handle: string
+          name: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
