@@ -7,7 +7,6 @@ import {
   ShoppingBag,
   Ticket,
   ChevronRight,
-  Clock,
   Share2,
   Pencil
 } from "lucide-react";
@@ -16,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAudienceStats } from "@/hooks/useAudienceStats";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface UserProfile {
@@ -41,30 +41,12 @@ interface AudienceProfileProps {
 const fallbackUser = {
   name: "Guest",
   username: "@guest",
-  avatarImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80",
+  avatarImage: "",
   memberSince: "Dec 2024",
-  eventsAttended: 12,
 };
-
-const mockCollectedArt = [
-  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=400&q=80", title: "Portrait Study I", artist: "Elena Voss", type: "handcraft" },
-  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=400&q=80", title: "Digital Dreams", artist: "Luna Kim", type: "artworks" },
-  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", title: "Abstract Form", artist: "James Wright", type: "artworks" },
-  { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&q=80", title: "Motion Study", artist: "Sarah Park", type: "handcraft" },
-];
 
 // Founding Member badge shown for early adopters (first month / first 1000 users)
 const isFoundingMember = true; // MVP: Display for all current users
-
-const mockTickets = [
-  { id: "1", event: "Realistic Eye Workshop", creator: "Elena Voss", date: "Sat, Dec 21", time: "8 PM EST", price: 5, startsIn: 45 },
-  { id: "2", event: "Drawing Realistic Hair", creator: "Mia Torres", date: "Sun, Dec 22", time: "3 PM EST", price: 10, startsIn: 180 },
-];
-
-const mockPastEvents = [
-  { id: "p1", event: "Watercolor Basics", creator: "James Wright", date: "Sat, Dec 14", time: "6 PM EST", price: 8 },
-  { id: "p2", event: "Abstract Expressions", creator: "Luna Kim", date: "Fri, Dec 13", time: "4 PM EST", price: 12 },
-];
 
 type TabType = "tickets" | "collection";
 
@@ -76,6 +58,7 @@ export function AudienceProfile({
   profile
 }: AudienceProfileProps) {
   const { user } = useAuth();
+  const { stats } = useAudienceStats(user?.id);
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
   
@@ -213,14 +196,14 @@ export function AudienceProfile({
             )}
           </motion.div>
 
-          {/* Stats Row - Clean, grounded */}
+          {/* Stats Row - Real data from database */}
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="text-sm text-muted-foreground mt-3"
           >
-            {fallbackUser.eventsAttended} Attended · {mockCollectedArt.length} Collected
+            {stats.eventsAttended} Attended · {stats.itemsCollected} Collected
           </motion.p>
 
           {/* Action Buttons */}
@@ -323,93 +306,23 @@ export function AudienceProfile({
                 exit={{ opacity: 0, y: -10 }}
                 className="p-4"
               >
-                {/* Upcoming Access */}
+                {/* Upcoming Access - Empty state until tickets table exists */}
                 <h3 className="font-display text-lg text-foreground mb-4">Upcoming Access</h3>
-                {mockTickets.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground">No tickets yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {mockTickets.map((ticket) => (
-                      <div 
-                        key={ticket.id}
-                        className="bg-obsidian rounded-2xl p-4 border border-border/30"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <p className="font-display text-foreground">{ticket.event}</p>
-                            <p className="text-sm text-muted-foreground">by {ticket.creator}</p>
-                          </div>
-                          <span className="px-2 py-1 rounded-full bg-gold/10 text-gold text-xs font-medium">
-                            ${ticket.price}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {ticket.date} • {ticket.time}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            triggerClickHaptic();
-                            if (ticket.startsIn <= 15) {
-                              toast({ title: "Entering Room...", description: "Welcome to the session!" });
-                            } else {
-                              toast({ title: "Not Yet", description: `Room opens in ${ticket.startsIn} minutes` });
-                            }
-                          }}
-                          className={`w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                            ticket.startsIn <= 15
-                              ? "bg-gradient-to-r from-electric to-crimson text-foreground"
-                              : "bg-obsidian border border-border/50 text-muted-foreground"
-                          }`}
-                        >
-                          {ticket.startsIn <= 15 ? (
-                            "Enter Room"
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-destructive/20 text-destructive font-bold text-xs">
-                              Opens in {ticket.startsIn}m
-                            </span>
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                  <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No tickets yet</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Book a session to get your first ticket</p>
+                </div>
 
-                {/* Past Events Section */}
+                {/* Past Events - Empty state until purchase history exists */}
                 <h3 className="font-display text-lg text-foreground mt-8 mb-4">Past Events</h3>
-                <div className="space-y-3 opacity-60">
-                  {mockPastEvents.map((event) => (
-                    <div 
-                      key={event.id}
-                      className="bg-obsidian rounded-2xl p-4 border border-border/30"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-display text-foreground">{event.event}</p>
-                          <p className="text-sm text-muted-foreground">by {event.creator}</p>
-                        </div>
-                        <span className="px-2 py-1 rounded-full bg-muted/20 text-muted-foreground text-xs font-medium">
-                          ${event.price}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {event.date} • {event.time}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
+                  <p className="text-muted-foreground/60 text-sm">No past events</p>
                 </div>
               </motion.div>
             )}
 
-            {/* Collection Tab */}
+            {/* Collection Tab - Empty state until collections table exists */}
             {activeTab === "collection" && (
               <motion.div
                 key="collection"
@@ -418,35 +331,11 @@ export function AudienceProfile({
                 exit={{ opacity: 0, y: -10 }}
                 className="p-4"
               >
-                {/* Masonry Grid */}
-                {mockCollectedArt.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground">No items collected yet</p>
-                  </div>
-                ) : (
-                  <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
-                    {mockCollectedArt.map((art, index) => (
-                      <motion.div
-                        key={art.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="break-inside-avoid rounded-2xl overflow-hidden bg-obsidian border border-border/30"
-                      >
-                        <img
-                          src={art.image}
-                          alt={art.title}
-                          className="w-full object-cover"
-                        />
-                        <div className="p-3">
-                          <p className="font-medium text-foreground text-sm line-clamp-1">{art.title}</p>
-                          <p className="text-xs text-muted-foreground">by {art.artist}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                  <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground">No items collected yet</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">Purchase art to build your collection</p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
