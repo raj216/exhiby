@@ -10,13 +10,16 @@ import { triggerHaptic } from "@/lib/haptics";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface PublicProfileData {
+  id: string;
   user_id: string;
   handle: string | null;
   name: string;
   avatar_url: string | null;
   bio: string | null;
-  cover_url?: string | null;
-  website?: string | null;
+  cover_url: string | null;
+  website: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function PublicProfile() {
@@ -48,9 +51,11 @@ export default function PublicProfile() {
           return;
         }
 
-        if (data && data.length > 0) {
-          setProfile(data[0]);
+        // The RPC returns an array, take the first result
+        if (data && Array.isArray(data) && data.length > 0) {
+          setProfile(data[0] as PublicProfileData);
         } else {
+          console.log("No profile data returned for userId:", userId);
           setError("Profile not found");
         }
       } catch (err) {
