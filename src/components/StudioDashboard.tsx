@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Share2,
   Pencil,
-  Award
+  Award,
+  ImageIcon
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
@@ -20,6 +21,7 @@ import { UpcomingEventsList } from "./UpcomingEventsList";
 import { PortfolioGrid } from "./PortfolioGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCreatorStats } from "@/hooks/useCreatorStats";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface ScheduledEvent {
@@ -53,33 +55,13 @@ interface StudioDashboardProps {
 // Fallback data for when profile is loading
 const fallbackCreator = {
   name: "Creator",
-  avatarImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80",
+  avatarImage: "",
   memberSince: "Dec 2024",
-  followers: 128,
-  sessionsHosted: 24,
 };
-
-const mockBadges = [
-  { id: "1", title: "Verified Creator", type: "special" },
-  { id: "2", title: "Top Seller", type: "event" },
-];
-
-const mockAnalytics = {
-  earnings: 2450,
-  ticketsSold: 47,
-};
-
-// Portfolio items for masonry grid
-const mockPortfolio = [
-  { id: "1", image: "https://images.unsplash.com/photo-1578926375605-eaf7559b1458?w=600&q=80", title: "Portrait Study I" },
-  { id: "2", image: "https://images.unsplash.com/photo-1544967082-d9d25d867d66?w=600&q=80", title: "Eyes of Wonder" },
-  { id: "3", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&q=80", title: "Charcoal Dreams" },
-  { id: "4", image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&q=80", title: "Abstract Motion" },
-  { id: "5", image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=600&q=80", title: "Sketch Study" },
-];
 
 export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: StudioDashboardProps) {
   const { user } = useAuth();
+  const { stats } = useCreatorStats(user?.id);
   const [showEarnings, setShowEarnings] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -234,14 +216,14 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
           )}
         </motion.div>
 
-        {/* Stats Row - Clean, grounded (matches Audience style) */}
+        {/* Stats Row - Real data from database */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-sm text-muted-foreground mt-3"
         >
-          {fallbackCreator.sessionsHosted} Sessions · {fallbackCreator.followers} Followers
+          {stats.sessionsHosted} Sessions · {stats.followersCount} Followers
         </motion.p>
 
         {/* Action Buttons (matches Audience) */}
@@ -269,32 +251,25 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
           </button>
         </motion.div>
 
-        {/* Badges / Passport Stamps (matches Audience) */}
+        {/* Verified Creator Badge */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="flex flex-wrap gap-2 mt-4"
         >
-          {mockBadges.map((badge) => (
-            <div 
-              key={badge.id}
-              className="px-3 py-1.5 rounded-full border flex items-center gap-1.5"
-              style={{
-                background: badge.type === "special" 
-                  ? "hsl(43 72% 52% / 0.15)"
-                  : "hsl(var(--surface))",
-                borderColor: badge.type === "special" 
-                  ? "hsl(43 72% 52% / 0.4)" 
-                  : "hsl(var(--border) / 0.3)"
-              }}
-            >
-              <Award className={`w-3.5 h-3.5 ${badge.type === "special" ? "text-gold" : "text-muted-foreground"}`} />
-              <span className={`text-xs font-medium ${badge.type === "special" ? "text-gold" : "text-foreground"}`}>
-                {badge.title}
-              </span>
-            </div>
-          ))}
+          <div 
+            className="px-3 py-1.5 rounded-full border flex items-center gap-1.5"
+            style={{
+              background: "hsl(43 72% 52% / 0.15)",
+              borderColor: "hsl(43 72% 52% / 0.4)"
+            }}
+          >
+            <Award className="w-3.5 h-3.5 text-gold" />
+            <span className="text-xs font-medium text-gold">
+              Verified Creator
+            </span>
+          </div>
         </motion.div>
 
         {/* Passport Line */}
@@ -353,7 +328,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
               <span className="text-sm text-muted-foreground">This Month</span>
             </div>
             <p className="font-display text-3xl text-gold">
-              {showEarnings ? `$${mockAnalytics.earnings.toLocaleString()}` : "••••"}
+              {showEarnings ? `$${stats.earnings.toLocaleString()}` : "••••"}
             </p>
           </div>
           
@@ -364,15 +339,26 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
               <span className="text-sm text-muted-foreground">Tickets</span>
             </div>
             <p className="font-display text-3xl text-foreground">
-              {mockAnalytics.ticketsSold}
+              {stats.ticketsSold}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Portfolio Section - Masonry Grid */}
+      {/* Portfolio Section - Empty state until artworks table exists */}
       <div className="mt-6 px-4 pb-24">
-        <PortfolioGrid items={mockPortfolio} />
+        <h2 className="font-display text-lg text-foreground mb-4">Portfolio</h2>
+        <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+          <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
+          <p className="text-muted-foreground mb-4">No artwork yet</p>
+          <button
+            onClick={() => toast({ title: "Coming Soon", description: "Portfolio uploads will be available soon!" })}
+            className="px-4 py-2 rounded-full bg-surface-elevated border border-border/50 text-foreground text-sm font-medium flex items-center gap-2"
+          >
+            <Pencil className="w-4 h-4" />
+            Add Art
+          </button>
+        </div>
       </div>
 
       {/* Edit Profile Modal */}

@@ -47,54 +47,6 @@ interface UpcomingEvent {
   price: number | null;
 }
 
-// Fallback mock data for when no live events exist
-const fallbackLiveStreams: ContentItem[] = [
-  {
-    id: "live-1",
-    coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
-    title: "Drawing Realistic Eyes",
-    price: 5,
-    viewers: 53,
-    artistName: "Sarah Chen",
-    materials: ["Prismacolor Premier Pencil (Black)", "Fabriano Bristol Paper (Smooth)", "Kneaded Eraser"],
-    category: "Pencil Art",
-    isLive: true,
-  },
-  {
-    id: "live-2",
-    coverImage: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=600&fit=crop",
-    title: "Watercolor Landscapes",
-    price: 0,
-    viewers: 127,
-    artistName: "Marcus Webb",
-    materials: ["Winsor & Newton Cotman Set", "Arches Cold Press 140lb Paper"],
-    category: "Watercolor",
-    isLive: true,
-  },
-  {
-    id: "live-3",
-    coverImage: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=600&fit=crop",
-    title: "Abstract Expressionism",
-    price: 10,
-    viewers: 34,
-    artistName: "Luna Park",
-    materials: ["Golden Heavy Body Acrylics", "Palette Knives (assorted)"],
-    category: "Acrylic",
-    isLive: true,
-  },
-  {
-    id: "live-4",
-    coverImage: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=400&h=600&fit=crop",
-    title: "Ceramic Sculpting",
-    price: 0,
-    viewers: 89,
-    artistName: "Maya Rodriguez",
-    materials: ["Stoneware Clay (10 lbs)", "Wire Clay Cutter"],
-    category: "Pottery",
-    isLive: true,
-  },
-];
-
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch, onOpenStudio, onLogout }: HomeScreenProps) {
   const { mode } = useUserMode();
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
@@ -108,8 +60,8 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   // Fetch real live events from database
   const { liveEvents, loading: loadingLiveEvents } = useLiveEvents();
   
-  // Convert live events from DB to ContentItem format
-  const dbLiveStreams: ContentItem[] = useMemo(() => {
+  // Convert live events from DB to ContentItem format - no fallback mock data
+  const liveStreams: ContentItem[] = useMemo(() => {
     return liveEvents.map((event) => ({
       id: event.id,
       coverImage: event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
@@ -118,13 +70,10 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       viewers: event.viewer_count || 0,
       artistName: event.creator?.name || "Unknown Artist",
       materials: [],
-      category: "Handmade Art" as const, // Default category
+      category: "Handmade Art" as const,
       isLive: true,
     }));
   }, [liveEvents]);
-  
-  // Use real live events if available, otherwise show fallback
-  const liveStreams = dbLiveStreams.length > 0 ? dbLiveStreams : fallbackLiveStreams;
 
   // Fetch upcoming events from database
   useEffect(() => {
