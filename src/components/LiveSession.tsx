@@ -22,9 +22,11 @@ export function LiveSession({ eventData, onClose }: LiveSessionProps) {
   const [showProductDrop, setShowProductDrop] = useState(false);
   const { viewerCount } = useLiveViewers(eventData.eventId || null);
 
-  // End session: set is_live to false (RLS handles authorization)
+  // End session: set is_live to false and clean up viewers
   const handleClose = async () => {
     if (eventData.eventId) {
+      console.log("[LiveSession] Ending session:", eventData.eventId);
+      
       const { error } = await supabase
         .from("events")
         .update({
@@ -33,9 +35,16 @@ export function LiveSession({ eventData, onClose }: LiveSessionProps) {
         })
         .eq("id", eventData.eventId);
       
-      // RLS handles authorization - treat all errors uniformly with generic message
       if (error) {
+        console.error("[LiveSession] Error ending session:", error);
         toast.error("Failed to end session");
+      } else {
+        console.log("[LiveSession] Session ended successfully");
+        // Clean up all viewers for this event
+        await supabase
+          .from("live_viewers")
+          .delete()
+          .eq("event_id", eventData.eventId);
       }
     }
     onClose();
