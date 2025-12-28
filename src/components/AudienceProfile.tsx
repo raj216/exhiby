@@ -14,6 +14,7 @@ import {
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
+import { FollowListModal } from "./FollowListModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudienceStats } from "@/hooks/useAudienceStats";
@@ -64,6 +65,7 @@ export function AudienceProfile({
   const { stats: followStats } = useFollowStats(user?.id);
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   
   // Sync local profile with prop changes
   useEffect(() => {
@@ -207,7 +209,19 @@ export function AudienceProfile({
             className="flex flex-col gap-1 mt-3"
           >
             <p className="text-sm text-muted-foreground">
-              <span className="text-foreground font-medium">{followStats.followingCount}</span> Following · <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
+              <button 
+                onClick={() => { triggerClickHaptic(); setShowFollowList("following"); }}
+                className="hover:underline"
+              >
+                <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
+              </button>
+              {" · "}
+              <button 
+                onClick={() => { triggerClickHaptic(); setShowFollowList("followers"); }}
+                className="hover:underline"
+              >
+                <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
+              </button>
             </p>
             <p className="text-sm text-muted-foreground">
               {stats.eventsAttended} Attended · {stats.itemsCollected} Collected
@@ -357,6 +371,16 @@ export function AudienceProfile({
         profile={localProfile}
         onProfileUpdated={refreshProfile}
       />
+
+      {/* Follow List Modal */}
+      {user && (
+        <FollowListModal
+          isOpen={showFollowList !== null}
+          onClose={() => setShowFollowList(null)}
+          userId={user.id}
+          type={showFollowList || "followers"}
+        />
+      )}
     </div>
   );
 }
