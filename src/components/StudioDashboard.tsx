@@ -45,6 +45,8 @@ interface UserProfile {
   bio?: string | null;
   website?: string | null;
   coverUrl?: string | null;
+  isFoundingMember?: boolean;
+  foundingNumber?: number | null;
 }
 
 interface StudioDashboardProps {
@@ -101,7 +103,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
     if (!user) return;
     const { data } = await supabase
       .from("profiles")
-      .select("name, handle, avatar_url, email, created_at, bio, website, cover_url")
+      .select("name, handle, avatar_url, email, created_at, bio, website, cover_url, is_founding_member, founding_number")
       .eq("user_id", user.id)
       .maybeSingle();
     
@@ -120,6 +122,8 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         bio: data.bio,
         website: data.website,
         coverUrl: data.cover_url,
+        isFoundingMember: data.is_founding_member ?? false,
+        foundingNumber: data.founding_number,
       });
     }
   };
@@ -267,22 +271,38 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
           </button>
         </motion.div>
 
-        {/* Verified Creator Badge */}
+        {/* Badges Row */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="flex flex-wrap gap-2 mt-4"
         >
+          {/* Founding Member Badge */}
+          {localProfile?.isFoundingMember && (
+            <div 
+              className="px-3 py-1.5 rounded-full border-2 flex items-center gap-1.5 shadow-gold"
+              style={{
+                background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
+                borderColor: "hsl(43 72% 52% / 0.6)"
+              }}
+            >
+              <Award className="w-3.5 h-3.5 text-gold" />
+              <span className="text-xs font-semibold text-gold">
+                Founding Member {localProfile.foundingNumber ? `#${localProfile.foundingNumber}` : ""}
+              </span>
+            </div>
+          )}
+          {/* Verified Creator Badge */}
           <div 
             className="px-3 py-1.5 rounded-full border flex items-center gap-1.5"
             style={{
-              background: "hsl(43 72% 52% / 0.15)",
-              borderColor: "hsl(43 72% 52% / 0.4)"
+              background: "hsl(217 91% 60% / 0.15)",
+              borderColor: "hsl(217 91% 60% / 0.4)"
             }}
           >
-            <Award className="w-3.5 h-3.5 text-gold" />
-            <span className="text-xs font-medium text-gold">
+            <BadgeCheck className="w-3.5 h-3.5 text-electric" />
+            <span className="text-xs font-medium text-electric">
               Verified Creator
             </span>
           </div>

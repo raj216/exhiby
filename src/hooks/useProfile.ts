@@ -11,6 +11,8 @@ export interface UserProfile {
   bio?: string | null;
   website?: string | null;
   coverUrl?: string | null;
+  isFoundingMember?: boolean;
+  foundingNumber?: number | null;
 }
 
 export function useProfile() {
@@ -29,7 +31,7 @@ export function useProfile() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("name, handle, avatar_url, email, created_at, bio, website, cover_url")
+          .select("name, handle, avatar_url, email, created_at, bio, website, cover_url, is_founding_member, founding_number")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -55,6 +57,8 @@ export function useProfile() {
             bio: data.bio,
             website: data.website,
             coverUrl: data.cover_url,
+            isFoundingMember: data.is_founding_member ?? false,
+            foundingNumber: data.founding_number,
           });
         }
       } catch (error) {
