@@ -22,6 +22,7 @@ import { PortfolioGrid } from "./PortfolioGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
+import { useFollowStats } from "@/hooks/useFollowStats";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface ScheduledEvent {
@@ -62,6 +63,7 @@ const fallbackCreator = {
 export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: StudioDashboardProps) {
   const { user } = useAuth();
   const { stats } = useCreatorStats(user?.id);
+  const { stats: followStats } = useFollowStats(user?.id);
   const [showEarnings, setShowEarnings] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -216,14 +218,14 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
           )}
         </motion.div>
 
-        {/* Stats Row - Real data from database */}
+        {/* Stats Row - Following/Followers (replacing Sessions) */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-sm text-muted-foreground mt-3"
         >
-          {stats.sessionsHosted} Sessions · {stats.followersCount} Followers
+          <span className="text-foreground font-medium">{followStats.followingCount}</span> Following · <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
         </motion.p>
 
         {/* Action Buttons (matches Audience) */}
