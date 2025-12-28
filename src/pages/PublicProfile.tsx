@@ -29,8 +29,6 @@ export default function PublicProfile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      console.log("[PublicProfile] Fetching profile for identifier:", userId);
-      
       if (!userId) {
         console.error("[PublicProfile] No userId provided in route params");
         setError("Invalid profile ID");
@@ -39,13 +37,10 @@ export default function PublicProfile() {
       }
 
       try {
-        // First try with user_id (preferred - matches auth.users.id)
-        console.log("[PublicProfile] Calling get_public_profile with user_id:", userId);
+        // Only use RPC - never query profiles table directly for other users
         const { data, error: rpcError } = await supabase.rpc("get_public_profile", {
           profile_user_id: userId,
         });
-
-        console.log("[PublicProfile] RPC response:", { data, error: rpcError });
 
         if (rpcError) {
           console.error("[PublicProfile] RPC error:", rpcError);
@@ -56,26 +51,23 @@ export default function PublicProfile() {
 
         // The RPC returns an array, take the first result
         if (data && Array.isArray(data) && data.length > 0) {
-          console.log("[PublicProfile] Profile found via user_id:", data[0]);
+          console.log("PublicProfile loaded via RPC for user_id:", userId);
           setProfile(data[0] as PublicProfileData);
         } else {
           // Fallback: try by profile row id
-          console.log("[PublicProfile] No profile found via user_id, trying profile row id...");
           const { data: fallbackData, error: fallbackError } = await supabase.rpc(
             "get_public_profile_by_profile_id",
             { profile_id: userId }
           );
 
-          console.log("[PublicProfile] Fallback RPC response:", { fallbackData, fallbackError });
-
           if (fallbackError) {
             console.error("[PublicProfile] Fallback RPC error:", fallbackError);
             setError("Profile not found");
           } else if (fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
-            console.log("[PublicProfile] Profile found via profile row id:", fallbackData[0]);
+            console.log("PublicProfile loaded via RPC for user_id:", fallbackData[0].user_id);
             setProfile(fallbackData[0] as PublicProfileData);
           } else {
-            console.log("[PublicProfile] No profile found for identifier:", userId);
+            console.log("[PublicProfile] Profile not found for:", userId);
             setError("Profile not found");
           }
         }
