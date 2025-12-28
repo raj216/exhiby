@@ -19,6 +19,7 @@ import { EditProfileModal } from "./EditProfileModal";
 import { ScheduleEventModal } from "./ScheduleEventModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
 import { PortfolioGrid } from "./PortfolioGrid";
+import { FollowListModal } from "./FollowListModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
@@ -67,6 +68,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
   const [showEarnings, setShowEarnings] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [localProfile, setLocalProfile] = useState(profile);
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
   
@@ -219,14 +221,26 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         </motion.div>
 
         {/* Stats Row - Following/Followers (replacing Sessions) */}
-        <motion.p
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-sm text-muted-foreground mt-3"
         >
-          <span className="text-foreground font-medium">{followStats.followingCount}</span> Following · <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
-        </motion.p>
+          <button 
+            onClick={() => { triggerClickHaptic(); setShowFollowList("following"); }}
+            className="hover:underline"
+          >
+            <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
+          </button>
+          {" · "}
+          <button 
+            onClick={() => { triggerClickHaptic(); setShowFollowList("followers"); }}
+            className="hover:underline"
+          >
+            <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
+          </button>
+        </motion.div>
 
         {/* Action Buttons (matches Audience) */}
         <motion.div
@@ -377,6 +391,16 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         onClose={() => setShowScheduleModal(false)}
         onEventCreated={fetchUpcomingEvents}
       />
+
+      {/* Follow List Modal */}
+      {user && (
+        <FollowListModal
+          isOpen={showFollowList !== null}
+          onClose={() => setShowFollowList(null)}
+          userId={user.id}
+          type={showFollowList || "followers"}
+        />
+      )}
     </div>
   );
 }

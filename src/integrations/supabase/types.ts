@@ -181,7 +181,25 @@ export type Database = {
         }[]
       }
       get_follower_count: { Args: { target_user_id: string }; Returns: number }
+      get_followers_list: {
+        Args: { target_user_id: string }
+        Returns: {
+          avatar_url: string
+          handle: string
+          name: string
+          user_id: string
+        }[]
+      }
       get_following_count: { Args: { target_user_id: string }; Returns: number }
+      get_following_list: {
+        Args: { target_user_id: string }
+        Returns: {
+          avatar_url: string
+          handle: string
+          name: string
+          user_id: string
+        }[]
+      }
       get_live_viewer_count: { Args: { event_uuid: string }; Returns: number }
       get_public_profile: {
         Args: { profile_user_id: string }
