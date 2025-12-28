@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { triggerHaptic } from "@/lib/haptics";
+import { toast } from "sonner";
 import defaultCover from "@/assets/default-cover.jpg";
 
 interface PublicProfileData {
@@ -24,8 +25,27 @@ export default function PublicProfile() {
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   const isOwnProfile = user?.id === profile?.user_id;
+
+  const fetchFollowData = useCallback(async (targetUserId: string) => {
+    // Fetch follower count
+    const { data: count } = await supabase.rpc("get_follower_count", {
+      target_user_id: targetUserId,
+    });
+    setFollowerCount(count || 0);
+
+    // Check if current user follows this profile
+    if (user) {
+      const { data: following } = await supabase.rpc("is_following", {
+        target_user_id: targetUserId,
+      });
+      setIsFollowing(following || false);
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -52,7 +72,9 @@ export default function PublicProfile() {
         // The RPC returns an array, take the first result
         if (data && Array.isArray(data) && data.length > 0) {
           console.log("PublicProfile loaded via RPC for user_id:", userId);
-          setProfile(data[0] as PublicProfileData);
+          const profileData = data[0] as PublicProfileData;
+          setProfile(profileData);
+          fetchFollowData(profileData.user_id);
         } else {
           // Fallback: try by profile row id
           const { data: fallbackData, error: fallbackError } = await supabase.rpc(
@@ -65,7 +87,9 @@ export default function PublicProfile() {
             setError("Profile not found");
           } else if (fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
             console.log("PublicProfile loaded via RPC for user_id:", fallbackData[0].user_id);
-            setProfile(fallbackData[0] as PublicProfileData);
+            const profileData = fallbackData[0] as PublicProfileData;
+            setProfile(profileData);
+            fetchFollowData(profileData.user_id);
           } else {
             console.log("[PublicProfile] Profile not found for:", userId);
             setError("Profile not found");
@@ -80,7 +104,48 @@ export default function PublicProfile() {
     };
 
     fetchProfile();
-  }, [userId]);
+  }, [userId, fetchFollowData]);
+
+  const handleFollow = async () => {
+    if (!user || !profile) return;
+    
+    triggerHaptic("medium");
+    setIsFollowLoading(true);
+
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", user.id)
+          .eq("following_id", profile.user_id);
+
+        if (error) throw error;
+
+        setIsFollowing(false);
+        setFollowerCount((prev) => Math.max(0, prev - 1));
+        toast.success(`Unfollowed ${profile.name}`);
+      } else {
+        // Follow
+        const { error } = await supabase.from("follows").insert({
+          follower_id: user.id,
+          following_id: profile.user_id,
+        });
+
+        if (error) throw error;
+
+        setIsFollowing(true);
+        setFollowerCount((prev) => prev + 1);
+        toast.success(`Following ${profile.name}`);
+      }
+    } catch (err: any) {
+      console.error("Follow/unfollow error:", err);
+      toast.error(err.message || "Something went wrong");
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
 
   const handleBack = () => {
     triggerHaptic("light");
@@ -99,6 +164,7 @@ export default function PublicProfile() {
       await navigator.share({ title: profile?.name || "Profile", url });
     } else {
       await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard");
     }
   };
 
@@ -216,7 +282,7 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
-        {/* Stats placeholder */}
+        {/* Stats */}
         <motion.div
           className="mt-6 flex gap-6"
           initial={{ y: 10, opacity: 0 }}
@@ -224,7 +290,7 @@ export default function PublicProfile() {
           transition={{ delay: 0.25 }}
         >
           <div className="text-center">
-            <p className="font-display text-lg text-foreground">0</p>
+            <p className="font-display text-lg text-foreground">{followerCount}</p>
             <p className="text-xs text-muted-foreground">Followers</p>
           </div>
           <div className="text-center">
@@ -249,10 +315,34 @@ export default function PublicProfile() {
               <Edit2 className="w-4 h-4" />
               Edit Profile
             </Button>
+          ) : user ? (
+            <Button
+              onClick={handleFollow}
+              disabled={isFollowLoading}
+              variant={isFollowing ? "outline" : "default"}
+              className="flex-1 gap-2"
+            >
+              {isFollowing ? (
+                <>
+                  <UserCheck className="w-4 h-4" />
+                  Following
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  Follow
+                </>
+              )}
+            </Button>
           ) : (
-            <div className="flex-1">
-              {/* Follow button will be added in the next iteration */}
-            </div>
+            <Button
+              onClick={() => navigate("/auth")}
+              variant="default"
+              className="flex-1 gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              Sign in to Follow
+            </Button>
           )}
         </motion.div>
 
