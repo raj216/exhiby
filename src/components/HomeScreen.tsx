@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { LiveStudioView, StudioRoom } from "./studio";
@@ -49,6 +50,7 @@ interface UpcomingEvent {
 }
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch, onOpenStudio, onLogout }: HomeScreenProps) {
+  const navigate = useNavigate();
   const { mode } = useUserMode();
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
   const [portalEvent, setPortalEvent] = useState<ContentItem | null>(null);
@@ -117,17 +119,21 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   };
 
   const handleLiveCardTap = (event: ContentItem) => {
-    setPortalEvent(event);
+    // Navigate directly to the live room page
+    console.log("[HomeScreen] Navigating to live room:", event.id);
     if (event.price > 0) {
+      setPortalEvent(event);
       setShowPaymentDrawer(true);
     } else {
-      setShowLiveRoom(true);
+      navigate(`/live/${event.id}`);
     }
   };
 
   const handlePaymentSuccess = () => {
     setShowPaymentDrawer(false);
-    setTimeout(() => setShowLiveRoom(true), 100);
+    if (portalEvent) {
+      navigate(`/live/${portalEvent.id}`);
+    }
   };
 
   const handleCloseLiveRoom = () => {

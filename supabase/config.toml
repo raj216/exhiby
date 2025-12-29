@@ -1,1 +1,4 @@
 project_id = "owvwwslbwbarvmjjtlkz"
+
+[functions.create-live-room]
+verify_jwt = false

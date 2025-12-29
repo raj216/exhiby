@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const categories = [
 ];
 
 export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,6 +132,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
     try {
       let coverUrl: string | null = null;
 
+      // Upload cover image
       if (coverImage) {
         const fileName = `${user.id}/${Date.now()}.jpg`;
         
@@ -152,6 +155,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
       const durationMinutes = 60;
       const endTime = new Date(now.getTime() + durationMinutes * 60 * 1000);
 
+      // Create event record first (without room_url - that comes from edge function)
       const eventRecord = {
         creator_id: user.id,
         title: title.trim(),
@@ -162,10 +166,11 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         duration_minutes: durationMinutes,
         is_free: isFree,
         price: isFree ? 0 : parseFloat(price) || 0,
-        is_live: true,
-        live_started_at: now.toISOString(),
+        is_live: false, // Will be set to true by edge function
         viewer_count: 0,
       };
+
+      console.log("[GoLiveWizard] Creating event...");
 
       const { data: insertedEvent, error: insertError } = await supabase
         .from("events")
@@ -174,26 +179,59 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         .single();
 
       if (insertError) {
-        console.error("Error creating event:", insertError);
+        console.error("[GoLiveWizard] Error creating event:", insertError);
         toast({ 
           title: "Error", 
-          description: insertError.message || "Failed to go live", 
+          description: insertError.message || "Failed to create event", 
           variant: "destructive" 
         });
         return;
       }
 
-      onGoLive({
-        coverImage: coverUrl || coverPreview,
-        category,
-        title: title.trim(),
-        description: description.trim(),
-        price: isFree ? 0 : parseFloat(price) || 0,
-        scheduleType: "now",
-        eventId: insertedEvent.id,
+      console.log("[GoLiveWizard] Event created:", insertedEvent.id);
+
+      // Call edge function to create Daily room
+      console.log("[GoLiveWizard] Creating live room...");
+      
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-live-room`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.session?.access_token}`,
+          },
+          body: JSON.stringify({ event_id: insertedEvent.id }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("[GoLiveWizard] Edge function error:", result);
+        toast({ 
+          title: "Error", 
+          description: result.error || "Failed to create live room", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      console.log("[GoLiveWizard] Live room created:", result.room_url);
+
+      // Close wizard and navigate to live room
+      onClose();
+      navigate(`/live/${insertedEvent.id}`);
+      
+      toast({ 
+        title: "You're Live!", 
+        description: "Your studio is now open" 
       });
+
     } catch (err: any) {
-      console.error("Error in handleGoLive:", err);
+      console.error("[GoLiveWizard] Error in handleGoLive:", err);
       toast({ 
         title: "Error", 
         description: err.message || "Something went wrong", 

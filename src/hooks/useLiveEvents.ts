@@ -11,6 +11,7 @@ export interface LiveEvent {
   category: string | null;
   creator_id: string;
   live_started_at: string | null;
+  room_url: string | null;
   creator?: {
     name: string;
     avatar_url: string | null;
@@ -36,6 +37,7 @@ export function useLiveEvents() {
           is_free,
           creator_id,
           live_started_at,
+          room_url,
           description
         `)
         .eq("is_live", true)
