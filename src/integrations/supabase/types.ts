@@ -25,8 +25,10 @@ export type Database = {
           id: string
           is_free: boolean
           is_live: boolean | null
+          live_ended_at: string | null
           live_started_at: string | null
           price: number | null
+          room_url: string | null
           scheduled_at: string
           title: string
           updated_at: string
@@ -42,8 +44,10 @@ export type Database = {
           id?: string
           is_free?: boolean
           is_live?: boolean | null
+          live_ended_at?: string | null
           live_started_at?: string | null
           price?: number | null
+          room_url?: string | null
           scheduled_at: string
           title: string
           updated_at?: string
@@ -59,8 +63,10 @@ export type Database = {
           id?: string
           is_free?: boolean
           is_live?: boolean | null
+          live_ended_at?: string | null
           live_started_at?: string | null
           price?: number | null
+          room_url?: string | null
           scheduled_at?: string
           title?: string
           updated_at?: string
