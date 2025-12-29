@@ -225,24 +225,27 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         animate={{ y: 0, x: "-50%" }}
         exit={{ y: "100%", x: "-50%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] overflow-y-auto max-w-lg lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:max-h-[90vh]"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] max-w-lg lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:max-h-[85vh] lg:mx-4 flex flex-col"
       >
         {/* Handle - Mobile only */}
-        <div className="flex justify-center pt-3 pb-2 lg:hidden">
+        <div className="flex justify-center pt-3 pb-2 lg:hidden flex-shrink-0">
           <div className="w-10 h-1 bg-border/50 rounded-full" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pb-4 pt-2 lg:pt-5 border-b border-border/30">
+        {/* Header - Sticky */}
+        <div className="flex items-center justify-between px-5 pb-4 pt-2 lg:pt-5 border-b border-border/30 bg-obsidian sticky top-0 z-10 flex-shrink-0 lg:rounded-t-3xl">
           <h2 className="font-display text-xl text-foreground">Go Live</h2>
           <button
             onClick={handleClose}
             disabled={isSubmitting}
-            className="w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center hover:bg-surface transition-colors"
           >
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
+        
+        {/* Scrollable Content Area */}
+        <div className="overflow-y-auto flex-1 min-h-0">
 
         {/* Form */}
         <div className="p-5 space-y-5">
@@ -410,6 +413,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
 
           {/* Bottom padding for safe area */}
           <div className="h-4" />
+        </div>
         </div>
       </motion.div>
 
