@@ -55,6 +55,15 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const [showCropper, setShowCropper] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
 
+  // Validation - all fields required
+  const isCoverUploaded = coverPreview !== null;
+  const isTitleValid = title.trim().length > 0;
+  const isDescriptionValid = description.trim().length > 0;
+  const isCategorySelected = category !== "";
+  const isPriceValid = isFree || (parseFloat(price) >= 1);
+  
+  const canGoLive = isCoverUploaded && isTitleValid && isDescriptionValid && isCategorySelected && isPriceValid;
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -104,30 +113,16 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
     }
   };
 
-  const validatePrice = (): boolean => {
-    if (isFree) return true;
-
-    const priceNum = parseFloat(price);
-    if (isNaN(priceNum) || priceNum < 1) {
-      toast({ title: "Error", description: "Minimum ticket price is $1.00", variant: "destructive" });
-      return false;
-    }
-
-    return true;
-  };
-
   const handleGoLive = async () => {
     if (!user) {
       toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
       return;
     }
 
-    if (!title.trim()) {
-      toast({ title: "Error", description: "Please enter a title", variant: "destructive" });
+    if (!canGoLive) {
+      toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
-
-    if (!validatePrice()) return;
 
     setIsSubmitting(true);
     triggerClickHaptic();
@@ -230,7 +225,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         animate={{ y: 0, x: "-50%" }}
         exit={{ y: "100%", x: "-50%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] overflow-y-auto max-w-lg lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:max-h-[85vh]"
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] overflow-y-auto max-w-lg lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:max-h-[90vh]"
       >
         {/* Handle - Mobile only */}
         <div className="flex justify-center pt-3 pb-2 lg:hidden">
@@ -251,8 +246,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
 
         {/* Form */}
         <div className="p-5 space-y-5">
-          {/* Cover Image Upload - 16:9 aspect ratio */}
-          <div>
+          {/* Cover Image Upload - 2:3 aspect ratio (portrait) */}
+          <div className="flex justify-center">
             <input
               ref={fileInputRef}
               type="file"
@@ -262,27 +257,52 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full rounded-2xl border-2 border-dashed border-border/50 bg-surface flex flex-col items-center justify-center gap-3 overflow-hidden transition-colors hover:border-electric/50"
-              style={{ aspectRatio: "16/9" }}
+              className="w-40 rounded-2xl border-2 border-dashed border-border/50 bg-surface flex flex-col items-center justify-center gap-2 overflow-hidden transition-colors hover:border-electric/50"
+              style={{ aspectRatio: "2/3" }}
             >
               {coverPreview ? (
                 <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
               ) : (
                 <>
-                  <div className="w-12 h-12 rounded-full bg-obsidian flex items-center justify-center border border-border/50">
-                    <ImagePlus className="w-6 h-6 text-electric" />
+                  <div className="w-10 h-10 rounded-full bg-obsidian flex items-center justify-center border border-border/50">
+                    <ImagePlus className="w-5 h-5 text-electric" />
                   </div>
-                  <span className="text-muted-foreground font-medium">Upload Cover for this Session</span>
+                  <span className="text-muted-foreground text-xs text-center px-2">Upload Cover</span>
                 </>
               )}
             </button>
+          </div>
+
+          {/* Category Chips - Moved to top */}
+          <div>
+            <Label className="text-sm text-muted-foreground mb-3 block">
+              Category <span className="text-electric">*</span>
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    triggerClickHaptic();
+                    setCategory(category === cat.id ? "" : cat.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    category === cat.id
+                      ? "bg-electric text-white"
+                      : "bg-surface border border-border/30 text-muted-foreground hover:border-electric/50"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Title */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <Label htmlFor="title" className="text-sm text-muted-foreground">
-                Title
+                Title <span className="text-electric">*</span>
               </Label>
               <span className="text-xs text-muted-foreground">
                 {title.length}/{MAX_TITLE_LENGTH}
@@ -302,7 +322,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
           <div>
             <div className="flex justify-between items-center mb-2">
               <Label htmlFor="description" className="text-sm text-muted-foreground">
-                Description <span className="text-muted-foreground/60">(optional)</span>
+                Description <span className="text-electric">*</span>
               </Label>
               <span className="text-xs text-muted-foreground">
                 {description.length}/{MAX_DESCRIPTION_LENGTH}
@@ -319,38 +339,15 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             />
           </div>
 
-          {/* Category Chips */}
-          <div>
-            <Label className="text-sm text-muted-foreground mb-3 block">Category</Label>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    triggerClickHaptic();
-                    setCategory(category === cat.id ? "" : cat.id);
-                  }}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    category === cat.id
-                      ? "bg-electric text-white"
-                      : "bg-surface border border-border/30 text-muted-foreground hover:border-electric/50"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Price Toggle */}
-          <div className="flex items-center justify-between py-4 px-4 bg-surface rounded-xl border border-border/30">
+          <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-foreground font-medium">Free Entrance</p>
+                <p className="text-foreground font-medium text-sm">Free Entrance</p>
                 <p className="text-xs text-muted-foreground">Toggle off to set a price</p>
               </div>
               {isFree && (
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
                   Free
                 </Badge>
               )}
@@ -370,7 +367,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="flex items-center justify-center py-4">
+                <div className="flex items-center justify-center py-3">
                   <div className="relative flex items-center">
                     <span className="text-2xl font-semibold text-muted-foreground mr-1">$</span>
                     <input
@@ -379,7 +376,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                       value={price}
                       onChange={handlePriceChange}
                       placeholder="5"
-                      className="w-24 text-center text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50"
+                      className="w-20 text-center text-2xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50"
                     />
                   </div>
                 </div>
@@ -391,8 +388,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
           {/* Submit Button */}
           <Button
             onClick={handleGoLive}
-            disabled={isSubmitting || !title.trim()}
-            className="w-full py-6 rounded-2xl bg-gradient-to-r from-electric to-crimson text-white font-semibold text-base disabled:opacity-50"
+            disabled={isSubmitting || !canGoLive}
+            className="w-full py-5 rounded-2xl bg-gradient-to-r from-electric to-crimson text-white font-semibold text-base disabled:opacity-40"
           >
             {isSubmitting ? (
               <>
@@ -404,8 +401,15 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             )}
           </Button>
 
+          {/* Validation hint */}
+          {!canGoLive && (
+            <p className="text-xs text-muted-foreground text-center">
+              Fill all required fields to go live
+            </p>
+          )}
+
           {/* Bottom padding for safe area */}
-          <div className="h-6 lg:h-2" />
+          <div className="h-4" />
         </div>
       </motion.div>
 
@@ -414,7 +418,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         {showCropper && rawImageSrc && (
           <ImageCropper
             imageSrc={rawImageSrc}
-            mode="cover"
+            mode="poster"
             onCropComplete={handleCropComplete}
             onCancel={handleCropCancel}
           />
