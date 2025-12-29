@@ -225,7 +225,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         animate={{ y: 0, x: "-50%" }}
         exit={{ y: "100%", x: "-50%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] max-w-lg lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 lg:rounded-3xl lg:max-h-[85vh] lg:mx-4 flex flex-col"
+        className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[85vh] lg:my-[7.5vh]"
+        style={{ transform: "translateX(-50%)" }}
       >
         {/* Handle - Mobile only */}
         <div className="flex justify-center pt-3 pb-2 lg:hidden flex-shrink-0">
