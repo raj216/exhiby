@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { LiveStudioView, StudioRoom } from "./studio";
 import { PaymentDrawer } from "./PaymentDrawer";
-import { DesktopSidebar } from "./DesktopSidebar";
+
 import { DesktopHeader } from "./DesktopHeader";
 import { LeftSidebar } from "./LeftSidebar";
 import { BottomNavigation } from "./BottomNavigation";
@@ -227,9 +227,9 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                         </div>
                       </div>
 
-                      {/* Desktop: Responsive grid - 4 columns, max 2 rows */}
+                      {/* Desktop: Responsive grid - expands to fill space */}
                       <div className="hidden lg:block px-6">
-                        <div className="grid grid-cols-4 gap-4 xl:gap-5">
+                        <div className="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
                           {filteredLive.slice(0, 8).map((event, index) => (
                             <motion.div
                               key={event.id}
@@ -336,7 +336,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
 
                       {/* Desktop: Grid of event posters */}
                       <div className="hidden lg:block px-6">
-                        <div className="grid grid-cols-4 xl:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
                           {upcomingEvents.map((event, index) => (
                             <motion.div
                               key={event.id}
@@ -449,10 +449,6 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
               </AnimatePresence>
             </main>
 
-            {/* Desktop Right Sidebar - narrower now */}
-            <div className="hidden lg:block w-64 xl:w-72 flex-shrink-0">
-              <DesktopSidebar onRemind={handleRemind} />
-            </div>
           </div>
         </div>
 
