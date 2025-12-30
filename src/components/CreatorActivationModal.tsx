@@ -19,7 +19,7 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
   const [pledgeChecked, setPledgeChecked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null]);
-  const { setVerifiedCreator, setMode } = useUserMode();
+  const { activateCreatorRole } = useUserMode();
 
   const uploadedCount = uploadedImages.filter(img => img !== null).length;
   const canUnlock = uploadedCount === 3 && pledgeChecked;
@@ -89,16 +89,21 @@ export function CreatorActivationModal({ isOpen, onClose, onSuccess }: CreatorAc
     
     setIsUnlocking(true);
     
-    // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Activate creator role in database
+    const success = await activateCreatorRole();
     
-    // Update user state
-    setVerifiedCreator(true);
-    setMode("creator");
-    
-    // Trigger success
-    onSuccess();
-    onClose();
+    if (success) {
+      // Trigger success
+      onSuccess();
+      onClose();
+    } else {
+      toast({
+        title: "Activation Failed",
+        description: "Could not activate your studio. Please try again.",
+        variant: "destructive",
+      });
+      setIsUnlocking(false);
+    }
   };
 
   const handleClose = () => {

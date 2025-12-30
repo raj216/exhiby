@@ -13,7 +13,7 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
-  const { mode, isVerifiedCreator, setVerifiedCreator, toggleMode, setMode } = useUserMode();
+  const { mode, isVerifiedCreator, activateCreatorRole, toggleMode, setMode } = useUserMode();
   const [showVerification, setShowVerification] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const { profile } = useProfile();
@@ -40,9 +40,8 @@ export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
     setShowVerification(true);
   };
 
-  const handleVerificationComplete = () => {
-    setVerifiedCreator(true);
-    setMode("creator");
+  const handleVerificationComplete = async () => {
+    await activateCreatorRole();
   };
 
   return (
