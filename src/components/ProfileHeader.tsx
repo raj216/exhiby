@@ -36,7 +36,7 @@ export function ProfileHeader({
   return (
     <div className="relative">
       {/* Dynamic Banner with Cinematic Vignette */}
-      <div className="relative h-64 w-full overflow-hidden cinematic-vignette">
+      <div className="relative h-64 w-full overflow-hidden">
         {isLive && livePreviewUrl ? (
           <video
             src={livePreviewUrl}
