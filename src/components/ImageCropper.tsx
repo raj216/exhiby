@@ -185,6 +185,39 @@ export const ImageCropper = React.forwardRef<HTMLDivElement, ImageCropperProps>(
       setPosition(constrainPosition(position, newScale));
     };
 
+    // Apply sharpening filter to canvas
+    const applySharpen = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      const copy = new Uint8ClampedArray(data);
+      
+      // Unsharp mask kernel - sharpens without over-processing
+      // Slightly stronger sharpening for clarity
+      const kernel = [
+        0, -0.5, 0,
+        -0.5, 3, -0.5,
+        0, -0.5, 0
+      ];
+      
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          for (let c = 0; c < 3; c++) {
+            let sum = 0;
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const idx = ((y + ky) * width + (x + kx)) * 4 + c;
+                sum += copy[idx] * kernel[(ky + 1) * 3 + (kx + 1)];
+              }
+            }
+            const idx = (y * width + x) * 4 + c;
+            data[idx] = Math.max(0, Math.min(255, sum));
+          }
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+    };
+
     // Crop and export
     const handleComplete = async () => {
       if (!imgRef.current) return;
@@ -215,6 +248,10 @@ export const ImageCropper = React.forwardRef<HTMLDivElement, ImageCropperProps>(
       const srcWidth = cropZone.width / scale;
       const srcHeight = cropZone.height / scale;
       
+      // Enable high-quality image smoothing
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      
       ctx.drawImage(
         img,
         srcX,
@@ -227,6 +264,9 @@ export const ImageCropper = React.forwardRef<HTMLDivElement, ImageCropperProps>(
         outputHeight
       );
       
+      // Apply sharpening to make the image clearer
+      applySharpen(ctx, outputWidth, outputHeight);
+      
       canvas.toBlob(
         (blob) => {
           if (blob) {
@@ -234,7 +274,7 @@ export const ImageCropper = React.forwardRef<HTMLDivElement, ImageCropperProps>(
           }
         },
         "image/jpeg",
-        0.92
+        0.95  // Higher quality export
       );
     };
 
