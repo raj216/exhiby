@@ -426,14 +426,11 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                       {/* Content */}
                       <div className="relative z-10 p-6 sm:p-8 lg:p-10">
                         <div className="max-w-md">
-                          <p className="text-xs sm:text-sm uppercase tracking-widest text-amber-400 mb-2 font-medium">
+                        <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-amber-400 mb-3">
                             Coming Soon
-                          </p>
-                          <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-foreground mb-3">
-                            Season 2
                           </h3>
                           <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">
-                            Live Auctions & Masterclass Series. Be the first to know.
+                            Live Auctions. Be the first to know.
                           </p>
                           <button 
                             onClick={handleJoinWaitlist}
