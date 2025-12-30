@@ -237,7 +237,7 @@ export default function PublicProfile() {
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-carbon/80 to-transparent" />
+        
         
         {/* Back Button */}
         <motion.button

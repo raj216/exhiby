@@ -319,22 +319,9 @@
     }
   }
 
-  /* Cinematic Vignette Cover Effect */
-  .cinematic-vignette {
+  /* Clean Cover Photo - No vignette */
+  .clean-cover {
     @apply relative;
-  }
-
-  .cinematic-vignette::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(to bottom, 
-      rgba(0, 0, 0, 0.1) 0%, 
-      rgba(0, 0, 0, 0.2) 50%, 
-      hsl(var(--carbon-black)) 100%
-    );
   }
 }
 

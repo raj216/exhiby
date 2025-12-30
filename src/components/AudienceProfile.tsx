@@ -138,7 +138,7 @@ export function AudienceProfile({
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-carbon via-carbon/40 to-transparent" />
+          
 
           {/* Header Controls */}
           <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
