@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Bug, RefreshCw, Loader2 } from "lucide-react";
-
-export type DailyJoinStatus = 
-  | "idle"
-  | "creating_call_object"
-  | "ready_to_join"
-  | "joining"
-  | "joined"
-  | "error"
-  | "timeout";
+import { DailyJoinStatus } from "@/hooks/useDaily";
 
 interface DebugPanelProps {
   eventId: string | undefined;
@@ -43,8 +35,8 @@ export function DebugPanel({
 
   const statusColors: Record<DailyJoinStatus, string> = {
     idle: "text-muted-foreground",
-    creating_call_object: "text-amber-500",
-    ready_to_join: "text-blue-500",
+    creating: "text-amber-500",
+    ready: "text-blue-500",
     joining: "text-amber-500",
     joined: "text-green-500",
     error: "text-destructive",

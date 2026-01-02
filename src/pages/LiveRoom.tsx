@@ -517,7 +517,7 @@ export default function LiveRoom() {
   }
 
   // Connecting state
-  if (isJoining || status === "joining" || status === "creating_call_object") {
+  if (isJoining || status === "joining" || status === "creating") {
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
         <DebugPanel
