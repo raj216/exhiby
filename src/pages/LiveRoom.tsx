@@ -197,46 +197,8 @@ export default function LiveRoom() {
   }, [eventId]);
 
   // Join Daily room when event loads and has room_url
-  useEffect(() => {
-    if (!event) {
-      console.log("[LiveRoom] No event data yet, skipping join");
-      return;
-    }
-
-    if (!event.room_url) {
-      console.log("[LiveRoom] Event has no room_url, skipping join");
-      return;
-    }
-
-    if (isJoined) {
-      console.log("[LiveRoom] Already joined, skipping");
-      return;
-    }
-
-    if (isJoining) {
-      console.log("[LiveRoom] Already joining, skipping");
-      return;
-    }
-
-    if (dailyError) {
-      console.log("[LiveRoom] Has daily error, skipping join:", dailyError);
-      return;
-    }
-
-    if (status === "error" || status === "timeout") {
-      console.log("[LiveRoom] Status is error/timeout, skipping auto-join");
-      return;
-    }
-
-    // Wait for call object to be ready
-    if (status !== "call_object_ready") {
-      console.log("[LiveRoom] Call object not ready yet, status:", status);
-      return;
-    }
-
-    console.log("[LiveRoom] Auto-joining Daily room...");
-    join();
-  }, [event, isJoined, isJoining, dailyError, status, join]);
+  // Auto-join is handled by useDaily hook with autoJoin=true (default)
+  // This effect is no longer needed as the hook automatically joins when ready
 
   // Join as viewer when component mounts (for non-creators)
   useEffect(() => {

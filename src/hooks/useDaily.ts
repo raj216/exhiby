@@ -1,14 +1,22 @@
-import { useState, useEffect, useCallback, useRef } from "react";
 import Daily, {
   DailyCall,
-  DailyParticipant,
   DailyEventObjectParticipant,
   DailyEventObjectParticipantLeft,
 } from "@daily-co/daily-js";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-// ---------------------------------------------------------------------------
-// Daily singleton (prevents "Duplicate DailyIframe instances" in StrictMode)
-// ---------------------------------------------------------------------------
+export type DailyJoinStatus =
+  | "idle"
+  | "creating_call_object"
+  | "ready_to_join"
+  | "joining"
+  | "joined"
+  | "error"
+  | "timeout";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Singleton helpers to prevent "Duplicate DailyIframe instances" error.
+// ─────────────────────────────────────────────────────────────────────────────
 let sharedCallObject: DailyCall | null = null;
 let sharedCreatePromise: Promise<DailyCall> | null = null;
 let sharedDestroyPromise: Promise<void> | null = null;
@@ -36,7 +44,6 @@ async function destroySharedCallObject(reason: string) {
     }
 
     sharedCallObject = null;
-    // Daily may still report an instance briefly; ensure future init waits on this.
   })().finally(() => {
     sharedDestroyPromise = null;
   });
@@ -44,20 +51,26 @@ async function destroySharedCallObject(reason: string) {
   return sharedDestroyPromise;
 }
 
-async function getOrCreateSharedCallObject(reason: string) {
+async function getOrCreateSharedCallObject(reason: string): Promise<DailyCall> {
   // Wait for any in-flight destroy (StrictMode mount/unmount/mount).
   if (sharedDestroyPromise) await sharedDestroyPromise;
 
-  if (sharedCallObject) return sharedCallObject;
+  if (sharedCallObject) {
+    console.log(`[useDaily][singleton] reusing existing sharedCallObject (${reason})`);
+    return sharedCallObject;
+  }
 
   const existing = Daily.getCallInstance();
   if (existing) {
-    console.log(`[useDaily][singleton] reusing existing instance (${reason})`);
+    console.log(`[useDaily][singleton] reusing Daily.getCallInstance() (${reason})`);
     sharedCallObject = existing;
     return existing;
   }
 
-  if (sharedCreatePromise) return sharedCreatePromise;
+  if (sharedCreatePromise) {
+    console.log(`[useDaily][singleton] waiting on in-flight create (${reason})`);
+    return sharedCreatePromise;
+  }
 
   sharedCreatePromise = (async () => {
     console.log(`[useDaily][singleton] create start (${reason})`);
@@ -74,118 +87,75 @@ async function getOrCreateSharedCallObject(reason: string) {
   return sharedCreatePromise;
 }
 
-export type DailyJoinStatus = 
-  | "idle"
-  | "creating_call_object"
-  | "call_object_ready"
-  | "joining"
-  | "joined"
-  | "error"
-  | "timeout";
-
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 export interface DailyParticipantInfo {
   sessionId: string;
   userName: string;
   isLocal: boolean;
   videoTrack: MediaStreamTrack | null;
   audioTrack: MediaStreamTrack | null;
-  hasVideo: boolean;
-  hasAudio: boolean;
+  videoOn: boolean;
+  audioOn: boolean;
 }
 
 interface UseDailyOptions {
   roomUrl: string | null;
   isHost: boolean;
-  userName?: string;
+  userName: string;
   joinTimeoutMs?: number;
+  autoJoin?: boolean; // default true - automatically join when ready
   onJoined?: () => void;
   onLeft?: () => void;
   onError?: (error: string) => void;
   onStatusChange?: (status: DailyJoinStatus) => void;
 }
 
-interface UseDailyReturn {
-  callObject: DailyCall | null;
-  participants: DailyParticipantInfo[];
-  localParticipant: DailyParticipantInfo | null;
-  remoteParticipants: DailyParticipantInfo[];
-  isJoined: boolean;
-  isJoining: boolean;
-  isCameraOn: boolean;
-  isMicOn: boolean;
-  error: string | null;
-  errorStack: string | null;
-  status: DailyJoinStatus;
-  join: () => Promise<void>;
-  leave: () => Promise<void>;
-  reset: () => Promise<void>; // hard cleanup + recreate call object
-  toggleCamera: () => void;
-  toggleMic: () => void;
-  getVideoElement: (sessionId: string) => HTMLVideoElement | null;
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────────────────────────────────────
 export function useDaily({
   roomUrl,
   isHost,
-  userName = "Guest",
+  userName,
   joinTimeoutMs = 12000,
+  autoJoin = true,
   onJoined,
   onLeft,
   onError,
   onStatusChange,
-}: UseDailyOptions): UseDailyReturn {
-  const [callObject, setCallObject] = useState<DailyCall | null>(null);
+}: UseDailyOptions) {
+  // ─── Refs ───────────────────────────────────────────────────────────────────
   const callObjectRef = useRef<DailyCall | null>(null);
+  const listenersAttachedRef = useRef(false);
+  const videoElementsRef = useRef<Map<string, HTMLVideoElement | null>>(new Map());
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const joiningRef = useRef(false);
+  const hasJoinedRef = useRef(false);
+  const mountedRef = useRef(true);
 
+  // ─── State ──────────────────────────────────────────────────────────────────
   const [participants, setParticipants] = useState<DailyParticipantInfo[]>([]);
   const [isJoined, setIsJoined] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const joiningRef = useRef(false);
-
   const [isCameraOn, setIsCameraOn] = useState(isHost);
   const [isMicOn, setIsMicOn] = useState(isHost);
   const [error, setError] = useState<string | null>(null);
   const [errorStack, setErrorStack] = useState<string | null>(null);
   const [status, setStatus] = useState<DailyJoinStatus>("idle");
-
   const [initKey, setInitKey] = useState(0);
 
-  const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const listenersAttachedRef = useRef(false);
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+  const updateStatus = useCallback(
+    (newStatus: DailyJoinStatus) => {
+      console.log("[useDaily] Status:", newStatus);
+      setStatus(newStatus);
+      onStatusChange?.(newStatus);
+    },
+    [onStatusChange]
+  );
 
-  // Update status and notify
-  const updateStatus = useCallback((newStatus: DailyJoinStatus) => {
-    console.log(`[useDaily] Status: ${newStatus}`);
-    setStatus(newStatus);
-    onStatusChange?.(newStatus);
-  }, [onStatusChange]);
-
-  // Convert Daily participant to our format
-  const convertParticipant = useCallback((p: DailyParticipant): DailyParticipantInfo => {
-    const videoTrack = p.tracks?.video?.persistentTrack || null;
-    const audioTrack = p.tracks?.audio?.persistentTrack || null;
-    
-    return {
-      sessionId: p.session_id,
-      userName: p.user_name || "Guest",
-      isLocal: p.local,
-      videoTrack,
-      audioTrack,
-      hasVideo: p.tracks?.video?.state === "playable",
-      hasAudio: p.tracks?.audio?.state === "playable",
-    };
-  }, []);
-
-  // Update participants list
-  const updateParticipants = useCallback((call: DailyCall) => {
-    const allParticipants = call.participants();
-    const participantList = Object.values(allParticipants).map(convertParticipant);
-    console.log(`[useDaily] Participants updated: ${participantList.length} total`);
-    setParticipants(participantList);
-  }, [convertParticipant]);
-
-  // Clear timeout helper
   const clearJoinTimeout = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -193,10 +163,125 @@ export function useDaily({
     }
   }, []);
 
-  // Initialize call object (idempotent + StrictMode-safe)
-  useEffect(() => {
+  const convertParticipant = useCallback(
+    (p: any): DailyParticipantInfo => ({
+      sessionId: p.session_id,
+      userName: p.user_name || "Guest",
+      isLocal: p.local,
+      videoTrack: p.tracks?.video?.track || null,
+      audioTrack: p.tracks?.audio?.track || null,
+      videoOn: p.tracks?.video?.state === "playable",
+      audioOn: p.tracks?.audio?.state === "playable",
+    }),
+    []
+  );
+
+  const updateParticipants = useCallback(
+    (call: DailyCall) => {
+      const pList = Object.values(call.participants()).map(convertParticipant);
+      setParticipants(pList);
+    },
+    [convertParticipant]
+  );
+
+  // ─── Internal Join ──────────────────────────────────────────────────────────
+  const performJoin = useCallback(async () => {
+    const call = callObjectRef.current;
+
+    // Guard: must have call object and roomUrl
+    if (!call) {
+      console.error("[useDaily] performJoin: no call object");
+      setError("Cannot join: call object not ready");
+      updateStatus("error");
+      return;
+    }
+
     if (!roomUrl) {
-      console.log("[useDaily] No roomUrl provided, skipping initialization");
+      console.error("[useDaily] performJoin: no roomUrl");
+      setError("Cannot join: room URL is missing");
+      updateStatus("error");
+      return;
+    }
+
+    // Guard: prevent duplicate joins
+    if (joiningRef.current) {
+      console.log("[useDaily] performJoin: already joining, skipping");
+      return;
+    }
+
+    if (hasJoinedRef.current || isJoined) {
+      console.log("[useDaily] performJoin: already joined, skipping");
+      return;
+    }
+
+    joiningRef.current = true;
+    hasJoinedRef.current = true;
+
+    console.log("[useDaily] performJoin: starting...", { roomUrl, isHost, userName });
+
+    setIsJoining(true);
+    setError(null);
+    setErrorStack(null);
+    updateStatus("joining");
+
+    // Set up join timeout
+    timeoutRef.current = setTimeout(() => {
+      console.error("[useDaily] Join timeout after", joinTimeoutMs, "ms");
+      joiningRef.current = false;
+      hasJoinedRef.current = false;
+      setError(`Join timeout: could not connect within ${joinTimeoutMs / 1000} seconds`);
+      setIsJoining(false);
+      updateStatus("timeout");
+      onError?.(`Join timeout after ${joinTimeoutMs / 1000} seconds`);
+    }, joinTimeoutMs);
+
+    try {
+      console.log("[useDaily] Calling call.join()...");
+
+      await call.join({
+        url: roomUrl,
+        userName,
+        startVideoOff: !isHost,
+        startAudioOff: !isHost,
+      });
+
+      console.log("[useDaily] join() resolved; configuring local tracks...");
+
+      if (isHost) {
+        console.log("[useDaily] Host: enabling camera + mic");
+        await call.setLocalVideo(true);
+        await call.setLocalAudio(true);
+        setIsCameraOn(true);
+        setIsMicOn(true);
+      } else {
+        console.log("[useDaily] Viewer: ensuring camera + mic are disabled");
+        await call.setLocalVideo(false);
+        await call.setLocalAudio(false);
+        setIsCameraOn(false);
+        setIsMicOn(false);
+      }
+
+      console.log("[useDaily] Local track configuration complete");
+      // Note: status will be set to "joined" by the joined-meeting event handler
+    } catch (err: any) {
+      console.error("[useDaily] Join error:", err);
+      clearJoinTimeout();
+      joiningRef.current = false;
+      hasJoinedRef.current = false;
+      setError(err?.message || "Failed to join room");
+      setErrorStack(err?.stack || null);
+      setIsJoining(false);
+      updateStatus("error");
+      onError?.(err?.message || "Failed to join room");
+    }
+  }, [roomUrl, isHost, userName, isJoined, joinTimeoutMs, updateStatus, clearJoinTimeout, onError]);
+
+  // ─── Effect: Initialize Call Object ─────────────────────────────────────────
+  useEffect(() => {
+    mountedRef.current = true;
+
+    if (!roomUrl) {
+      console.log("[useDaily] No roomUrl provided, staying idle");
       return;
     }
 
@@ -208,15 +293,25 @@ export function useDaily({
 
       try {
         const call = await getOrCreateSharedCallObject("init");
-        if (cancelled) return;
+        
+        if (cancelled || !mountedRef.current) {
+          console.log("[useDaily] init cancelled, aborting");
+          return;
+        }
 
+        // Store the call object in ref
         callObjectRef.current = call;
-        setCallObject(call);
+        console.log("[useDaily] callObjectRef.current set");
 
-        // Attach listeners only once per hook instance.
-        if (listenersAttachedRef.current) return;
+        // Attach listeners only once per hook instance
+        if (listenersAttachedRef.current) {
+          console.log("[useDaily] Listeners already attached, updating status");
+          updateStatus("ready_to_join");
+          return;
+        }
         listenersAttachedRef.current = true;
 
+        // Event handlers
         const handleJoinedMeeting = () => {
           console.log("[useDaily] Event: joined-meeting");
           clearJoinTimeout();
@@ -231,6 +326,7 @@ export function useDaily({
         const handleLeftMeeting = () => {
           console.log("[useDaily] Event: left-meeting");
           joiningRef.current = false;
+          hasJoinedRef.current = false;
           setIsJoined(false);
           setIsJoining(false);
           setParticipants([]);
@@ -269,6 +365,7 @@ export function useDaily({
           console.error("[useDaily] Event: error:", event);
           clearJoinTimeout();
           joiningRef.current = false;
+          hasJoinedRef.current = false;
 
           const errorMessage = event?.errorMsg || event?.error?.message || "An error occurred";
           setError(errorMessage);
@@ -285,6 +382,7 @@ export function useDaily({
           onError?.(errorMessage);
         };
 
+        // Attach all listeners
         call.on("joined-meeting", handleJoinedMeeting);
         call.on("left-meeting", handleLeftMeeting);
         call.on("participant-joined", handleParticipantJoined);
@@ -295,7 +393,6 @@ export function useDaily({
         call.on("error", handleError);
         call.on("camera-error", handleCameraError);
 
-        // Cleanup for this hook instance
         const cleanup = () => {
           call.off("joined-meeting", handleJoinedMeeting);
           call.off("left-meeting", handleLeftMeeting);
@@ -308,16 +405,16 @@ export function useDaily({
           call.off("camera-error", handleCameraError);
         };
 
-        // Stash cleanup on the ref so we can run it in the effect cleanup.
         (listenersAttachedRef as any).currentCleanup = cleanup;
 
-        console.log("[useDaily] Call object ready");
-        updateStatus("call_object_ready");
+        console.log("[useDaily] Call object ready, status -> ready_to_join");
+        updateStatus("ready_to_join");
       } catch (err: any) {
         console.error("[useDaily] Failed to init call object:", err);
         setError(err?.message || "Failed to create call object");
         setErrorStack(err?.stack || null);
         updateStatus("error");
+        onError?.(err?.message || "Failed to create call object");
       }
     };
 
@@ -325,215 +422,171 @@ export function useDaily({
 
     return () => {
       cancelled = true;
+      mountedRef.current = false;
+      clearJoinTimeout();
+
+      if ((listenersAttachedRef as any).currentCleanup) {
+        (listenersAttachedRef as any).currentCleanup();
+      }
+
       console.log("[useDaily] Cleanup: hard destroy call object");
-
-      clearJoinTimeout();
-      joiningRef.current = false;
-      setIsJoining(false);
-
-      try {
-        const cleanup = (listenersAttachedRef as any).currentCleanup as undefined | (() => void);
-        cleanup?.();
-      } catch (e) {
-        console.warn("[useDaily] Listener cleanup error (ignored):", e);
-      }
-
-      listenersAttachedRef.current = false;
-      (listenersAttachedRef as any).currentCleanup = null;
-
-      // Hard cleanup (async, but singleton creation waits for it).
-      void destroySharedCallObject("unmount");
-
+      destroySharedCallObject("unmount");
       callObjectRef.current = null;
-      setCallObject(null);
-      setParticipants([]);
-      setIsJoined(false);
+      listenersAttachedRef.current = false;
+      joiningRef.current = false;
+      hasJoinedRef.current = false;
     };
-  }, [roomUrl, initKey, updateParticipants, onJoined, onLeft, onError, updateStatus, clearJoinTimeout]);
+  }, [roomUrl, initKey, updateStatus, clearJoinTimeout, updateParticipants, onJoined, onLeft, onError]);
 
-  // Join the call (guarded against concurrent / duplicate joins)
-  const join = useCallback(async () => {
-    const call = callObjectRef.current;
-
-    if (!call || !roomUrl) {
-      console.error("[useDaily] join() called but callObject or roomUrl is missing");
-      setError("Cannot join: call object or room URL is missing");
-      updateStatus("error");
+  // ─── Effect: Auto-join when ready ───────────────────────────────────────────
+  useEffect(() => {
+    if (!autoJoin) {
+      console.log("[useDaily] autoJoin disabled, waiting for manual join()");
       return;
     }
 
-    if (joiningRef.current || isJoined) {
-      console.log("[useDaily] join() blocked (already joining/joined)");
+    if (status !== "ready_to_join") {
       return;
     }
 
-    joiningRef.current = true;
-
-    console.log("[useDaily] Starting join process...", {
-      roomUrl,
-      isHost,
-      userName,
-    });
-
-    setIsJoining(true);
-    setError(null);
-    setErrorStack(null);
-    updateStatus("joining");
-
-    // Set up join timeout
-    timeoutRef.current = setTimeout(() => {
-      console.error("[useDaily] Join timeout after", joinTimeoutMs, "ms");
-      joiningRef.current = false;
-      setError(`Join timeout: could not connect within ${joinTimeoutMs / 1000} seconds`);
-      setIsJoining(false);
-      updateStatus("timeout");
-      onError?.(`Join timeout after ${joinTimeoutMs / 1000} seconds`);
-    }, joinTimeoutMs);
-
-    try {
-      console.log("[useDaily] Calling call.join()...");
-
-      await call.join({
-        url: roomUrl,
-        userName,
-        startVideoOff: !isHost,
-        startAudioOff: !isHost,
-      });
-
-      console.log("[useDaily] join() resolved; configuring local tracks...");
-
-      if (isHost) {
-        console.log("[useDaily] Host: enabling camera + mic");
-        await call.setLocalVideo(true);
-        await call.setLocalAudio(true);
-        setIsCameraOn(true);
-        setIsMicOn(true);
-      } else {
-        console.log("[useDaily] Viewer: ensuring camera + mic are disabled");
-        await call.setLocalVideo(false);
-        await call.setLocalAudio(false);
-        setIsCameraOn(false);
-        setIsMicOn(false);
-      }
-
-      console.log("[useDaily] Local track configuration complete");
-    } catch (err: any) {
-      console.error("[useDaily] Join error:", err);
-      clearJoinTimeout();
-      joiningRef.current = false;
-      setError(err?.message || "Failed to join room");
-      setErrorStack(err?.stack || null);
-      setIsJoining(false);
-      updateStatus("error");
-      onError?.(err?.message || "Failed to join room");
+    if (!callObjectRef.current) {
+      console.log("[useDaily] status is ready_to_join but callObjectRef is null, waiting...");
+      return;
     }
-  }, [roomUrl, isHost, userName, isJoined, joinTimeoutMs, updateStatus, clearJoinTimeout, onError]);
 
-  // Leave the call
+    if (!roomUrl) {
+      console.log("[useDaily] status is ready_to_join but roomUrl is null");
+      return;
+    }
+
+    if (hasJoinedRef.current || isJoined) {
+      console.log("[useDaily] Already joined, skipping auto-join");
+      return;
+    }
+
+    console.log("[useDaily] Auto-joining (status=ready_to_join, callObject ready, roomUrl present)");
+    performJoin();
+  }, [status, autoJoin, roomUrl, isJoined, performJoin]);
+
+  // ─── External join (for manual trigger) ─────────────────────────────────────
+  const join = useCallback(() => {
+    if (status !== "ready_to_join" && status !== "idle") {
+      console.warn("[useDaily] join() called but status is:", status);
+    }
+    performJoin();
+  }, [status, performJoin]);
+
+  // ─── Leave ──────────────────────────────────────────────────────────────────
   const leave = useCallback(async () => {
-    console.log("[useDaily] leave() called");
     clearJoinTimeout();
     joiningRef.current = false;
+    hasJoinedRef.current = false;
 
     const call = callObjectRef.current;
-    if (!call) {
-      console.log("[useDaily] No call object, nothing to leave");
-      return;
-    }
-
-    try {
-      const meetingState = call.meetingState();
-      console.log("[useDaily] Current meeting state:", meetingState);
-
-      if (meetingState === "joined-meeting" || meetingState === "joining-meeting") {
+    if (call) {
+      try {
         await call.leave();
-        console.log("[useDaily] Left meeting successfully");
+        console.log("[useDaily] Left meeting");
+      } catch (e) {
+        console.warn("[useDaily] Leave error (ignored):", e);
       }
-    } catch (err) {
-      console.error("[useDaily] Leave error:", err);
     }
-  }, [clearJoinTimeout]);
 
-  // Hard cleanup + recreate call object
+    setIsJoined(false);
+    setIsJoining(false);
+    setParticipants([]);
+    updateStatus("idle");
+  }, [clearJoinTimeout, updateStatus]);
+
+  // ─── Reset (hard cleanup + re-init) ─────────────────────────────────────────
   const reset = useCallback(async () => {
-    console.log("[useDaily] reset() called");
+    console.log("[useDaily] reset() called - hard cleanup");
     clearJoinTimeout();
-    joiningRef.current = false;
 
+    if ((listenersAttachedRef as any).currentCleanup) {
+      (listenersAttachedRef as any).currentCleanup();
+    }
+
+    await destroySharedCallObject("reset");
+
+    callObjectRef.current = null;
+    listenersAttachedRef.current = false;
+    joiningRef.current = false;
+    hasJoinedRef.current = false;
+
+    setIsJoined(false);
+    setIsJoining(false);
+    setParticipants([]);
     setError(null);
     setErrorStack(null);
-    setIsJoining(false);
-    setIsJoined(false);
-    setParticipants([]);
+    updateStatus("idle");
 
-    await destroySharedCallObject("retry");
+    // Increment initKey to trigger re-init
     setInitKey((k) => k + 1);
-  }, [clearJoinTimeout]);
+  }, [clearJoinTimeout, updateStatus]);
 
-  // Toggle camera
-  const toggleCamera = useCallback(() => {
-    if (!callObject || !isHost) return;
-    
+  // ─── Camera / Mic toggles ───────────────────────────────────────────────────
+  const toggleCamera = useCallback(async () => {
+    const call = callObjectRef.current;
+    if (!call) return;
+
     const newState = !isCameraOn;
-    console.log("[useDaily] Toggling camera to:", newState);
-    callObject.setLocalVideo(newState);
+    await call.setLocalVideo(newState);
     setIsCameraOn(newState);
-  }, [callObject, isHost, isCameraOn]);
+  }, [isCameraOn]);
 
-  // Toggle mic
-  const toggleMic = useCallback(() => {
-    if (!callObject || !isHost) return;
-    
+  const toggleMic = useCallback(async () => {
+    const call = callObjectRef.current;
+    if (!call) return;
+
     const newState = !isMicOn;
-    console.log("[useDaily] Toggling mic to:", newState);
-    callObject.setLocalAudio(newState);
+    await call.setLocalAudio(newState);
     setIsMicOn(newState);
-  }, [callObject, isHost, isMicOn]);
+  }, [isMicOn]);
 
-  // Get or create video element for a participant
-  const getVideoElement = useCallback((sessionId: string): HTMLVideoElement | null => {
-    const participant = participants.find(p => p.sessionId === sessionId);
-    if (!participant?.videoTrack) return null;
+  // ─── Video element binding ──────────────────────────────────────────────────
+  const getVideoElement = useCallback((sessionId: string) => {
+    return videoElementsRef.current.get(sessionId) || null;
+  }, []);
 
-    let videoEl = videoElementsRef.current.get(sessionId);
-    
-    if (!videoEl) {
-      videoEl = document.createElement("video");
-      videoEl.autoplay = true;
-      videoEl.playsInline = true;
-      videoEl.muted = participant.isLocal;
-      videoElementsRef.current.set(sessionId, videoEl);
+  const setVideoElement = useCallback((sessionId: string, element: HTMLVideoElement | null) => {
+    if (element) {
+      videoElementsRef.current.set(sessionId, element);
+    } else {
+      videoElementsRef.current.delete(sessionId);
     }
+  }, []);
 
-    const stream = new MediaStream([participant.videoTrack]);
-    if (videoEl.srcObject !== stream) {
-      videoEl.srcObject = stream;
-    }
-
-    return videoEl;
-  }, [participants]);
-
-  // Derived state
-  const localParticipant = participants.find(p => p.isLocal) || null;
-  const remoteParticipants = participants.filter(p => !p.isLocal);
+  // ─── Derived state ──────────────────────────────────────────────────────────
+  const localParticipant = participants.find((p) => p.isLocal) || null;
+  const remoteParticipants = participants.filter((p) => !p.isLocal);
 
   return {
-    callObject,
+    // Participants
     participants,
     localParticipant,
     remoteParticipants,
+
+    // Connection state
     isJoined,
     isJoining,
-    isCameraOn,
-    isMicOn,
+    status,
     error,
     errorStack,
-    status,
+
+    // Media state
+    isCameraOn,
+    isMicOn,
+
+    // Actions
     join,
     leave,
     reset,
     toggleCamera,
     toggleMic,
+
+    // Video elements
     getVideoElement,
+    setVideoElement,
   };
 }
