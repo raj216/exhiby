@@ -446,8 +446,16 @@ export function useDaily({
     }
   }, [roomUrl, clearJoinTimeout, updateStatus]);
 
-  // Toggle camera
+  // Store isHost in ref for toggle callbacks
+  const isHostRef = useRef(isHost);
+  isHostRef.current = isHost;
+
+  // Toggle camera (host only)
   const toggleCamera = useCallback(async () => {
+    if (!isHostRef.current) {
+      console.warn("[useDaily] Viewer cannot toggle camera");
+      return;
+    }
     const call = callRef.current || globalCallObject;
     if (!call) return;
     try {
@@ -459,8 +467,12 @@ export function useDaily({
     }
   }, [isCameraOn]);
 
-  // Toggle mic
+  // Toggle mic (host only)
   const toggleMic = useCallback(async () => {
+    if (!isHostRef.current) {
+      console.warn("[useDaily] Viewer cannot toggle mic");
+      return;
+    }
     const call = callRef.current || globalCallObject;
     if (!call) return;
     try {

@@ -435,7 +435,8 @@ export default function LiveRoom() {
     );
   }
 
-  if (permissionError) {
+  // Only show permission error for hosts (viewers don't need camera/mic)
+  if (permissionError && isCreator) {
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
         <DebugPanel
