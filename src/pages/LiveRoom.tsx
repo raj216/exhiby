@@ -43,7 +43,8 @@ export default function LiveRoom() {
   const [error, setError] = useState<string | null>(null);
   const [permissionError, setPermissionError] = useState(false);
   const [isRecreatingRoom, setIsRecreatingRoom] = useState(false);
-  
+  const [isRetryingDaily, setIsRetryingDaily] = useState(false);
+
   // UI State
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [showChat, setShowChat] = useState(false);
@@ -78,6 +79,7 @@ export default function LiveRoom() {
     status,
     join,
     leave,
+    reset,
     toggleCamera,
     toggleMic,
   } = useDaily({
@@ -274,12 +276,12 @@ export default function LiveRoom() {
         return;
       }
 
-      const { room_url, event_id } = response.data;
+      const { room_url } = response.data;
       console.log("[LiveRoom] Room created:", room_url);
 
       if (room_url) {
         // Update local state
-        setEvent((prev) => prev ? { ...prev, room_url, is_live: true } : null);
+        setEvent((prev) => (prev ? { ...prev, room_url, is_live: true } : null));
         toast.success("Room created! Connecting...");
       } else {
         toast.error("No room URL returned");
@@ -291,6 +293,18 @@ export default function LiveRoom() {
       setIsRecreatingRoom(false);
     }
   }, [eventId, session?.access_token]);
+
+  const handleRetryDaily = useCallback(async () => {
+    console.log("[LiveRoom] Retry Daily requested");
+    setIsRetryingDaily(true);
+    setPermissionError(false);
+
+    try {
+      await reset();
+    } finally {
+      setIsRetryingDaily(false);
+    }
+  }, [reset]);
 
   // Handle closing the live room
   const handleClose = useCallback(async () => {
@@ -522,10 +536,11 @@ export default function LiveRoom() {
           </p>
           <div className="flex gap-3 justify-center">
             <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors"
+              onClick={handleRetryDaily}
+              disabled={isJoining || isRetryingDaily}
+              className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors disabled:opacity-50"
             >
-              Retry
+              {isJoining || isRetryingDaily ? "Retrying..." : "Retry"}
             </button>
             <button
               onClick={() => navigate("/")}
@@ -652,17 +667,21 @@ export default function LiveRoom() {
           />
         </div>
 
-        {/* Desktop: Self-view pip for host */}
-        {!isMobile && isCreator && localParticipant && (
-          <div className="absolute bottom-24 right-4 w-48 h-32 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl z-10">
-            <DailyVideoTile
-              participant={localParticipant}
-              className="w-full h-full"
-              isMirrored
-              showName
-            />
-          </div>
-        )}
+        {/* Desktop: optional self-view pip for host (avoid duplicating the same tile) */}
+        {!isMobile &&
+          isCreator &&
+          localParticipant &&
+          hostParticipant &&
+          hostParticipant.sessionId !== localParticipant.sessionId && (
+            <div className="absolute bottom-24 right-4 w-48 h-32 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl z-10">
+              <DailyVideoTile
+                participant={localParticipant}
+                className="w-full h-full"
+                isMirrored
+                showName
+              />
+            </div>
+          )}
       </div>
     </motion.div>
   );
