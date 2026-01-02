@@ -83,13 +83,29 @@ export function useDaily({
     setParticipants(participantList);
   }, [convertParticipant]);
 
-  // Initialize call object
+  // Initialize call object - using singleton pattern to avoid duplicate instances
   useEffect(() => {
     if (!roomUrl) return;
 
-    const call = Daily.createCallObject({
-      subscribeToTracksAutomatically: true,
-    });
+    // Check for existing instance first to avoid duplicate error
+    let call = Daily.getCallInstance();
+    
+    if (call) {
+      // If there's an existing call and it's in a meeting, destroy it first
+      const meetingState = call.meetingState();
+      if (meetingState === 'joined-meeting' || meetingState === 'joining-meeting') {
+        console.log("[useDaily] Destroying existing call instance");
+        call.destroy();
+        call = null;
+      }
+    }
+    
+    // Create new instance only if needed
+    if (!call) {
+      call = Daily.createCallObject({
+        subscribeToTracksAutomatically: true,
+      });
+    }
 
     // Event handlers
     const handleJoinedMeeting = () => {
@@ -152,6 +168,7 @@ export function useDaily({
     setCallObject(call);
 
     return () => {
+      // Remove event listeners
       call.off("joined-meeting", handleJoinedMeeting);
       call.off("left-meeting", handleLeftMeeting);
       call.off("participant-joined", handleParticipantJoined);
@@ -161,10 +178,25 @@ export function useDaily({
       call.off("track-stopped", handleTrackStopped);
       call.off("error", handleError);
       
-      if (call.meetingState() !== "left-meeting") {
-        call.leave();
+      // Only destroy if we still have a valid call object
+      const existingCall = Daily.getCallInstance();
+      if (existingCall) {
+        const meetingState = existingCall.meetingState();
+        if (meetingState !== "left-meeting" && meetingState !== "new") {
+          existingCall.leave().catch(console.error);
+        }
+        // Use setTimeout to allow leave to complete before destroy
+        setTimeout(() => {
+          try {
+            const callToDestroy = Daily.getCallInstance();
+            if (callToDestroy) {
+              callToDestroy.destroy();
+            }
+          } catch (e) {
+            console.log("[useDaily] Instance already destroyed");
+          }
+        }, 100);
       }
-      call.destroy();
     };
   }, [roomUrl, updateParticipants, onJoined, onLeft, onError]);
 
