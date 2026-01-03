@@ -12,6 +12,7 @@ interface LiveMarqueeCardProps {
   endedAt?: string | null;
   onClick?: () => void;
   layoutId?: string;
+  desktopSize?: boolean;
 }
 
 // Smart badge component based on price
@@ -41,6 +42,7 @@ export function LiveMarqueeCard({
   endedAt,
   onClick,
   layoutId,
+  desktopSize = false,
 }: LiveMarqueeCardProps) {
   const isEnded = !!endedAt;
 
@@ -60,8 +62,8 @@ export function LiveMarqueeCard({
   return (
     <motion.div
       layoutId={layoutId || `room-card-${id}`}
-      className={`poster-card w-full flex-shrink-0 snap-center ${isEnded ? 'opacity-75' : 'cursor-pointer'}`}
-      style={{ minHeight: '300px' }}
+      className={`poster-card w-full flex-shrink-0 snap-center ${isEnded ? 'opacity-75' : 'cursor-pointer'} ${desktopSize ? 'aspect-[3/4]' : ''}`}
+      style={{ minHeight: desktopSize ? undefined : '300px' }}
       whileHover={isEnded ? undefined : { scale: 1.02 }}
       whileTap={isEnded ? undefined : { scale: 0.98 }}
       onClick={handleCardTap}

@@ -239,10 +239,10 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                         </div>
                       </div>
 
-                      {/* Desktop: Responsive grid - expands to fill space */}
+                      {/* Desktop: 5-column grid with larger cards like Whatnot */}
                       <div className="hidden lg:block px-6">
-                        <div className="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
-                          {liveNowStreams.slice(0, 8).map((event, index) => (
+                        <div className="grid grid-cols-5 gap-4">
+                          {liveNowStreams.map((event, index) => (
                             <motion.div
                               key={event.id}
                               initial={{ opacity: 0, scale: 0.9 }}
@@ -254,6 +254,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                                 endedAt={event.endedAt}
                                 onClick={() => handleLiveCardTap(event)}
                                 layoutId={`room-card-${event.id}`}
+                                desktopSize
                               />
                             </motion.div>
                           ))}
