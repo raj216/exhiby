@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { FollowListModal } from "@/components/FollowListModal";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
 import { LiveAccessCard } from "@/components/LiveAccessCard";
+import { useLiveViewers } from "@/hooks/useLiveViewers";
 
 interface LiveEventData {
   id: string;
@@ -46,6 +47,9 @@ export default function PublicProfile() {
   const [liveEvent, setLiveEvent] = useState<LiveEventData | null>(null);
 
   const isOwnProfile = user?.id === profile?.user_id;
+  
+  // Real-time viewer count for the live event
+  const { viewerCount } = useLiveViewers(liveEvent?.id ?? null);
   
   // Check if user is a founding member from database
   const isFoundingMember = profile?.is_founding_member ?? false;
@@ -327,6 +331,12 @@ export default function PublicProfile() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-live" />
             </span>
             <span className="text-xs font-bold tracking-wide text-primary-foreground">LIVE NOW</span>
+            {viewerCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Users className="w-3 h-3" />
+                {viewerCount}
+              </span>
+            )}
           </motion.div>
         )}
 

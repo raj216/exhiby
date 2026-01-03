@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { triggerHaptic } from "@/lib/haptics";
+import { useLiveViewers } from "@/hooks/useLiveViewers";
 
 interface LiveAccessCardProps {
   eventId: string;
@@ -19,6 +21,7 @@ export function LiveAccessCard({
   isOwnProfile = false,
 }: LiveAccessCardProps) {
   const navigate = useNavigate();
+  const { viewerCount } = useLiveViewers(eventId);
 
   const handleJoin = () => {
     triggerHaptic("medium");
@@ -87,13 +90,19 @@ export function LiveAccessCard({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {/* Live Now indicator */}
+          {/* Live Now indicator with viewer count */}
           <div className="flex items-center gap-2 mb-1">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-live" />
             </span>
             <span className="text-xs font-bold uppercase tracking-wide text-live">Live Now</span>
+            {viewerCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Users className="w-3 h-3" />
+                {viewerCount}
+              </span>
+            )}
           </div>
 
           {/* Stream Title */}
