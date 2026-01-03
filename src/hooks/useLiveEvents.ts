@@ -43,6 +43,8 @@ export function useLiveEvents() {
         .eq("is_live", true)
         .not("room_url", "is", null)
         .is("live_ended_at", null)
+        // Hide stale streams (e.g. if a creator closed the app without ending the stream)
+        .or(`end_time.is.null,end_time.gt.${new Date().toISOString()}`)
         .order("live_started_at", { ascending: false });
 
       if (fetchError) {
