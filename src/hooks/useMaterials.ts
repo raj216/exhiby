@@ -17,10 +17,13 @@ export function useMaterials(eventId: string | null) {
   // Fetch materials for event
   useEffect(() => {
     if (!eventId) {
+      console.log("[useMaterials] No eventId, skipping fetch");
       setMaterials([]);
       setLoading(false);
       return;
     }
+
+    console.log("[useMaterials] Fetching materials for event:", eventId);
 
     const fetchMaterials = async () => {
       setLoading(true);
@@ -32,7 +35,9 @@ export function useMaterials(eventId: string | null) {
 
       if (error) {
         console.error("[useMaterials] Error fetching:", error);
+        console.error("[useMaterials] Fetch error details:", error.message, error.code);
       } else {
+        console.log("[useMaterials] Fetched materials:", data?.length || 0, "items");
         setMaterials(data || []);
       }
       setLoading(false);
@@ -72,7 +77,13 @@ export function useMaterials(eventId: string | null) {
 
   const addMaterial = useCallback(
     async (name: string, brand?: string, spec?: string) => {
-      if (!eventId) return;
+      if (!eventId) {
+        console.error("[useMaterials] No eventId provided");
+        toast.error("Cannot add material: no event ID");
+        return null;
+      }
+
+      console.log("[useMaterials] Adding material:", { eventId, name, brand, spec });
 
       const { data, error } = await supabase
         .from("live_materials")
@@ -87,10 +98,12 @@ export function useMaterials(eventId: string | null) {
 
       if (error) {
         console.error("[useMaterials] Error adding:", error);
-        toast.error("Failed to add material");
+        console.error("[useMaterials] Error details:", error.message, error.code, error.details);
+        toast.error(`Failed to add material: ${error.message}`);
         return null;
       }
 
+      console.log("[useMaterials] Material added successfully:", data);
       toast.success("Material added");
       return data as Material;
     },
@@ -99,6 +112,8 @@ export function useMaterials(eventId: string | null) {
 
   const updateMaterial = useCallback(
     async (id: string, name: string, brand?: string, spec?: string) => {
+      console.log("[useMaterials] Updating material:", { id, name, brand, spec });
+      
       const { error } = await supabase
         .from("live_materials")
         .update({
@@ -110,10 +125,11 @@ export function useMaterials(eventId: string | null) {
 
       if (error) {
         console.error("[useMaterials] Error updating:", error);
-        toast.error("Failed to update material");
+        toast.error(`Failed to update material: ${error.message}`);
         return false;
       }
 
+      console.log("[useMaterials] Material updated successfully");
       toast.success("Material updated");
       return true;
     },
@@ -121,14 +137,17 @@ export function useMaterials(eventId: string | null) {
   );
 
   const deleteMaterial = useCallback(async (id: string) => {
+    console.log("[useMaterials] Deleting material:", id);
+    
     const { error } = await supabase.from("live_materials").delete().eq("id", id);
 
     if (error) {
       console.error("[useMaterials] Error deleting:", error);
-      toast.error("Failed to delete material");
+      toast.error(`Failed to delete material: ${error.message}`);
       return false;
     }
 
+    console.log("[useMaterials] Material deleted successfully");
     toast.success("Material removed");
     return true;
   }, []);
