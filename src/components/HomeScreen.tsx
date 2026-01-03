@@ -108,7 +108,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       return liveStreams;
     }
     return liveStreams.filter(item => item.category === selectedCategory);
-  }, [selectedCategory]);
+  }, [selectedCategory, liveStreams]);
 
   const hasLiveContent = filteredLive.length > 0;
   const hasUpcomingEvents = upcomingEvents.length > 0;
