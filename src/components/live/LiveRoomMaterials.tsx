@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Palette, Plus, Pencil, Trash2 } from "lucide-react";
+import { X, Palette, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -16,9 +16,9 @@ interface LiveRoomMaterialsProps {
   onClose: () => void;
   materials: Material[];
   isHost: boolean;
-  onAddMaterial?: (name: string, brand?: string, spec?: string) => void;
-  onUpdateMaterial?: (id: string, name: string, brand?: string, spec?: string) => void;
-  onDeleteMaterial?: (id: string) => void;
+  onAddMaterial?: (name: string, brand?: string, spec?: string) => Promise<Material | null>;
+  onUpdateMaterial?: (id: string, name: string, brand?: string, spec?: string) => Promise<boolean>;
+  onDeleteMaterial?: (id: string) => Promise<boolean>;
 }
 
 export function LiveRoomMaterials({
@@ -35,6 +35,7 @@ export function LiveRoomMaterials({
   const [formName, setFormName] = useState("");
   const [formBrand, setFormBrand] = useState("");
   const [formSpec, setFormSpec] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const resetForm = () => {
     setFormName("");
@@ -44,15 +45,25 @@ export function LiveRoomMaterials({
     setEditingId(null);
   };
 
-  const handleSubmit = () => {
-    if (!formName.trim()) return;
+  const handleSubmit = async () => {
+    if (!formName.trim() || isSaving) return;
 
-    if (editingId) {
-      onUpdateMaterial?.(editingId, formName.trim(), formBrand.trim(), formSpec.trim());
-    } else {
-      onAddMaterial?.(formName.trim(), formBrand.trim(), formSpec.trim());
+    setIsSaving(true);
+    try {
+      if (editingId) {
+        const success = await onUpdateMaterial?.(editingId, formName.trim(), formBrand.trim(), formSpec.trim());
+        if (success) {
+          resetForm();
+        }
+      } else {
+        const result = await onAddMaterial?.(formName.trim(), formBrand.trim(), formSpec.trim());
+        if (result) {
+          resetForm();
+        }
+      }
+    } finally {
+      setIsSaving(false);
     }
-    resetForm();
   };
 
   const handleEdit = (material: Material) => {
@@ -63,8 +74,8 @@ export function LiveRoomMaterials({
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    onDeleteMaterial?.(id);
+  const handleDelete = async (id: string) => {
+    await onDeleteMaterial?.(id);
   };
 
   return (
@@ -135,10 +146,16 @@ export function LiveRoomMaterials({
                   <Button
                     size="sm"
                     onClick={handleSubmit}
-                    disabled={!formName.trim()}
+                    disabled={!formName.trim() || isSaving}
                     className="flex-1 bg-gold text-background hover:bg-gold/90"
                   >
-                    {editingId ? "Update" : "Add"}
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : editingId ? (
+                      "Update"
+                    ) : (
+                      "Add"
+                    )}
                   </Button>
                 </div>
               </motion.div>
