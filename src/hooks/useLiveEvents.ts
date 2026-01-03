@@ -7,6 +7,7 @@ const ENDED_GRACE_PERIOD_MINUTES = 30;
 export interface LiveEvent {
   id: string;
   title: string;
+  description: string | null;
   cover_url: string | null;
   price: number | null;
   is_free: boolean;
@@ -126,6 +127,7 @@ export function useLiveEvents() {
             return {
               ...event,
               viewer_count: viewerCount,
+              description: event.description || null,
               category: event.category || null, // Use actual category column
               creator: profileMap.get(event.creator_id) || { name: "Unknown", avatar_url: null },
             };
