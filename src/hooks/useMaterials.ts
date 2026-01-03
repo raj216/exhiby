@@ -57,8 +57,16 @@ export function useMaterials(eventId: string | null) {
           filter: `event_id=eq.${eventId}`,
         },
         (payload) => {
+          console.log("[useMaterials] Realtime event:", payload.eventType, payload);
           if (payload.eventType === "INSERT") {
-            setMaterials((prev) => [...prev, payload.new as Material]);
+            // Only add if not already present (avoid duplicate from optimistic update)
+            setMaterials((prev) => {
+              if (prev.some(m => m.id === payload.new.id)) {
+                console.log("[useMaterials] Skipping duplicate INSERT from realtime");
+                return prev;
+              }
+              return [...prev, payload.new as Material];
+            });
           } else if (payload.eventType === "DELETE") {
             setMaterials((prev) => prev.filter((m) => m.id !== payload.old.id));
           } else if (payload.eventType === "UPDATE") {
@@ -118,6 +126,14 @@ export function useMaterials(eventId: string | null) {
     async (id: string, name: string, brand?: string, spec?: string) => {
       console.log("[useMaterials] Updating material:", { id, name, brand, spec });
       
+      // Store previous state for rollback
+      const previousMaterials = [...materials];
+      
+      // Optimistic update: immediately update in UI
+      setMaterials((prev) =>
+        prev.map((m) => m.id === id ? { ...m, name, brand: brand || null, spec: spec || null } : m)
+      );
+      
       const { error } = await supabase
         .from("live_materials")
         .update({
@@ -129,6 +145,8 @@ export function useMaterials(eventId: string | null) {
 
       if (error) {
         console.error("[useMaterials] Error updating:", error);
+        // Rollback on error
+        setMaterials(previousMaterials);
         toast.error(`Failed to update material: ${error.message}`);
         return false;
       }
@@ -137,16 +155,24 @@ export function useMaterials(eventId: string | null) {
       toast.success("Material updated");
       return true;
     },
-    []
+    [materials]
   );
 
   const deleteMaterial = useCallback(async (id: string) => {
     console.log("[useMaterials] Deleting material:", id);
     
+    // Store previous state for rollback
+    const previousMaterials = [...materials];
+    
+    // Optimistic update: immediately remove from UI
+    setMaterials((prev) => prev.filter((m) => m.id !== id));
+    
     const { error } = await supabase.from("live_materials").delete().eq("id", id);
 
     if (error) {
       console.error("[useMaterials] Error deleting:", error);
+      // Rollback on error
+      setMaterials(previousMaterials);
       toast.error(`Failed to delete material: ${error.message}`);
       return false;
     }
@@ -154,7 +180,7 @@ export function useMaterials(eventId: string | null) {
     console.log("[useMaterials] Material deleted successfully");
     toast.success("Material removed");
     return true;
-  }, []);
+  }, [materials]);
 
   return {
     materials,
