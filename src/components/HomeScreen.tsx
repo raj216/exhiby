@@ -102,15 +102,10 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
     fetchUpcomingEvents();
   }, []);
 
-  // Filter live content based on selected category
-  const filteredLive = useMemo(() => {
-    if (selectedCategory === "All") {
-      return liveStreams;
-    }
-    return liveStreams.filter(item => item.category === selectedCategory);
-  }, [selectedCategory, liveStreams]);
+  // Live Now: always show all currently-live streams (category filter should never hide active lives)
+  const liveNowStreams = liveStreams;
 
-  const hasLiveContent = filteredLive.length > 0;
+  const hasLiveContent = liveNowStreams.length > 0;
   const hasUpcomingEvents = upcomingEvents.length > 0;
 
   const handleCategorySelect = (category: string) => {
@@ -195,9 +190,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                     <section className="py-6">
                       <div className="flex items-center justify-between px-4 lg:px-6 mb-4">
                         <div>
-                          <h2 className="font-display text-xl lg:text-2xl text-foreground">
-                            {selectedCategory === "All" ? "Live Now" : `Live ${selectedCategory}`}
-                          </h2>
+                          <h2 className="font-display text-xl lg:text-2xl text-foreground">Live Now</h2>
                           <p className="text-sm text-muted-foreground">Step into a studio</p>
                         </div>
                         <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
@@ -208,7 +201,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                       {/* Mobile & Tablet: Horizontal scroll carousel */}
                       <div className="px-4 lg:hidden">
                         <div className="flex items-stretch gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide min-h-[300px]">
-                          {filteredLive.map((event, index) => (
+                          {liveNowStreams.map((event, index) => (
                             <motion.div
                               key={event.id}
                               initial={{ opacity: 0, scale: 0.9 }}
@@ -230,7 +223,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                       {/* Desktop: Responsive grid - expands to fill space */}
                       <div className="hidden lg:block px-6">
                         <div className="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
-                          {filteredLive.slice(0, 8).map((event, index) => (
+                          {liveNowStreams.slice(0, 8).map((event, index) => (
                             <motion.div
                               key={event.id}
                               initial={{ opacity: 0, scale: 0.9 }}
