@@ -6,9 +6,12 @@ interface LiveMarqueeCardProps {
   id: string;
   coverImage: string;
   title: string;
+  description?: string;
   price: number;
   viewers: number;
   artistName: string;
+  artistAvatar?: string;
+  category?: string;
   endedAt?: string | null;
   onClick?: () => void;
   layoutId?: string;
@@ -36,9 +39,12 @@ export function LiveMarqueeCard({
   id,
   coverImage,
   title,
+  description,
   price,
   viewers,
   artistName,
+  artistAvatar,
+  category,
   endedAt,
   onClick,
   layoutId,
@@ -48,13 +54,13 @@ export function LiveMarqueeCard({
 
   const handleJoin = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isEnded) return; // Don't allow joining ended streams
+    if (isEnded) return;
     triggerClickHaptic();
     onClick?.();
   };
 
   const handleCardTap = () => {
-    if (isEnded) return; // Don't allow joining ended streams
+    if (isEnded) return;
     triggerClickHaptic();
     onClick?.();
   };
@@ -67,28 +73,35 @@ export function LiveMarqueeCard({
       whileTap={isEnded ? undefined : { scale: 0.98 }}
       onClick={handleCardTap}
     >
-      {/* Image Container with badges and buttons */}
-      <div className={`poster-card relative w-full ${desktopSize ? 'aspect-[3/4]' : ''}`} style={{ minHeight: desktopSize ? undefined : '240px' }}>
-        {/* Background - simulated blurred video */}
-        <div className="absolute inset-0 bg-gradient-to-b from-obsidian/50 to-carbon rounded-xl overflow-hidden">
-          <img
-            src={coverImage}
-            alt=""
-            className={`w-full h-full object-cover opacity-30 blur-sm ${isEnded ? 'grayscale' : ''}`}
+      {/* Artist Header - Above Image */}
+      <div className="flex items-center gap-2 mb-2 px-1">
+        {artistAvatar ? (
+          <img 
+            src={artistAvatar} 
+            alt={artistName}
+            className="w-8 h-8 rounded-full object-cover border border-border/30"
           />
-        </div>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center border border-border/30">
+            <span className="text-xs font-medium text-muted-foreground">
+              {artistName.charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
+        <span className="text-sm font-medium text-foreground truncate">{artistName}</span>
+      </div>
 
-        {/* Cover Image Overlay */}
-        <div className="absolute inset-3 rounded-lg overflow-hidden shadow-deep">
-          <img
-            src={coverImage}
-            alt={title}
-            className={`w-full h-full object-cover ${isEnded ? 'grayscale' : ''}`}
-          />
-        </div>
+      {/* Image Container with LIVE badge */}
+      <div className={`poster-card relative w-full rounded-xl overflow-hidden ${desktopSize ? 'aspect-[4/5]' : ''}`} style={{ minHeight: desktopSize ? undefined : '200px' }}>
+        {/* Cover Image */}
+        <img
+          src={coverImage}
+          alt={title}
+          className={`w-full h-full object-cover ${isEnded ? 'grayscale' : ''}`}
+        />
 
-        {/* Top Badge - LIVE or ENDED with viewer count */}
-        <div className="absolute top-5 left-5">
+        {/* LIVE Badge - Top Left */}
+        <div className="absolute top-3 left-3">
           <LiveBadge viewers={viewers} endedAt={endedAt} size="md" />
         </div>
 
@@ -114,10 +127,26 @@ export function LiveMarqueeCard({
 
       {/* Info Section - below image */}
       <div className="pt-3 pb-1 px-1">
+        {/* Title - 2 lines max */}
         <h3 className="font-display text-base sm:text-lg text-foreground font-semibold line-clamp-2 leading-tight">
           {title}
         </h3>
-        <p className="text-sm text-muted-foreground mt-1">{artistName}</p>
+        
+        {/* Category • Description */}
+        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+          {category && (
+            <span className="text-primary">{category}</span>
+          )}
+          {category && description && (
+            <span className="mx-1">•</span>
+          )}
+          {description && (
+            <span>{description}</span>
+          )}
+          {!category && !description && (
+            <span>Live stream</span>
+          )}
+        </p>
       </div>
     </motion.div>
   );

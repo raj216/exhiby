@@ -31,6 +31,7 @@ interface ContentItem {
   id: string;
   coverImage: string;
   title: string;
+  description?: string;
   price: number;
   viewers: number;
   artistName: string;
@@ -72,6 +73,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       id: event.id,
       coverImage: event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop",
       title: event.title,
+      description: event.description || undefined,
       price: event.is_free ? 0 : (event.price || 0),
       viewers: event.viewer_count, // Real-time viewer count from database
       artistName: event.creator?.name || "Unknown Artist",
@@ -229,7 +231,15 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                               style={{ width: 'min(65vw, 280px)' }}
                             >
                               <LiveMarqueeCard
-                                {...event}
+                                id={event.id}
+                                coverImage={event.coverImage}
+                                title={event.title}
+                                description={event.description}
+                                price={event.price}
+                                viewers={event.viewers}
+                                artistName={event.artistName}
+                                artistAvatar={event.artistAvatar}
+                                category={event.category}
                                 endedAt={event.endedAt}
                                 onClick={() => handleLiveCardTap(event)}
                                 layoutId={`room-card-${event.id}`}
@@ -250,7 +260,15 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                               transition={{ delay: index * 0.03 }}
                             >
                               <LiveMarqueeCard
-                                {...event}
+                                id={event.id}
+                                coverImage={event.coverImage}
+                                title={event.title}
+                                description={event.description}
+                                price={event.price}
+                                viewers={event.viewers}
+                                artistName={event.artistName}
+                                artistAvatar={event.artistAvatar}
+                                category={event.category}
                                 endedAt={event.endedAt}
                                 onClick={() => handleLiveCardTap(event)}
                                 layoutId={`room-card-${event.id}`}
