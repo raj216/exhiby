@@ -47,7 +47,8 @@ export function useLiveEvents() {
           live_started_at,
           live_ended_at,
           room_url,
-          description
+          description,
+          category
         `)
         .eq("is_live", true)
         .not("room_url", "is", null)
@@ -68,7 +69,8 @@ export function useLiveEvents() {
           live_started_at,
           live_ended_at,
           room_url,
-          description
+          description,
+          category
         `)
         .not("room_url", "is", null)
         .not("live_ended_at", "is", null)
@@ -124,7 +126,7 @@ export function useLiveEvents() {
             return {
               ...event,
               viewer_count: viewerCount,
-              category: event.description,
+              category: event.category || null, // Use actual category column
               creator: profileMap.get(event.creator_id) || { name: "Unknown", avatar_url: null },
             };
           })

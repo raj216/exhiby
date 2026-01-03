@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       events: {
         Row: {
+          category: string | null
           cover_url: string | null
           created_at: string
           creator_id: string
@@ -35,6 +36,7 @@ export type Database = {
           viewer_count: number | null
         }
         Insert: {
+          category?: string | null
           cover_url?: string | null
           created_at?: string
           creator_id: string
@@ -54,6 +56,7 @@ export type Database = {
           viewer_count?: number | null
         }
         Update: {
+          category?: string | null
           cover_url?: string | null
           created_at?: string
           creator_id?: string
