@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { ImageCropper } from "@/components/ImageCropper";
+import { GO_LIVE_CATEGORIES, getCategoryName } from "@/lib/categories";
 
 interface GoLiveWizardProps {
   onClose: () => void;
@@ -31,15 +32,6 @@ export interface EventData {
 
 const MAX_TITLE_LENGTH = 50;
 const MAX_DESCRIPTION_LENGTH = 140;
-
-const categories = [
-  { id: "oil", label: "Oil" },
-  { id: "digital", label: "Digital" },
-  { id: "sketch", label: "Sketch" },
-  { id: "watercolor", label: "Watercolor" },
-  { id: "acrylic", label: "Acrylic" },
-  { id: "mixed", label: "Mixed Media" },
-];
 
 export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const navigate = useNavigate();
@@ -159,7 +151,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
       const eventRecord = {
         creator_id: user.id,
         title: title.trim(),
-        description: description.trim() || category || null,
+        description: description.trim() || null,
+        category: category, // Store category id
         cover_url: coverUrl,
         scheduled_at: now.toISOString(),
         end_time: endTime.toISOString(),
@@ -321,7 +314,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               Category <span className="text-electric">*</span>
             </Label>
             <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
+              {GO_LIVE_CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => {
@@ -334,7 +327,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                       : "bg-surface border border-border/30 text-muted-foreground hover:border-electric/50"
                   }`}
                 >
-                  {cat.label}
+                  {cat.name}
                 </button>
               ))}
             </div>

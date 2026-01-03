@@ -1,18 +1,7 @@
 import { motion } from "framer-motion";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { triggerHaptic } from "@/lib/haptics";
-import { Pencil, Droplets, Palette, Brush, Scissors, Container, Gem, LayoutGrid } from "lucide-react";
-
-const categories = [
-  { id: "all", name: "All", icon: LayoutGrid },
-  { id: "1", name: "Pencil Art", icon: Pencil },
-  { id: "2", name: "Watercolor", icon: Droplets },
-  { id: "3", name: "Oil Painting", icon: Palette },
-  { id: "4", name: "Acrylic", icon: Brush },
-  { id: "5", name: "Handmade Art", icon: Scissors },
-  { id: "6", name: "Pottery", icon: Container },
-  { id: "7", name: "Jewelry", icon: Gem },
-];
+import { CATEGORIES } from "@/lib/categories";
 
 interface LeftSidebarProps {
   onSelectCategory?: (category: string) => void;
@@ -41,7 +30,7 @@ export function LeftSidebar({ onSelectCategory, activeCategory = "All" }: LeftSi
           Categories
         </p>
         <div className="space-y-1">
-          {categories.map((cat, index) => {
+          {CATEGORIES.map((cat, index) => {
             const IconComponent = cat.icon;
             const isActive = activeCategory === cat.name;
             

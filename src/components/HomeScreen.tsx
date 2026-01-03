@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useLiveEvents, LiveEvent } from "@/hooks/useLiveEvents";
+import { getCategoryId } from "@/lib/categories";
 
 interface HomeScreenProps {
   onGoLive: () => void;
@@ -76,11 +77,19 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       artistName: event.creator?.name || "Unknown Artist",
       artistAvatar: event.creator?.avatar_url || undefined,
       materials: [],
-      category: "Handmade Art" as const,
+      category: event.category as ContentItem["category"] || "Handmade Art",
       isLive: !event.live_ended_at,
       endedAt: event.live_ended_at,
     }));
   }, [liveEvents]);
+
+  // Filter live streams by selected category
+  const filteredLiveStreams = useMemo(() => {
+    if (selectedCategory === "All") return liveStreams;
+    
+    const categoryId = getCategoryId(selectedCategory);
+    return liveStreams.filter(stream => stream.category === categoryId || stream.category === selectedCategory);
+  }, [liveStreams, selectedCategory]);
 
   // Fetch upcoming events from database
   useEffect(() => {
@@ -104,10 +113,11 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
     fetchUpcomingEvents();
   }, []);
 
-  // Live Now: always show all currently-live streams (category filter should never hide active lives)
-  const liveNowStreams = liveStreams;
+  // Live Now: show filtered streams based on selected category
+  const liveNowStreams = filteredLiveStreams;
 
   const hasLiveContent = liveNowStreams.length > 0;
+  const hasAnyLiveContent = liveStreams.length > 0; // For showing empty state vs nothing
   const hasUpcomingEvents = upcomingEvents.length > 0;
 
   const handleCategorySelect = (category: string) => {
@@ -252,7 +262,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                     </section>
                   )}
 
-                  {/* Empty Live State - Show when no one is live */}
+                  {/* Empty Live State - Show when no streams for selected category */}
                   {!hasLiveContent && (
                     <section className="py-8 px-4 lg:px-6">
                       <motion.div
@@ -264,10 +274,14 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                           <Clock className="w-8 h-8 text-muted-foreground" />
                         </div>
                         <h3 className="font-display text-lg text-foreground mb-2">
-                          The Studios are Quiet
+                          {selectedCategory === "All" 
+                            ? "The Studios are Quiet"
+                            : `No ${selectedCategory} streams right now`}
                         </h3>
                         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                          Check back soon or schedule an event.
+                          {selectedCategory === "All"
+                            ? "Check back soon or schedule an event."
+                            : "Try selecting a different category or check back later."}
                         </p>
                       </motion.div>
                     </section>
