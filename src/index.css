@@ -319,7 +319,7 @@
     }
   }
 
-  /* Live Avatar Beacon - Pulsing Red Neon Ring for Profile */
+  /* Live Avatar Beacon - Pulsing Live Ring for Profile */
   .live-avatar-beacon {
     position: relative;
     z-index: 1;
@@ -330,11 +330,11 @@
     position: absolute;
     inset: -6px;
     border-radius: 50%;
-    border: 3px solid #FF3B30;
-    box-shadow: 
-      0 0 15px rgba(255, 59, 48, 0.6),
-      0 0 30px rgba(255, 59, 48, 0.4),
-      inset 0 0 10px rgba(255, 59, 48, 0.2);
+    border: 3px solid hsl(var(--live));
+    box-shadow:
+      0 0 15px hsl(var(--live) / 0.6),
+      0 0 30px hsl(var(--live) / 0.4),
+      inset 0 0 10px hsl(var(--live) / 0.2);
     animation: avatar-pulse-ring 2s ease-out infinite;
     z-index: -1;
   }
@@ -344,8 +344,8 @@
     position: absolute;
     inset: -12px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 59, 48, 0.5);
-    box-shadow: 0 0 20px rgba(255, 59, 48, 0.3);
+    border: 2px solid hsl(var(--live) / 0.5);
+    box-shadow: 0 0 20px hsl(var(--live) / 0.3);
     animation: avatar-pulse-ring 2s ease-out infinite 0.5s;
     z-index: -1;
   }
