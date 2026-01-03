@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { EventStatus } from "@/hooks/useEventStatus";
 
 interface EventStatusBadgeProps {
@@ -24,6 +25,25 @@ function getEndedLabel(endedAt: string): string {
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours === 1) return "Ended 1 hour ago";
   return `Ended ${diffHours} hours ago`;
+}
+
+// Hook to auto-update ended label every minute
+function useEndedLabel(endedAt: string | null | undefined): string {
+  const [label, setLabel] = useState(() => endedAt ? getEndedLabel(endedAt) : "");
+  
+  useEffect(() => {
+    if (!endedAt) return;
+    
+    setLabel(getEndedLabel(endedAt));
+    
+    const interval = setInterval(() => {
+      setLabel(getEndedLabel(endedAt));
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [endedAt]);
+  
+  return label;
 }
 
 export function EventStatusBadge({
@@ -55,6 +75,9 @@ export function EventStatusBadge({
 
   const styles = sizeStyles[size];
 
+  // Use auto-updating label for ended streams
+  const endedLabel = useEndedLabel(endedAt);
+
   // ENDED status with timestamp
   if (status === "ENDED" && endedAt) {
     return (
@@ -78,7 +101,7 @@ export function EventStatusBadge({
 
         {/* Ended text */}
         <span className={`${styles.text} font-medium text-muted-foreground leading-none`}>
-          {getEndedLabel(endedAt)}
+          {endedLabel}
         </span>
       </motion.div>
     );
