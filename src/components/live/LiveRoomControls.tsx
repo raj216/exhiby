@@ -5,12 +5,12 @@ import {
   Hand,
   Palette,
   CreditCard,
-  PhoneOff,
   Mic,
   MicOff,
   Video,
   VideoOff,
   X,
+  LogOut,
 } from "lucide-react";
 import { SlideToAction } from "@/components/SlideToAction";
 
@@ -22,6 +22,7 @@ interface LiveRoomControlsProps {
   onToggleCamera: () => void;
   onToggleMic: () => void;
   onEndStream: () => void;
+  onLeave?: () => void;
   onOpenChat: () => void;
   onRaiseHand: () => void;
   onOpenMaterials: () => void;
@@ -37,6 +38,7 @@ export function LiveRoomControls({
   onToggleCamera,
   onToggleMic,
   onEndStream,
+  onLeave,
   onOpenChat,
   onRaiseHand,
   onOpenMaterials,
@@ -44,6 +46,7 @@ export function LiveRoomControls({
   handRaised,
 }: LiveRoomControlsProps) {
   const [showPayCTA, setShowPayCTA] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const handlePayTrigger = () => {
     setShowPayCTA(true);
@@ -52,6 +55,17 @@ export function LiveRoomControls({
   const handlePayComplete = () => {
     onSwipeToPay();
     setShowPayCTA(false);
+  };
+
+  const handleEndStream = () => {
+    if (showEndConfirm) {
+      onEndStream();
+      setShowEndConfirm(false);
+    } else {
+      setShowEndConfirm(true);
+      // Auto-hide confirm after 3 seconds
+      setTimeout(() => setShowEndConfirm(false), 3000);
+    }
   };
 
   return (
@@ -65,9 +79,28 @@ export function LiveRoomControls({
           className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-6"
           style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}
         >
-          {/* Swipe to Pay CTA */}
+          {/* End Stream Confirmation (Host) */}
           <AnimatePresence>
-            {showPayCTA && (
+            {isHost && showEndConfirm && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className="mb-4 flex justify-center"
+              >
+                <button
+                  onClick={handleEndStream}
+                  className="px-6 py-3 rounded-full bg-destructive text-white font-semibold hover:bg-destructive/90 transition-colors shadow-lg"
+                >
+                  Tap again to end stream
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Swipe to Pay CTA (Viewer) */}
+          <AnimatePresence>
+            {!isHost && showPayCTA && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -93,9 +126,10 @@ export function LiveRoomControls({
           {/* Control Bar - Frosted Glass Pill */}
           <div className="flex items-center justify-center gap-2">
             <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
-              {/* Host Controls */}
+              {/* HOST Controls */}
               {isHost && (
                 <>
+                  {/* Mic Toggle */}
                   <button
                     onClick={onToggleMic}
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
@@ -107,6 +141,7 @@ export function LiveRoomControls({
                     {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                   </button>
                   
+                  {/* Camera Toggle */}
                   <button
                     onClick={onToggleCamera}
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
@@ -122,7 +157,7 @@ export function LiveRoomControls({
                 </>
               )}
 
-              {/* Common Controls */}
+              {/* Chat - Both Host and Viewer */}
               <button
                 onClick={onOpenChat}
                 className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
@@ -130,19 +165,7 @@ export function LiveRoomControls({
                 <MessageCircle className="w-5 h-5" />
               </button>
 
-              {!isHost && (
-                <button
-                  onClick={onRaiseHand}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                    handRaised
-                      ? "bg-gold/80 text-background"
-                      : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
-                >
-                  <Hand className="w-5 h-5" />
-                </button>
-              )}
-
+              {/* Materials - Both Host and Viewer */}
               <button
                 onClick={onOpenMaterials}
                 className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
@@ -150,24 +173,54 @@ export function LiveRoomControls({
                 <Palette className="w-5 h-5" />
               </button>
 
+              {/* VIEWER-ONLY Controls */}
               {!isHost && (
-                <button
-                  onClick={handlePayTrigger}
-                  className="w-10 h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors"
-                >
-                  <CreditCard className="w-5 h-5" />
-                </button>
+                <>
+                  {/* Raise Hand */}
+                  <button
+                    onClick={onRaiseHand}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                      handRaised
+                        ? "bg-gold/80 text-background"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                    }`}
+                  >
+                    <Hand className="w-5 h-5" />
+                  </button>
+
+                  {/* Swipe to Pay */}
+                  <button
+                    onClick={handlePayTrigger}
+                    className="w-10 h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors"
+                  >
+                    <CreditCard className="w-5 h-5" />
+                  </button>
+
+                  <div className="w-px h-6 bg-white/20 mx-1" />
+
+                  {/* Leave Button (Viewer) */}
+                  <button
+                    onClick={onLeave || onEndStream}
+                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </>
               )}
 
-              {/* End Stream (Host only) */}
+              {/* HOST End Stream Button */}
               {isHost && (
                 <>
                   <div className="w-px h-6 bg-white/20 mx-1" />
                   <button
-                    onClick={onEndStream}
-                    className="w-10 h-10 rounded-full bg-destructive flex items-center justify-center text-white hover:bg-destructive/80 transition-colors"
+                    onClick={handleEndStream}
+                    className={`px-4 h-10 rounded-full flex items-center justify-center gap-2 font-medium transition-colors ${
+                      showEndConfirm
+                        ? "bg-destructive text-white"
+                        : "bg-destructive/80 text-white hover:bg-destructive"
+                    }`}
                   >
-                    <PhoneOff className="w-5 h-5" />
+                    <span className="text-sm">End Stream</span>
                   </button>
                 </>
               )}

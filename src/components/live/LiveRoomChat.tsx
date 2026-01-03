@@ -4,9 +4,11 @@ import { Send, X } from "lucide-react";
 
 export interface ChatMessage {
   id: string;
+  userId: string;
   username: string;
   message: string;
   timestamp: Date;
+  isHost: boolean;
 }
 
 interface LiveRoomChatProps {
@@ -87,11 +89,17 @@ export function LiveRoomChat({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex gap-2"
+                  className="flex flex-wrap items-baseline gap-1.5"
                 >
                   <span className="text-electric font-medium text-sm shrink-0">
-                    {msg.username}:
+                    {msg.username}
                   </span>
+                  {msg.isHost && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gold/20 text-gold border border-gold/30">
+                      Host
+                    </span>
+                  )}
+                  <span className="text-white/50 text-sm">:</span>
                   <span className="text-white/90 text-sm break-words">
                     {msg.message}
                   </span>
