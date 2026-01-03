@@ -4,15 +4,19 @@ import {
   MessageCircle,
   Hand,
   Palette,
-  CreditCard,
+  DollarSign,
   Mic,
   MicOff,
   Video,
   VideoOff,
-  X,
   LogOut,
 } from "lucide-react";
-import { SlideToAction } from "@/components/SlideToAction";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface LiveRoomControlsProps {
   isHost: boolean;
@@ -45,17 +49,7 @@ export function LiveRoomControls({
   onSwipeToPay,
   handRaised,
 }: LiveRoomControlsProps) {
-  const [showPayCTA, setShowPayCTA] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
-
-  const handlePayTrigger = () => {
-    setShowPayCTA(true);
-  };
-
-  const handlePayComplete = () => {
-    onSwipeToPay();
-    setShowPayCTA(false);
-  };
 
   const handleEndStream = () => {
     if (showEndConfirm) {
@@ -98,134 +92,167 @@ export function LiveRoomControls({
             )}
           </AnimatePresence>
 
-          {/* Swipe to Pay CTA (Viewer) */}
-          <AnimatePresence>
-            {!isHost && showPayCTA && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="mb-4"
-              >
-                <div className="relative">
-                  <button
-                    onClick={() => setShowPayCTA(false)}
-                    className="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-surface flex items-center justify-center"
-                  >
-                    <X className="w-4 h-4 text-foreground" />
-                  </button>
-                  <SlideToAction
-                    label="Slide to Support"
-                    onComplete={handlePayComplete}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Control Bar - Frosted Glass Pill */}
-          <div className="flex items-center justify-center gap-2">
-            <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
-              {/* HOST Controls */}
-              {isHost && (
-                <>
-                  {/* Mic Toggle */}
-                  <button
-                    onClick={onToggleMic}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      isMicOn
-                        ? "bg-white/10 text-white hover:bg-white/20"
-                        : "bg-destructive/80 text-white hover:bg-destructive"
-                    }`}
-                  >
-                    {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-                  </button>
-                  
-                  {/* Camera Toggle */}
-                  <button
-                    onClick={onToggleCamera}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      isCameraOn
-                        ? "bg-white/10 text-white hover:bg-white/20"
-                        : "bg-destructive/80 text-white hover:bg-destructive"
-                    }`}
-                  >
-                    {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-                  </button>
+          <TooltipProvider delayDuration={300}>
+            <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
+                {/* HOST Controls */}
+                {isHost && (
+                  <>
+                    {/* Mic Toggle */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={onToggleMic}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                            isMicOn
+                              ? "bg-white/10 text-white hover:bg-white/20"
+                              : "bg-destructive/80 text-white hover:bg-destructive"
+                          }`}
+                        >
+                          {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{isMicOn ? "Mute" : "Unmute"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Camera Toggle */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={onToggleCamera}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                            isCameraOn
+                              ? "bg-white/10 text-white hover:bg-white/20"
+                              : "bg-destructive/80 text-white hover:bg-destructive"
+                          }`}
+                        >
+                          {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{isCameraOn ? "Turn off camera" : "Turn on camera"}</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  <div className="w-px h-6 bg-white/20 mx-1" />
-                </>
-              )}
+                    <div className="w-px h-6 bg-white/20 mx-1" />
+                  </>
+                )}
 
-              {/* Chat - Both Host and Viewer */}
-              <button
-                onClick={onOpenChat}
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-              >
-                <MessageCircle className="w-5 h-5" />
-              </button>
+                {/* Chat - Both Host and Viewer */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={onOpenChat}
+                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Chat</p>
+                  </TooltipContent>
+                </Tooltip>
 
-              {/* Materials - Both Host and Viewer */}
-              <button
-                onClick={onOpenMaterials}
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-              >
-                <Palette className="w-5 h-5" />
-              </button>
+                {/* Materials - Both Host and Viewer */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={onOpenMaterials}
+                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                    >
+                      <Palette className="w-5 h-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Materials</p>
+                  </TooltipContent>
+                </Tooltip>
 
-              {/* VIEWER-ONLY Controls */}
-              {!isHost && (
-                <>
-                  {/* Raise Hand */}
-                  <button
-                    onClick={onRaiseHand}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      handRaised
-                        ? "bg-gold/80 text-background"
-                        : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
-                  >
-                    <Hand className="w-5 h-5" />
-                  </button>
+                {/* VIEWER-ONLY Controls */}
+                {!isHost && (
+                  <>
+                    {/* Raise Hand */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={onRaiseHand}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                            handRaised
+                              ? "bg-gold/80 text-background"
+                              : "bg-white/10 text-white hover:bg-white/20"
+                          }`}
+                        >
+                          <Hand className="w-5 h-5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>{handRaised ? "Lower hand" : "Raise hand"}</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  {/* Swipe to Pay */}
-                  <button
-                    onClick={handlePayTrigger}
-                    className="w-10 h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors"
-                  >
-                    <CreditCard className="w-5 h-5" />
-                  </button>
+                    {/* Tip Button */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={onSwipeToPay}
+                          className="w-10 h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors"
+                        >
+                          <DollarSign className="w-5 h-5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Tip</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  <div className="w-px h-6 bg-white/20 mx-1" />
+                    <div className="w-px h-6 bg-white/20 mx-1" />
 
-                  {/* Leave Button (Viewer) */}
-                  <button
-                    onClick={onLeave || onEndStream}
-                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </>
-              )}
+                    {/* Leave Button (Viewer) */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={onLeave || onEndStream}
+                          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                        >
+                          <LogOut className="w-5 h-5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Leave</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
 
-              {/* HOST End Stream Button */}
-              {isHost && (
-                <>
-                  <div className="w-px h-6 bg-white/20 mx-1" />
-                  <button
-                    onClick={handleEndStream}
-                    className={`px-4 h-10 rounded-full flex items-center justify-center gap-2 font-medium transition-colors ${
-                      showEndConfirm
-                        ? "bg-destructive text-white"
-                        : "bg-destructive/80 text-white hover:bg-destructive"
-                    }`}
-                  >
-                    <span className="text-sm">End Stream</span>
-                  </button>
-                </>
-              )}
+                {/* HOST End Stream Button */}
+                {isHost && (
+                  <>
+                    <div className="w-px h-6 bg-white/20 mx-1" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={handleEndStream}
+                          className={`px-4 h-10 rounded-full flex items-center justify-center gap-2 font-medium transition-colors ${
+                            showEndConfirm
+                              ? "bg-destructive text-white"
+                              : "bg-destructive/80 text-white hover:bg-destructive"
+                          }`}
+                        >
+                          <span className="text-sm">End Stream</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>End Stream</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          </TooltipProvider>
         </motion.div>
       )}
     </AnimatePresence>

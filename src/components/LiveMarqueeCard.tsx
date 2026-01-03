@@ -90,12 +90,12 @@ export function LiveMarqueeCard({
         </h3>
         <p className="text-sm text-muted-foreground mb-3">{artistName}</p>
 
-        {/* Smart Badge (left) + Join Button (right) */}
-        <div className="flex items-center justify-between gap-2">
+        {/* Smart Badge (left) + Join Button (right) - stacked on narrow cards */}
+        <div className="flex flex-col gap-2">
           <SmartBadge price={price} />
           <button 
             onClick={handleJoin}
-            className="btn-electric px-3 sm:px-4 py-2 text-sm flex-shrink-0"
+            className="btn-electric w-full py-2 text-sm font-semibold"
           >
             Join
           </button>
