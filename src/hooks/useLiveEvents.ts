@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // Grace period in minutes - ended streams stay visible for this long
-const ENDED_GRACE_PERIOD_MINUTES = 15;
+const ENDED_GRACE_PERIOD_MINUTES = 30;
 
 export interface LiveEvent {
   id: string;
