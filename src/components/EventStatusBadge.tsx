@@ -5,22 +5,35 @@ interface EventStatusBadgeProps {
   status: EventStatus;
   countdownLabel?: string;
   viewers?: number;
+  endedAt?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
+}
+
+// Helper to format "ended X minutes ago"
+function getEndedLabel(endedAt: string): string {
+  const endedTime = new Date(endedAt);
+  const now = new Date();
+  const diffMs = now.getTime() - endedTime.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return "Ended just now";
+  if (diffMins === 1) return "Ended 1 min ago";
+  if (diffMins < 60) return `Ended ${diffMins} min ago`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours === 1) return "Ended 1 hour ago";
+  return `Ended ${diffHours} hours ago`;
 }
 
 export function EventStatusBadge({
   status,
   countdownLabel,
   viewers,
+  endedAt,
   size = "sm",
   className = "",
 }: EventStatusBadgeProps) {
-  // Don't render anything for ENDED status
-  if (status === "ENDED") {
-    return null;
-  }
-
   // Size configurations
   const sizeStyles = {
     sm: {
@@ -41,6 +54,40 @@ export function EventStatusBadge({
   };
 
   const styles = sizeStyles[size];
+
+  // ENDED status with timestamp
+  if (status === "ENDED" && endedAt) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`
+          inline-flex items-center justify-center
+          ${styles.wrapper}
+          rounded-full
+          bg-carbon/90 backdrop-blur-sm
+          border border-muted-foreground/30
+          min-h-[28px]
+          ${className}
+        `}
+      >
+        {/* Gray dot for ended */}
+        <span className="relative flex-shrink-0">
+          <span className={`relative inline-flex rounded-full ${styles.dot} bg-muted-foreground`} />
+        </span>
+
+        {/* Ended text */}
+        <span className={`${styles.text} font-medium text-muted-foreground leading-none`}>
+          {getEndedLabel(endedAt)}
+        </span>
+      </motion.div>
+    );
+  }
+
+  // Don't render anything for ENDED status without timestamp
+  if (status === "ENDED") {
+    return null;
+  }
 
   if (status === "LIVE") {
     return (
@@ -121,13 +168,27 @@ export function EventStatusBadge({
  */
 export function LiveBadge({
   viewers,
+  endedAt,
   size = "sm",
   className = "",
 }: {
   viewers?: number;
+  endedAt?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
+  // If endedAt is provided, show ENDED status
+  if (endedAt) {
+    return (
+      <EventStatusBadge
+        status="ENDED"
+        endedAt={endedAt}
+        size={size}
+        className={className}
+      />
+    );
+  }
+
   return (
     <EventStatusBadge
       status="LIVE"

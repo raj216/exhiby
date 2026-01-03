@@ -37,6 +37,7 @@ interface ContentItem {
   materials?: string[];
   category: "Pencil Art" | "Watercolor" | "Oil Painting" | "Acrylic" | "Handmade Art" | "Pottery" | "Jewelry";
   isLive: boolean;
+  endedAt?: string | null;
 }
 
 // Upcoming event from database
@@ -76,7 +77,8 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
       artistAvatar: event.creator?.avatar_url || undefined,
       materials: [],
       category: "Handmade Art" as const,
-      isLive: true,
+      isLive: !event.live_ended_at,
+      endedAt: event.live_ended_at,
     }));
   }, [liveEvents]);
 
@@ -114,6 +116,12 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
   };
 
   const handleLiveCardTap = (event: ContentItem) => {
+    // Don't allow joining ended streams
+    if (event.endedAt) {
+      toast({ title: "Stream Ended", description: "This live session has ended." });
+      return;
+    }
+    
     // Navigate directly to the live room page
     console.log("[HomeScreen] Navigating to live room:", event.id);
     if (event.price > 0) {
@@ -212,6 +220,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                             >
                               <LiveMarqueeCard
                                 {...event}
+                                endedAt={event.endedAt}
                                 onClick={() => handleLiveCardTap(event)}
                                 layoutId={`room-card-${event.id}`}
                               />
@@ -232,6 +241,7 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                             >
                               <LiveMarqueeCard
                                 {...event}
+                                endedAt={event.endedAt}
                                 onClick={() => handleLiveCardTap(event)}
                                 layoutId={`room-card-${event.id}`}
                               />

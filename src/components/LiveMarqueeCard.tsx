@@ -9,6 +9,7 @@ interface LiveMarqueeCardProps {
   price: number;
   viewers: number;
   artistName: string;
+  endedAt?: string | null;
   onClick?: () => void;
   layoutId?: string;
 }
@@ -37,16 +38,21 @@ export function LiveMarqueeCard({
   price,
   viewers,
   artistName,
+  endedAt,
   onClick,
   layoutId,
 }: LiveMarqueeCardProps) {
+  const isEnded = !!endedAt;
+
   const handleJoin = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isEnded) return; // Don't allow joining ended streams
     triggerClickHaptic();
     onClick?.();
   };
 
   const handleCardTap = () => {
+    if (isEnded) return; // Don't allow joining ended streams
     triggerClickHaptic();
     onClick?.();
   };
@@ -54,10 +60,10 @@ export function LiveMarqueeCard({
   return (
     <motion.div
       layoutId={layoutId || `room-card-${id}`}
-      className="poster-card w-full flex-shrink-0 snap-center cursor-pointer"
+      className={`poster-card w-full flex-shrink-0 snap-center ${isEnded ? 'opacity-75' : 'cursor-pointer'}`}
       style={{ minHeight: '300px' }}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={isEnded ? undefined : { scale: 1.02 }}
+      whileTap={isEnded ? undefined : { scale: 0.98 }}
       onClick={handleCardTap}
     >
       {/* Background - simulated blurred video */}
@@ -65,7 +71,7 @@ export function LiveMarqueeCard({
         <img
           src={coverImage}
           alt=""
-          className="w-full h-full object-cover opacity-30 blur-sm"
+          className={`w-full h-full object-cover opacity-30 blur-sm ${isEnded ? 'grayscale' : ''}`}
         />
       </div>
 
@@ -74,13 +80,13 @@ export function LiveMarqueeCard({
         <img
           src={coverImage}
           alt={title}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${isEnded ? 'grayscale' : ''}`}
         />
       </div>
 
-      {/* Top Badge - LIVE with viewer count */}
+      {/* Top Badge - LIVE or ENDED with viewer count */}
       <div className="absolute top-6 left-6">
-        <LiveBadge viewers={viewers} size="md" />
+        <LiveBadge viewers={viewers} endedAt={endedAt} size="md" />
       </div>
 
       {/* Bottom Info */}
@@ -93,12 +99,18 @@ export function LiveMarqueeCard({
         {/* Smart Badge (left) + Join Button (right) - stacked on narrow cards */}
         <div className="flex flex-col gap-2">
           <SmartBadge price={price} />
-          <button 
-            onClick={handleJoin}
-            className="btn-electric w-full py-2 text-sm font-semibold"
-          >
-            Join
-          </button>
+          {isEnded ? (
+            <div className="w-full py-2 text-sm font-medium text-center text-muted-foreground bg-muted/50 rounded-lg">
+              Stream Ended
+            </div>
+          ) : (
+            <button 
+              onClick={handleJoin}
+              className="btn-electric w-full py-2 text-sm font-semibold"
+            >
+              Join
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
