@@ -10,7 +10,13 @@ import { triggerHaptic } from "@/lib/haptics";
 import { toast } from "sonner";
 import { FollowListModal } from "@/components/FollowListModal";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
+import { LiveAccessCard } from "@/components/LiveAccessCard";
 
+interface LiveEventData {
+  id: string;
+  title: string;
+  cover_url: string | null;
+}
 interface PublicProfileData {
   user_id: string;
   name: string;
@@ -36,12 +42,14 @@ export default function PublicProfile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
+  const [liveEvent, setLiveEvent] = useState<LiveEventData | null>(null);
 
   const isOwnProfile = user?.id === profile?.user_id;
   
   // Check if user is a founding member from database
   const isFoundingMember = profile?.is_founding_member ?? false;
   const foundingNumber = profile?.founding_number;
+  const isLive = liveEvent !== null;
 
   const fetchFollowData = useCallback(async (targetUserId: string) => {
     // Fetch follower count
@@ -128,8 +136,50 @@ export default function PublicProfile() {
       }
     };
 
+    // Fetch live event for this creator
+    const fetchLiveEvent = async () => {
+      if (!userId) return;
+      
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, cover_url")
+        .eq("creator_id", userId)
+        .eq("is_live", true)
+        .not("room_url", "is", null)
+        .is("live_ended_at", null)
+        .maybeSingle();
+      
+      if (!error && data) {
+        setLiveEvent(data);
+      } else {
+        setLiveEvent(null);
+      }
+    };
+
     fetchProfile();
-  }, [userId, fetchFollowData]);
+    fetchLiveEvent();
+
+    // Subscribe to real-time updates for creator's live status
+    const channel = supabase
+      .channel(`creator-live-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "events",
+          filter: `creator_id=eq.${userId}`,
+        },
+        () => {
+          fetchLiveEvent();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchFollowData, user, navigate]);
 
   const handleFollow = async () => {
     if (!user || !profile) return;
@@ -262,13 +312,14 @@ export default function PublicProfile() {
 
       {/* Profile Content */}
       <div className="px-4 md:px-6 -mt-16 relative z-10 max-w-2xl mx-auto">
-        {/* Avatar */}
+        {/* Avatar with Live Beacon */}
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1 }}
+          className="relative"
         >
-          <div className="w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-carbon overflow-hidden bg-obsidian">
+          <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-carbon overflow-hidden bg-obsidian ${isLive ? 'live-avatar-beacon' : ''}`}>
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -281,6 +332,19 @@ export default function PublicProfile() {
               </div>
             )}
           </div>
+          
+          {/* LIVE Badge */}
+          {isLive && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 400 }}
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full font-bold text-xs text-white"
+              style={{ background: "#FF3B30" }}
+            >
+              LIVE
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Name & Handle */}
@@ -416,6 +480,22 @@ export default function PublicProfile() {
                 Founding Member {foundingNumber ? `#${foundingNumber}` : ""}
               </span>
             </div>
+          </motion.div>
+        )}
+
+        {/* Live Access Card - appears when creator is live */}
+        {isLive && liveEvent && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-5"
+          >
+            <LiveAccessCard
+              eventId={liveEvent.id}
+              title={liveEvent.title}
+              thumbnailUrl={liveEvent.cover_url}
+            />
           </motion.div>
         )}
 
