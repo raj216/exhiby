@@ -16,6 +16,7 @@ interface LiveEventData {
   id: string;
   title: string;
   cover_url: string | null;
+  live_started_at: string | null;
 }
 interface PublicProfileData {
   user_id: string;
@@ -142,7 +143,7 @@ export default function PublicProfile() {
       
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, cover_url")
+        .select("id, title, cover_url, live_started_at")
         .eq("creator_id", userId)
         .eq("is_live", true)
         .not("room_url", "is", null)
@@ -495,6 +496,8 @@ export default function PublicProfile() {
               eventId={liveEvent.id}
               title={liveEvent.title}
               thumbnailUrl={liveEvent.cover_url}
+              liveStartedAt={liveEvent.live_started_at}
+              isOwnProfile={isOwnProfile}
             />
           </motion.div>
         )}
