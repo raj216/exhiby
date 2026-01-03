@@ -339,15 +339,15 @@ export default function LiveRoom() {
   };
 
   const handleAddMaterial = async (name: string, brand?: string, spec?: string) => {
-    await addMaterial(name, brand, spec);
+    return await addMaterial(name, brand, spec);
   };
 
   const handleUpdateMaterial = async (id: string, name: string, brand?: string, spec?: string) => {
-    await updateMaterial(id, name, brand, spec);
+    return await updateMaterial(id, name, brand, spec);
   };
 
   const handleDeleteMaterial = async (id: string) => {
-    await deleteMaterial(id);
+    return await deleteMaterial(id);
   };
 
   // Other handlers

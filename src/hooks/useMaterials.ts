@@ -76,7 +76,7 @@ export function useMaterials(eventId: string | null) {
   }, [eventId]);
 
   const addMaterial = useCallback(
-    async (name: string, brand?: string, spec?: string) => {
+    async (name: string, brand?: string, spec?: string): Promise<Material | null> => {
       if (!eventId) {
         console.error("[useMaterials] No eventId provided");
         toast.error("Cannot add material: no event ID");
@@ -104,6 +104,10 @@ export function useMaterials(eventId: string | null) {
       }
 
       console.log("[useMaterials] Material added successfully:", data);
+      
+      // Optimistic update: immediately add to local state
+      setMaterials((prev) => [...prev, data as Material]);
+      
       toast.success("Material added");
       return data as Material;
     },
