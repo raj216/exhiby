@@ -319,6 +319,45 @@
     }
   }
 
+  /* Live Avatar Beacon - Pulsing Red Ring for Profile */
+  .live-avatar-beacon {
+    position: relative;
+  }
+
+  .live-avatar-beacon::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 3px solid #FF3B30;
+    animation: avatar-pulse-ring 1.5s ease-out infinite;
+  }
+
+  .live-avatar-beacon::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid #FF3B30;
+    opacity: 0.5;
+    animation: avatar-pulse-ring 1.5s ease-out infinite 0.3s;
+  }
+
+  @keyframes avatar-pulse-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.4;
+    }
+    100% {
+      transform: scale(1.1);
+      opacity: 0;
+    }
+  }
+
   /* Clean Cover Photo - No vignette */
   .clean-cover {
     @apply relative;
