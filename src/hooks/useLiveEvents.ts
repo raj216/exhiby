@@ -41,6 +41,8 @@ export function useLiveEvents() {
           description
         `)
         .eq("is_live", true)
+        .not("room_url", "is", null)
+        .is("live_ended_at", null)
         .order("live_started_at", { ascending: false });
 
       if (fetchError) {
