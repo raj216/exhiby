@@ -62,58 +62,62 @@ export function LiveMarqueeCard({
   return (
     <motion.div
       layoutId={layoutId || `room-card-${id}`}
-      className={`poster-card w-full flex-shrink-0 snap-center ${isEnded ? 'opacity-75' : 'cursor-pointer'} ${desktopSize ? 'aspect-[3/4]' : ''}`}
-      style={{ minHeight: desktopSize ? undefined : '300px' }}
+      className={`w-full flex-shrink-0 snap-center flex flex-col ${isEnded ? 'opacity-75' : 'cursor-pointer'}`}
       whileHover={isEnded ? undefined : { scale: 1.02 }}
       whileTap={isEnded ? undefined : { scale: 0.98 }}
       onClick={handleCardTap}
     >
-      {/* Background - simulated blurred video */}
-      <div className="absolute inset-0 bg-gradient-to-b from-obsidian/50 to-carbon">
-        <img
-          src={coverImage}
-          alt=""
-          className={`w-full h-full object-cover opacity-30 blur-sm ${isEnded ? 'grayscale' : ''}`}
-        />
+      {/* Image Container with badges and buttons */}
+      <div className={`poster-card relative w-full ${desktopSize ? 'aspect-[3/4]' : ''}`} style={{ minHeight: desktopSize ? undefined : '240px' }}>
+        {/* Background - simulated blurred video */}
+        <div className="absolute inset-0 bg-gradient-to-b from-obsidian/50 to-carbon rounded-xl overflow-hidden">
+          <img
+            src={coverImage}
+            alt=""
+            className={`w-full h-full object-cover opacity-30 blur-sm ${isEnded ? 'grayscale' : ''}`}
+          />
+        </div>
+
+        {/* Cover Image Overlay */}
+        <div className="absolute inset-3 rounded-lg overflow-hidden shadow-deep">
+          <img
+            src={coverImage}
+            alt={title}
+            className={`w-full h-full object-cover ${isEnded ? 'grayscale' : ''}`}
+          />
+        </div>
+
+        {/* Top Badge - LIVE or ENDED with viewer count */}
+        <div className="absolute top-5 left-5">
+          <LiveBadge viewers={viewers} endedAt={endedAt} size="md" />
+        </div>
+
+        {/* Bottom Buttons - inside image */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-carbon via-carbon/80 to-transparent">
+          <div className="flex flex-col gap-2">
+            <SmartBadge price={price} />
+            {isEnded ? (
+              <div className="w-full py-2 text-sm font-medium text-center text-muted-foreground bg-muted/50 rounded-lg">
+                Stream Ended
+              </div>
+            ) : (
+              <button 
+                onClick={handleJoin}
+                className="btn-electric w-full py-2 text-sm font-semibold"
+              >
+                Join
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Cover Image Overlay */}
-      <div className="absolute inset-4 rounded-xl overflow-hidden shadow-deep">
-        <img
-          src={coverImage}
-          alt={title}
-          className={`w-full h-full object-cover ${isEnded ? 'grayscale' : ''}`}
-        />
-      </div>
-
-      {/* Top Badge - LIVE or ENDED with viewer count */}
-      <div className="absolute top-6 left-6">
-        <LiveBadge viewers={viewers} endedAt={endedAt} size="md" />
-      </div>
-
-      {/* Bottom Info */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-carbon via-carbon/90 to-transparent">
-        <h3 className="font-display text-lg sm:text-xl text-foreground mb-1 line-clamp-2">
+      {/* Info Section - below image */}
+      <div className="pt-3 pb-1 px-1">
+        <h3 className="font-display text-base sm:text-lg text-foreground font-semibold line-clamp-2 leading-tight">
           {title}
         </h3>
-        <p className="text-sm text-muted-foreground mb-3">{artistName}</p>
-
-        {/* Smart Badge (left) + Join Button (right) - stacked on narrow cards */}
-        <div className="flex flex-col gap-2">
-          <SmartBadge price={price} />
-          {isEnded ? (
-            <div className="w-full py-2 text-sm font-medium text-center text-muted-foreground bg-muted/50 rounded-lg">
-              Stream Ended
-            </div>
-          ) : (
-            <button 
-              onClick={handleJoin}
-              className="btn-electric w-full py-2 text-sm font-semibold"
-            >
-              Join
-            </button>
-          )}
-        </div>
+        <p className="text-sm text-muted-foreground mt-1">{artistName}</p>
       </div>
     </motion.div>
   );
