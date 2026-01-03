@@ -75,81 +75,28 @@ export default function PublicProfile() {
   }, [user]);
 
   useEffect(() => {
-    // If this is the current user's profile, redirect to their own profile screen
-    if (user && userId === user.id) {
-      console.log("[PublicProfile] Detected own profile, redirecting to own profile screen");
-      navigate("/", { state: { openProfile: true }, replace: true });
+    if (!userId) {
+      console.error("[PublicProfile] No userId provided in route params");
+      setError("Invalid profile ID");
+      setIsLoading(false);
       return;
     }
 
-    const fetchProfile = async () => {
-      if (!userId) {
-        console.error("[PublicProfile] No userId provided in route params");
-        setError("Invalid profile ID");
-        setIsLoading(false);
-        return;
-      }
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let isCancelled = false;
 
-      try {
-        // Only use RPC - never query profiles table directly for other users
-        const { data, error: rpcError } = await supabase.rpc("get_public_profile", {
-          profile_user_id: userId,
-        });
-
-        if (rpcError) {
-          console.error("[PublicProfile] RPC error:", rpcError);
-          setError("Failed to load profile");
-          setIsLoading(false);
-          return;
-        }
-
-        // The RPC returns an array, take the first result
-        if (data && Array.isArray(data) && data.length > 0) {
-          console.log("PublicProfile loaded via RPC for user_id:", userId);
-          const profileData = data[0] as PublicProfileData;
-          setProfile(profileData);
-          fetchFollowData(profileData.user_id);
-        } else {
-          // Fallback: try by profile row id
-          const { data: fallbackData, error: fallbackError } = await supabase.rpc(
-            "get_public_profile_by_profile_id",
-            { profile_id: userId }
-          );
-
-          if (fallbackError) {
-            console.error("[PublicProfile] Fallback RPC error:", fallbackError);
-            setError("Profile not found");
-          } else if (fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
-            console.log("PublicProfile loaded via RPC for user_id:", fallbackData[0].user_id);
-            const profileData = fallbackData[0] as PublicProfileData;
-            setProfile(profileData);
-            fetchFollowData(profileData.user_id);
-          } else {
-            console.log("[PublicProfile] Profile not found for:", userId);
-            setError("Profile not found");
-          }
-        }
-      } catch (err) {
-        console.error("[PublicProfile] Unexpected fetch error:", err);
-        setError("Failed to load profile");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // Fetch live event for this creator
-    const fetchLiveEvent = async () => {
-      if (!userId) return;
-      
+    const fetchLiveEvent = async (creatorUserId: string) => {
       const { data, error } = await supabase
         .from("events")
         .select("id, title, cover_url, live_started_at")
-        .eq("creator_id", userId)
+        .eq("creator_id", creatorUserId)
         .eq("is_live", true)
         .not("room_url", "is", null)
         .is("live_ended_at", null)
         .maybeSingle();
-      
+
+      if (isCancelled) return;
+
       if (!error && data) {
         setLiveEvent(data);
       } else {
@@ -157,28 +104,83 @@ export default function PublicProfile() {
       }
     };
 
-    fetchProfile();
-    fetchLiveEvent();
+    const fetchProfileAndSetup = async () => {
+      setIsLoading(true);
+      setError(null);
+      setProfile(null);
+      setLiveEvent(null);
 
-    // Subscribe to real-time updates for creator's live status
-    const channel = supabase
-      .channel(`creator-live-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "events",
-          filter: `creator_id=eq.${userId}`,
-        },
-        () => {
-          fetchLiveEvent();
+      try {
+        // Only use RPC - never query profiles table directly for other users
+        const { data, error: rpcError } = await supabase.rpc("get_public_profile", {
+          profile_user_id: userId,
+        });
+
+        let profileData: PublicProfileData | null = null;
+
+        if (!rpcError && data && Array.isArray(data) && data.length > 0) {
+          console.log("PublicProfile loaded via RPC for user_id:", userId);
+          profileData = data[0] as PublicProfileData;
+        } else {
+          // Fallback: try by profile row id
+          const { data: fallbackData, error: fallbackError } = await supabase.rpc(
+            "get_public_profile_by_profile_id",
+            { profile_id: userId }
+          );
+
+          if (!fallbackError && fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
+            console.log("PublicProfile loaded via RPC for user_id:", fallbackData[0].user_id);
+            profileData = fallbackData[0] as PublicProfileData;
+          }
         }
-      )
-      .subscribe();
+
+        if (!profileData) {
+          setError("Profile not found");
+          return;
+        }
+
+        // If this resolves to the current user's own profile, redirect to internal profile view
+        if (user && profileData.user_id === user.id) {
+          console.log("[PublicProfile] Detected own profile, redirecting to own profile screen");
+          navigate("/", { state: { openProfile: true }, replace: true });
+          return;
+        }
+
+        setProfile(profileData);
+        fetchFollowData(profileData.user_id);
+
+        // Live status must use the resolved creator user_id (route param may be user_id OR profile row id)
+        await fetchLiveEvent(profileData.user_id);
+
+        // Subscribe to real-time updates for creator's live status
+        channel = supabase
+          .channel(`creator-live-${profileData.user_id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "events",
+              filter: `creator_id=eq.${profileData.user_id}`,
+            },
+            () => {
+              fetchLiveEvent(profileData!.user_id);
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.error("[PublicProfile] Unexpected fetch error:", err);
+        setError("Failed to load profile");
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    };
+
+    fetchProfileAndSetup();
 
     return () => {
-      supabase.removeChannel(channel);
+      isCancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [userId, fetchFollowData, user, navigate]);
 
@@ -249,6 +251,29 @@ export default function PublicProfile() {
     ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
     : null;
 
+  // Lightweight per-page SEO (no extra deps)
+  useEffect(() => {
+    if (!profile) return;
+
+    const baseTitle = profile.handle ? `${profile.name} (@${profile.handle})` : profile.name;
+    const title = `${baseTitle}${isLive ? " is Live" : ""} | Exhiby`;
+    document.title = title.slice(0, 60);
+
+    const desc = `View ${profile.name}'s profile${isLive ? " and join their live stream" : ""} on Exhiby. Explore their portfolio and follow for future live sessions.`;
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", desc.slice(0, 160));
+
+    // Canonical
+    const canonicalHref = `${window.location.origin}/profile/${profile.user_id}`;
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", canonicalHref);
+  }, [profile, isLive]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-carbon">
@@ -282,14 +307,29 @@ export default function PublicProfile() {
         {profile.cover_url ? (
           <img
             src={profile.cover_url}
-            alt="Cover"
+            alt={`Cover photo of ${profile.name}`}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
         )}
-        
-        
+
+        {/* Live pill on cover */}
+        {isLive && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full backdrop-blur-sm border border-live/30 bg-carbon/70 flex items-center gap-2"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-live" />
+            </span>
+            <span className="text-xs font-bold tracking-wide text-primary-foreground">LIVE NOW</span>
+          </motion.div>
+        )}
+
         {/* Back Button */}
         <motion.button
           onClick={handleBack}
@@ -320,28 +360,31 @@ export default function PublicProfile() {
           transition={{ delay: 0.1 }}
           className="relative"
         >
-          <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full border-4 border-carbon overflow-hidden bg-obsidian ${isLive ? 'live-avatar-beacon' : ''}`}>
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={profile.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground">
-                {profile.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+          {/* Beacon wrapper (must NOT be overflow-hidden or the ring gets clipped) */}
+          <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full ${isLive ? "live-avatar-beacon" : ""}`}>
+            <div className="w-full h-full rounded-full border-4 border-carbon overflow-hidden bg-obsidian">
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={`Avatar of ${profile.name}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground">
+                  {profile.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
           </div>
-          
+
           {/* LIVE Badge */}
           {isLive && (
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 400 }}
-              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full font-bold text-xs text-white"
-              style={{ background: "#FF3B30" }}
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full font-bold text-xs bg-live text-primary-foreground"
             >
               LIVE
             </motion.div>
