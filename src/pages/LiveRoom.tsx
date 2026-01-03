@@ -4,7 +4,9 @@ import { motion } from "framer-motion";
 import { AlertCircle, Loader2, MicOff, VideoOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
+import { useMaterials } from "@/hooks/useMaterials";
 import { useDaily, DailyJoinStatus } from "@/hooks/useDaily";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,7 +17,6 @@ import {
   LiveRoomChat,
   LiveRoomMaterials,
   ChatMessage,
-  Material,
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
 
@@ -36,6 +37,7 @@ export default function LiveRoom() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { user, session } = useAuth();
+  const { profile } = useProfile();
   const isMobile = useIsMobile();
 
   const [event, setEvent] = useState<EventData | null>(null);
@@ -51,11 +53,6 @@ export default function LiveRoom() {
   const [showMaterials, setShowMaterials] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [materials] = useState<Material[]>([
-    { id: "1", name: "Graphite Pencil Set", brand: "Faber-Castell", description: "2B, 4B, 6B grades" },
-    { id: "2", name: "Sketchbook", brand: "Strathmore", description: "400 Series, 9x12" },
-    { id: "3", name: "Kneaded Eraser", brand: "Prismacolor" },
-  ]);
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
@@ -65,6 +62,14 @@ export default function LiveRoom() {
   const { viewerCount, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId || null);
   
   const isCreator = user?.id === event?.creator_id;
+
+  // Materials from database
+  const {
+    materials,
+    addMaterial,
+    updateMaterial,
+    deleteMaterial,
+  } = useMaterials(eventId || null);
 
   // Daily SDK integration
   const {
@@ -85,7 +90,7 @@ export default function LiveRoom() {
   } = useDaily({
     roomUrl: event?.room_url || null,
     isHost: isCreator,
-    userName: user?.email?.split("@")[0] || "Guest",
+    userName: profile?.name || profile?.handle || user?.email?.split("@")[0] || "Guest",
     joinTimeoutMs: 12000,
     onJoined: () => {
       console.log("[LiveRoom] Successfully joined Daily room");
@@ -196,10 +201,6 @@ export default function LiveRoom() {
     fetchEvent();
   }, [eventId]);
 
-  // Join Daily room when event loads and has room_url
-  // Auto-join is handled by useDaily hook with autoJoin=true (default)
-  // This effect is no longer needed as the hook automatically joins when ready
-
   // Join as viewer when component mounts (for non-creators)
   useEffect(() => {
     if (event && user && !isCreator && isJoined) {
@@ -268,7 +269,7 @@ export default function LiveRoom() {
     }
   }, [reset]);
 
-  // Handle closing the live room
+  // Handle closing the live room (host = end stream, viewer = leave)
   const handleClose = useCallback(async () => {
     if (isCreator && event) {
       console.log("[LiveRoom] Creator ending stream...");
@@ -297,6 +298,13 @@ export default function LiveRoom() {
     navigate("/");
   }, [isCreator, event, leaveAsViewer, leave, navigate]);
 
+  // Viewer leave handler
+  const handleLeave = useCallback(async () => {
+    await leaveAsViewer();
+    await leave();
+    navigate("/");
+  }, [leaveAsViewer, leave, navigate]);
+
   // Chat handlers
   const handleOpenChat = () => {
     setShowChat(true);
@@ -308,11 +316,14 @@ export default function LiveRoom() {
   };
 
   const handleSendMessage = (message: string) => {
+    const displayName = profile?.name || profile?.handle || user?.email?.split("@")[0] || "You";
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
-      username: user?.email?.split("@")[0] || "You",
+      userId: user?.id || "",
+      username: displayName,
       message,
       timestamp: new Date(),
+      isHost: isCreator,
     };
     setChatMessages((prev) => [...prev, newMessage]);
   };
@@ -325,6 +336,18 @@ export default function LiveRoom() {
 
   const handleCloseMaterials = () => {
     setShowMaterials(false);
+  };
+
+  const handleAddMaterial = async (name: string, brand?: string, spec?: string) => {
+    await addMaterial(name, brand, spec);
+  };
+
+  const handleUpdateMaterial = async (id: string, name: string, brand?: string, spec?: string) => {
+    await updateMaterial(id, name, brand, spec);
+  };
+
+  const handleDeleteMaterial = async (id: string) => {
+    await deleteMaterial(id);
   };
 
   // Other handlers
@@ -611,6 +634,10 @@ export default function LiveRoom() {
             isOpen={showMaterials}
             onClose={handleCloseMaterials}
             materials={materials}
+            isHost={isCreator}
+            onAddMaterial={handleAddMaterial}
+            onUpdateMaterial={handleUpdateMaterial}
+            onDeleteMaterial={handleDeleteMaterial}
           />
 
           {/* Controls */}
@@ -622,6 +649,7 @@ export default function LiveRoom() {
             onToggleCamera={toggleCamera}
             onToggleMic={toggleMic}
             onEndStream={handleClose}
+            onLeave={handleLeave}
             onOpenChat={handleOpenChat}
             onRaiseHand={handleRaiseHand}
             onOpenMaterials={handleOpenMaterials}

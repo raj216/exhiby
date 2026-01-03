@@ -95,6 +95,44 @@ export type Database = {
         }
         Relationships: []
       }
+      live_materials: {
+        Row: {
+          brand: string | null
+          created_at: string
+          event_id: string
+          id: string
+          name: string
+          spec: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          name: string
+          spec?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          name?: string
+          spec?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_materials_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_viewers: {
         Row: {
           event_id: string

@@ -28,10 +28,13 @@ export function DebugPanel({
 }: DebugPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Only show in development/preview
-  const isDev = import.meta.env.DEV || window.location.hostname.includes("lovable");
-
-  if (!isDev) return null;
+  // Only show in development OR when ?debug=1 is in URL
+  const isDev = import.meta.env.DEV;
+  const hasDebugFlag = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1";
+  
+  if (!isDev && !hasDebugFlag) {
+    return null;
+  }
 
   const statusColors: Record<DailyJoinStatus, string> = {
     idle: "text-muted-foreground",
@@ -52,6 +55,9 @@ export function DebugPanel({
         <div className="flex items-center gap-2">
           <Bug className="w-4 h-4 text-amber-500" />
           <span className="font-semibold text-foreground">Debug Panel</span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400">
+            {isDev ? "DEV" : "?debug=1"}
+          </span>
         </div>
         {isExpanded ? (
           <ChevronUp className="w-4 h-4 text-muted-foreground" />
