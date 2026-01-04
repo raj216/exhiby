@@ -23,7 +23,6 @@ interface UserProfile {
   name: string;
   handle: string | null;
   avatarUrl: string | null;
-  email: string;
   memberSince: string;
   bio?: string | null;
   website?: string | null;
@@ -74,7 +73,7 @@ export function AudienceProfile({
     if (!user) return;
     const { data } = await supabase
       .from("profiles")
-      .select("name, handle, avatar_url, email, created_at, bio, website, cover_url, is_founding_member, founding_number")
+      .select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number")
       .eq("user_id", user.id)
       .maybeSingle();
     
@@ -88,7 +87,6 @@ export function AudienceProfile({
         name: data.name,
         handle: data.handle,
         avatarUrl: data.avatar_url,
-        email: data.email,
         memberSince,
         bio: data.bio,
         website: data.website,
