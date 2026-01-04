@@ -16,7 +16,16 @@ export function useProfileSearch() {
   const [error, setError] = useState<string | null>(null);
 
   const searchProfiles = useCallback(async (searchText: string) => {
-    if (!searchText.trim()) {
+    const trimmed = searchText.trim();
+    if (!trimmed) {
+      setResults([]);
+      return;
+    }
+
+    // Client-side sanitization - remove SQL wildcards as extra layer of defense
+    // (backend also escapes, but this prevents obviously malicious patterns)
+    const sanitized = trimmed.replace(/[%_\\]/g, '');
+    if (!sanitized) {
       setResults([]);
       return;
     }
@@ -26,7 +35,7 @@ export function useProfileSearch() {
 
     try {
       const { data, error: rpcError } = await supabase.rpc("search_public_profiles", {
-        search_text: searchText.trim(),
+        search_text: sanitized,
       });
 
       if (rpcError) {
