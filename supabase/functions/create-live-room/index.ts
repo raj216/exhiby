@@ -1,17 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
-// Allowed origins for CORS - restrict to application domains only
-const ALLOWED_ORIGINS = [
-  "https://owvwwslbwbarvmjjtlkz.lovableproject.com",
-  "https://owvwwslbwbarvmjjtlkz.lovable.app",
-  Deno.env.get("ALLOWED_ORIGIN") || "http://localhost:5173",
-];
+// Check if origin is from Lovable domains
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  
+  // Allow all Lovable project domains (preview and production)
+  if (origin.endsWith(".lovableproject.com") || origin.endsWith(".lovable.app")) {
+    return true;
+  }
+  
+  // Allow localhost for development
+  if (origin.startsWith("http://localhost:")) {
+    return true;
+  }
+  
+  return false;
+}
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) 
-    ? origin 
-    : ALLOWED_ORIGINS[0];
+  // If origin is allowed, reflect it back; otherwise use wildcard for preflight
+  const allowedOrigin = isAllowedOrigin(origin) ? origin! : "*";
   
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
