@@ -209,7 +209,6 @@ export type Database = {
           bio: string | null
           cover_url: string | null
           created_at: string
-          email: string
           founding_number: number | null
           handle: string | null
           id: string
@@ -224,7 +223,6 @@ export type Database = {
           bio?: string | null
           cover_url?: string | null
           created_at?: string
-          email: string
           founding_number?: number | null
           handle?: string | null
           id?: string
@@ -239,7 +237,6 @@ export type Database = {
           bio?: string | null
           cover_url?: string | null
           created_at?: string
-          email?: string
           founding_number?: number | null
           handle?: string | null
           id?: string
