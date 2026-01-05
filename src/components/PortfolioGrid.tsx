@@ -5,6 +5,7 @@ import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { usePortfolioItems, PortfolioItem } from "@/hooks/usePortfolioItems";
 import { useAuth } from "@/contexts/AuthContext";
+import { AddArtModal } from "@/components/AddArtModal";
 
 interface PortfolioGridProps {
   userId?: string; // If provided, show that user's portfolio (for public profiles)
@@ -16,7 +17,7 @@ export function PortfolioGrid({ userId, isOwner = false }: PortfolioGridProps) {
   const { items, isLoading, addItem, deleteItem } = usePortfolioItems(userId);
   const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const canEdit = isOwner && user;
 
@@ -31,35 +32,16 @@ export function PortfolioGrid({ userId, isOwner = false }: PortfolioGridProps) {
 
   const handleAddClick = () => {
     triggerClickHaptic();
-    fileInputRef.current?.click();
+    setShowAddModal(true);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Invalid file", description: "Please select an image file", variant: "destructive" });
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Image must be under 10MB", variant: "destructive" });
-      return;
-    }
-
+  const handleUpload = async (imageBlob: Blob, title: string, description: string): Promise<boolean> => {
     setIsUploading(true);
-    triggerClickHaptic();
-
     try {
-      // Convert file to blob
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: file.type });
-      
-      await addItem(blob, file.name.replace(/\.[^/.]+$/, "")); // Use filename without extension as title
+      const success = await addItem(imageBlob, title, description);
+      return success;
     } finally {
       setIsUploading(false);
-      e.target.value = "";
     }
   };
 
@@ -105,15 +87,13 @@ export function PortfolioGrid({ userId, isOwner = false }: PortfolioGridProps) {
 
   return (
     <>
-      {canEdit && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-      )}
+      {/* Add Art Modal */}
+      <AddArtModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onUpload={handleUpload}
+        isUploading={isUploading}
+      />
 
       {/* Header with Add Button (only for owner) */}
       <div className="flex items-center justify-between mb-4">

@@ -7,6 +7,7 @@ export interface PortfolioItem {
   id: string;
   image_url: string;
   title: string | null;
+  description: string | null;
   created_at: string;
 }
 
@@ -70,7 +71,7 @@ export function usePortfolioItems(targetUserId?: string) {
     fetchItems();
   }, [fetchItems]);
 
-  const addItem = async (imageBlob: Blob, title?: string) => {
+  const addItem = async (imageBlob: Blob, title: string, description: string) => {
     if (!user || !profileId) {
       toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
       return false;
@@ -97,7 +98,8 @@ export function usePortfolioItems(targetUserId?: string) {
         .insert({
           profile_id: profileId,
           image_url: publicUrl,
-          title: title || null,
+          title: title,
+          description: description,
         });
 
       if (insertError) throw insertError;
