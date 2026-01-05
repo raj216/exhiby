@@ -73,9 +73,15 @@ export function PortfolioGrid({ userId, isOwner = false }: PortfolioGridProps) {
     }
   };
 
-  // Split items into two columns for masonry effect
-  const leftColumn = items.filter((_, i) => i % 2 === 0);
-  const rightColumn = items.filter((_, i) => i % 2 === 1);
+  // Split items into columns for masonry effect (2 on mobile, 3 on desktop)
+  const getColumns = (numCols: number) => {
+    const cols: PortfolioItem[][] = Array.from({ length: numCols }, () => []);
+    items.forEach((item, i) => cols[i % numCols].push(item));
+    return cols;
+  };
+  
+  const twoColumns = getColumns(2);
+  const threeColumns = getColumns(3);
 
   if (isLoading) {
     return (
@@ -142,63 +148,71 @@ export function PortfolioGrid({ userId, isOwner = false }: PortfolioGridProps) {
           </div>
         )
       ) : (
-        <div className="flex gap-3">
-          {/* Left Column */}
-          <div className="flex-1 flex flex-col gap-3">
-            {leftColumn.map((item) => (
-              <motion.button
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={() => handleImageClick(item)}
-                className="w-full rounded-xl overflow-hidden relative group"
-              >
-                <img
-                  src={item.image_url}
-                  alt={item.title || "Portfolio artwork"}
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                />
-                {canEdit && (
-                  <button
-                    onClick={(e) => handleDelete(e, item.id)}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-carbon/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        <>
+          {/* Mobile: 2 columns */}
+          <div className="flex gap-3 lg:hidden">
+            {twoColumns.map((column, colIndex) => (
+              <div key={colIndex} className="flex-1 flex flex-col gap-3">
+                {column.map((item) => (
+                  <motion.button
+                    key={item.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => handleImageClick(item)}
+                    className="w-full rounded-xl overflow-hidden relative group"
                   >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </button>
-                )}
-              </motion.button>
+                    <img
+                      src={item.image_url}
+                      alt={item.title || "Portfolio artwork"}
+                      className="w-full h-auto object-cover"
+                      loading="lazy"
+                    />
+                    {canEdit && (
+                      <button
+                        onClick={(e) => handleDelete(e, item.id)}
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-carbon/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </button>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             ))}
           </div>
 
-          {/* Right Column */}
-          <div className="flex-1 flex flex-col gap-3">
-            {rightColumn.map((item) => (
-              <motion.button
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                onClick={() => handleImageClick(item)}
-                className="w-full rounded-xl overflow-hidden relative group"
-              >
-                <img
-                  src={item.image_url}
-                  alt={item.title || "Portfolio artwork"}
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                />
-                {canEdit && (
-                  <button
-                    onClick={(e) => handleDelete(e, item.id)}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-carbon/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          {/* Desktop: 3 columns */}
+          <div className="hidden lg:flex gap-3">
+            {threeColumns.map((column, colIndex) => (
+              <div key={colIndex} className="flex-1 flex flex-col gap-3">
+                {column.map((item) => (
+                  <motion.button
+                    key={item.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => handleImageClick(item)}
+                    className="w-full rounded-xl overflow-hidden relative group"
                   >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </button>
-                )}
-              </motion.button>
+                    <img
+                      src={item.image_url}
+                      alt={item.title || "Portfolio artwork"}
+                      className="w-full h-auto object-cover"
+                      loading="lazy"
+                    />
+                    {canEdit && (
+                      <button
+                        onClick={(e) => handleDelete(e, item.id)}
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-carbon/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </button>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             ))}
           </div>
-        </div>
+        </>
       )}
 
       {/* Lightbox Modal */}
