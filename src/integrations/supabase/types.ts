@@ -174,6 +174,7 @@ export type Database = {
       portfolio_items: {
         Row: {
           created_at: string | null
+          description: string | null
           id: string
           image_url: string
           profile_id: string
@@ -181,6 +182,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           id?: string
           image_url: string
           profile_id: string
@@ -188,6 +190,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           id?: string
           image_url?: string
           profile_id?: string
@@ -336,6 +339,7 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: {
           created_at: string
+          description: string
           id: string
           image_url: string
           title: string
