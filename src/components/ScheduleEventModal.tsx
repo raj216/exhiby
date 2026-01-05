@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { ImageCropper } from "@/components/ImageCropper";
+import { GO_LIVE_CATEGORIES } from "@/lib/categories";
 
 interface ScheduleEventModalProps {
   isOpen: boolean;
@@ -21,15 +22,13 @@ interface ScheduleEventModalProps {
 const MAX_TITLE_LENGTH = 50;
 const MAX_DESCRIPTION_LENGTH = 300;
 
-// Aspect ratio matching the Live Now cards (2/3 = 0.666...)
-const COVER_ASPECT_RATIO = 2 / 3;
-
 export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: ScheduleEventModalProps) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [isFree, setIsFree] = useState(true);
@@ -39,6 +38,17 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+
+  // Validation checks
+  const isCoverUploaded = coverPreview !== null;
+  const isCategorySelected = category !== "";
+  const isTitleValid = title.trim().length > 0;
+  const isDescriptionValid = description.trim().length > 0;
+  const isDateValid = scheduledDate !== "";
+  const isTimeValid = scheduledTime !== "";
+  const isPriceValid = isFree || (parseFloat(price) >= 1);
+
+  const canPublish = isCoverUploaded && isCategorySelected && isTitleValid && isDescriptionValid && isDateValid && isTimeValid && isPriceValid;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,6 +101,11 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
     }
   };
 
+  const handleCategorySelect = (categoryId: string) => {
+    triggerClickHaptic();
+    setCategory(categoryId);
+  };
+
   const validateDateTime = (): boolean => {
     if (!scheduledDate || !scheduledTime) {
       toast({ title: "Error", description: "Please select date and time", variant: "destructive" });
@@ -127,8 +142,8 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
       return;
     }
 
-    if (!title.trim()) {
-      toast({ title: "Error", description: "Please enter a title", variant: "destructive" });
+    if (!canPublish) {
+      toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
 
@@ -172,6 +187,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
           title: title.trim(),
           description: description.trim() || null,
           cover_url: coverUrl,
+          category: category,
           scheduled_at: scheduledAt,
           is_free: isFree,
           price: isFree ? 0 : parseFloat(price) || 0,
@@ -184,6 +200,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
       // Reset form
       setTitle("");
       setDescription("");
+      setCategory("");
       setScheduledDate("");
       setScheduledTime("");
       setIsFree(true);
@@ -254,9 +271,11 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
             {/* Form */}
             <div className="p-5 space-y-5">
-              {/* Cover Image Upload - matches Live Now card 2/3 aspect ratio */}
+              {/* Cover Image Upload - centered, narrow design matching GoLive */}
               <div>
-                <Label className="text-sm text-muted-foreground mb-2 block">Cover Image</Label>
+                <Label className="text-sm text-muted-foreground mb-2 block">
+                  Cover Photo <span className="text-electric">*</span>
+                </Label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -264,27 +283,58 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                   onChange={handleImageSelect}
                   className="hidden"
                 />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full rounded-2xl border-2 border-dashed border-border/50 bg-surface flex flex-col items-center justify-center gap-2 overflow-hidden"
-                  style={{ aspectRatio: "2/3" }}
-                >
-                  {coverPreview ? (
-                    <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <ImagePlus className="w-8 h-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Tap to add cover</span>
-                    </>
-                  )}
-                </button>
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-40 rounded-2xl border-2 border-dashed border-border/50 bg-surface flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-electric/50 transition-colors"
+                    style={{ aspectRatio: "2/3" }}
+                  >
+                    {coverPreview ? (
+                      <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-obsidian flex items-center justify-center border border-border/50">
+                          <ImagePlus className="w-5 h-5 text-electric" />
+                        </div>
+                        <span className="text-sm text-muted-foreground">Upload Cover</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Selection */}
+              <div>
+                <Label className="text-sm text-muted-foreground mb-2 block">
+                  Category <span className="text-electric">*</span>
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {GO_LIVE_CATEGORIES.map((cat) => {
+                    const Icon = cat.icon;
+                    const isSelected = category === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => handleCategorySelect(cat.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                          isSelected
+                            ? "bg-electric text-carbon font-medium"
+                            : "bg-surface border border-border/50 text-muted-foreground hover:border-electric/50"
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {cat.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Title */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label htmlFor="title" className="text-sm text-muted-foreground">
-                    Title
+                    Title <span className="text-electric">*</span>
                   </Label>
                   <span className="text-xs text-muted-foreground">
                     {title.length}/{MAX_TITLE_LENGTH}
@@ -304,7 +354,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label htmlFor="description" className="text-sm text-muted-foreground">
-                    Description
+                    Description <span className="text-electric">*</span>
                   </Label>
                   <span className="text-xs text-muted-foreground">
                     {description.length}/{MAX_DESCRIPTION_LENGTH}
@@ -325,7 +375,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="date" className="text-sm text-muted-foreground mb-2 block">
-                    Date
+                    Date <span className="text-electric">*</span>
                   </Label>
                   <Input
                     id="date"
@@ -338,7 +388,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                 </div>
                 <div>
                   <Label htmlFor="time" className="text-sm text-muted-foreground mb-2 block">
-                    Time
+                    Time <span className="text-electric">*</span>
                   </Label>
                   <Input
                     id="time"
@@ -395,8 +445,8 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
               {/* Submit Button */}
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !title.trim()}
-                className="w-full py-6 rounded-2xl bg-gradient-to-r from-electric to-crimson text-foreground font-semibold text-base"
+                disabled={isSubmitting || !canPublish}
+                className="w-full py-6 rounded-2xl bg-gradient-to-r from-electric to-crimson text-foreground font-semibold text-base disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -407,6 +457,13 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                   "Publish Event"
                 )}
               </Button>
+
+              {/* Validation Hint */}
+              {!canPublish && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Fill all required fields to publish
+                </p>
+              )}
 
               {/* Bottom padding for safe area */}
               <div className="h-6" />
