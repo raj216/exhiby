@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
+import { UpcomingEventCard } from "./UpcomingEventCard";
 import { LiveStudioView, StudioRoom } from "./studio";
 import { PaymentDrawer } from "./PaymentDrawer";
 
@@ -9,10 +10,9 @@ import { DesktopHeader } from "./DesktopHeader";
 import { LeftSidebar } from "./LeftSidebar";
 import { BottomNavigation } from "./BottomNavigation";
 import { useUserMode } from "@/contexts/UserModeContext";
-import { ChevronRight, Clock, Calendar, Bell } from "lucide-react";
+import { ChevronRight, Clock, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
 import { useLiveEvents, LiveEvent } from "@/hooks/useLiveEvents";
 import { getCategoryId } from "@/lib/categories";
 
@@ -42,7 +42,7 @@ interface ContentItem {
   endedAt?: string | null;
 }
 
-// Upcoming event from database
+// Upcoming event from database with creator info
 interface UpcomingEvent {
   id: string;
   title: string;
@@ -50,6 +50,12 @@ interface UpcomingEvent {
   scheduled_at: string;
   is_free: boolean;
   price: number | null;
+  category: string | null;
+  creator_id: string;
+  creator?: {
+    name: string;
+    avatar_url: string | null;
+  };
 }
 
 export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfile, onEnterLiveRoom, onOpenSearch, onOpenStudio, onLogout }: HomeScreenProps) {
@@ -93,18 +99,42 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
     return liveStreams.filter(stream => stream.category === categoryId || stream.category === selectedCategory);
   }, [liveStreams, selectedCategory]);
 
-  // Fetch upcoming events from database
+  // Fetch upcoming events from database with creator info
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
         const { data, error } = await supabase
           .from('events')
-          .select('id, title, cover_url, scheduled_at, is_free, price')
+          .select('id, title, cover_url, scheduled_at, is_free, price, category, creator_id')
           .gt('scheduled_at', new Date().toISOString())
+          .eq('is_live', false)
           .order('scheduled_at', { ascending: true });
         
         if (error) throw error;
-        setUpcomingEvents(data || []);
+        
+        // Fetch creator profiles for each event
+        if (data && data.length > 0) {
+          const creatorIds = [...new Set(data.map(e => e.creator_id))];
+          const { data: profiles } = await supabase.rpc('get_all_public_profiles');
+          
+          const profileMap = new Map(
+            (profiles || []).map((p: { user_id: string; name: string; avatar_url: string | null }) => [p.user_id, p])
+          );
+          
+          const eventsWithCreators = data.map(event => ({
+            ...event,
+            creator: profileMap.get(event.creator_id) 
+              ? { 
+                  name: (profileMap.get(event.creator_id) as { name: string }).name,
+                  avatar_url: (profileMap.get(event.creator_id) as { avatar_url: string | null }).avatar_url
+                }
+              : undefined
+          }));
+          
+          setUpcomingEvents(eventsWithCreators);
+        } else {
+          setUpcomingEvents([]);
+        }
       } catch (err) {
         console.error('Error fetching upcoming events:', err);
       } finally {
@@ -164,10 +194,8 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
     toast({ title: "You're on the list!", description: "We'll notify you when Season 2 launches." });
   };
 
-  // Format event date for display
-  const formatEventDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return format(date, "MMM d • h:mm a");
+  const handleUpcomingEventClick = (eventId: string) => {
+    navigate(`/event/${eventId}`);
   };
 
   return (
@@ -319,105 +347,60 @@ export function HomeScreen({ onGoLive, onViewCreatorProfile, onViewAudienceProfi
                         </button>
                       </div>
 
-                      {/* Mobile: Vertical list */}
-                      <div className="px-4 lg:hidden space-y-4">
-                        {upcomingEvents.map((event, index) => (
-                          <motion.div
-                            key={event.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className="group cursor-pointer"
-                          >
-                            <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-obsidian border border-border/20 hover:border-electric/30 transition-all duration-300">
-                              <img
-                                src={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"}
-                                alt={event.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent" />
-                              
-                              {/* Price badge */}
-                              <div className="absolute top-3 right-3">
-                                <span className="px-2 py-1 rounded-full bg-electric text-obsidian text-xs font-bold">
-                                  {event.is_free ? "Free" : `$${event.price}`}
-                                </span>
-                              </div>
-
-                              {/* Date badge */}
-                              <div className="absolute top-3 left-3">
-                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-obsidian/80 text-foreground text-xs">
-                                  <Calendar className="w-3 h-3" />
-                                  {formatEventDate(event.scheduled_at)}
-                                </span>
-                              </div>
-                              
-                              <div className="absolute bottom-0 left-0 right-0 p-4">
-                                <h3 className="text-base font-medium text-foreground line-clamp-2 mb-2">{event.title}</h3>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemind(event.id);
-                                  }}
-                                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-electric/10 text-electric text-xs font-medium hover:bg-electric/20 transition-colors"
-                                >
-                                  <Bell className="w-3 h-3" />
-                                  Remind Me
-                                </button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-
-                      {/* Desktop: Grid of event posters */}
-                      <div className="hidden lg:block px-6">
-                        <div className="grid grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+                      {/* Mobile & Tablet: Horizontal scroll carousel */}
+                      <div className="px-4 lg:hidden">
+                        <div className="flex items-stretch gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide min-h-[300px]">
                           {upcomingEvents.map((event, index) => (
                             <motion.div
                               key={event.id}
-                              initial={{ opacity: 0, scale: 0.95 }}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: index * 0.05 }}
+                              className="snap-start flex-shrink-0"
+                              style={{ width: 'min(65vw, 280px)' }}
+                            >
+                              <UpcomingEventCard
+                                id={event.id}
+                                coverImage={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"}
+                                title={event.title}
+                                scheduledAt={event.scheduled_at}
+                                price={event.price || 0}
+                                isFree={event.is_free}
+                                category={event.category || undefined}
+                                artistName={event.creator?.name}
+                                artistAvatar={event.creator?.avatar_url || undefined}
+                                onClick={() => handleUpcomingEventClick(event.id)}
+                                onRemind={() => handleRemind(event.id)}
+                              />
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Desktop: 5-column grid matching Live Now */}
+                      <div className="hidden lg:block px-6">
+                        <div className="grid grid-cols-5 gap-4">
+                          {upcomingEvents.map((event, index) => (
+                            <motion.div
+                              key={event.id}
+                              initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: index * 0.03 }}
-                              className="group cursor-pointer"
                             >
-                              <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-obsidian border border-border/20 hover:border-electric/30 transition-all duration-300">
-                                <img
-                                  src={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"}
-                                  alt={event.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/20 to-transparent" />
-                                
-                                {/* Price badge */}
-                                <div className="absolute top-3 right-3">
-                                  <span className="px-2 py-1 rounded-full bg-electric text-obsidian text-xs font-bold">
-                                    {event.is_free ? "Free" : `$${event.price}`}
-                                  </span>
-                                </div>
-
-                                {/* Date badge */}
-                                <div className="absolute top-3 left-3">
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-obsidian/80 text-foreground text-xs">
-                                    <Calendar className="w-3 h-3" />
-                                    {formatEventDate(event.scheduled_at)}
-                                  </span>
-                                </div>
-                                
-                                <div className="absolute bottom-0 left-0 right-0 p-3">
-                                  <h3 className="text-sm font-medium text-foreground line-clamp-2 mb-2">{event.title}</h3>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemind(event.id);
-                                    }}
-                                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-electric/10 text-electric text-xs font-medium hover:bg-electric/20 transition-colors"
-                                  >
-                                    <Bell className="w-3 h-3" />
-                                    Remind
-                                  </button>
-                                </div>
-                              </div>
+                              <UpcomingEventCard
+                                id={event.id}
+                                coverImage={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"}
+                                title={event.title}
+                                scheduledAt={event.scheduled_at}
+                                price={event.price || 0}
+                                isFree={event.is_free}
+                                category={event.category || undefined}
+                                artistName={event.creator?.name}
+                                artistAvatar={event.creator?.avatar_url || undefined}
+                                onClick={() => handleUpcomingEventClick(event.id)}
+                                onRemind={() => handleRemind(event.id)}
+                                desktopSize
+                              />
                             </motion.div>
                           ))}
                         </div>
