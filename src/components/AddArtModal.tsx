@@ -150,10 +150,9 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
 
               {/* Image Upload Area */}
               <div>
-                <Label className="text-sm text-muted-foreground mb-2 block">Artwork Image</Label>
                 <button
                   onClick={handleImageClick}
-                  className={`w-full aspect-video rounded-xl border-2 border-dashed overflow-hidden flex flex-col items-center justify-center transition-colors ${
+                  className={`w-full min-h-[120px] max-h-[300px] rounded-xl border-2 border-dashed overflow-hidden flex flex-col items-center justify-center transition-colors ${
                     errors.image 
                       ? "border-destructive bg-destructive/5" 
                       : "border-border/50 hover:border-primary/50 bg-muted/10"
@@ -163,13 +162,13 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
                     <img
                       src={previewUrl}
                       alt="Preview"
-                      className="w-full h-full object-cover"
+                      className="w-full h-auto max-h-[300px] object-contain"
                     />
                   ) : (
-                    <>
-                      <ImageIcon className="w-10 h-10 text-muted-foreground/50 mb-2" />
+                    <div className="py-8">
+                      <ImageIcon className="w-10 h-10 text-muted-foreground/50 mb-2 mx-auto" />
                       <span className="text-sm text-muted-foreground">Tap to select image</span>
-                    </>
+                    </div>
                   )}
                 </button>
                 {errors.image && (
