@@ -292,20 +292,24 @@ export function HomeScreen({
 
                   {/* Empty Live State - Show when no streams for selected category */}
                   {!hasLiveContent && <section className="py-8 px-4 lg:px-6">
-                      <motion.div initial={{
-                    opacity: 0,
-                    y: 10
-                  }} animate={{
-                    opacity: 1,
-                    y: 0
-                  }} className="text-center py-12 px-6 rounded-2xl bg-obsidian/50 border border-border/20">
-                        <div className="w-16 h-16 rounded-full bg-muted/10 flex items-center justify-center mx-auto mb-4">
-                          <Clock className="w-8 h-8 text-muted-foreground" />
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="relative text-center py-14 px-6 rounded-2xl overflow-hidden border border-border/20"
+                        style={{
+                          background: 'linear-gradient(145deg, hsl(var(--obsidian)/0.6) 0%, hsl(var(--carbon)/0.4) 100%)'
+                        }}
+                      >
+                        {/* Subtle radial gradient for depth */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--muted)/0.08)_0%,transparent_70%)]" />
+                        
+                        <div className="relative w-16 h-16 rounded-full bg-muted/10 border border-border/20 flex items-center justify-center mx-auto mb-4">
+                          <Clock className="w-8 h-8 text-muted-foreground/60" />
                         </div>
-                        <h3 className="font-display text-lg text-foreground mb-2">
+                        <h3 className="relative font-display text-lg text-foreground mb-2">
                           {selectedCategory === "All" ? "The Studios are Quiet" : `No ${selectedCategory} studios open`}
                         </h3>
-                        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                        <p className="relative text-sm text-muted-foreground/80 max-w-sm mx-auto">
                           {selectedCategory === "All" ? "Waiting to be opened." : "Try selecting a different category or check back later."}
                         </p>
                       </motion.div>
@@ -366,42 +370,61 @@ export function HomeScreen({
                         <h2 className="font-display text-xl lg:text-2xl text-foreground">Studio Schedule</h2>
                         <p className="text-sm text-muted-foreground">Upcoming sessions</p>
                       </div>
-                      <div className="text-center py-8 px-6 rounded-2xl bg-obsidian/30 border border-border/10">
-                        <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">The studio is quiet.</p>
+                      <div className="relative text-center py-10 px-6 rounded-2xl bg-gradient-to-br from-obsidian/50 to-carbon/30 border border-border/20 overflow-hidden">
+                        {/* Subtle ambient glow */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--muted)/0.1)_0%,transparent_70%)]" />
+                        <Calendar className="relative w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                        <p className="relative text-sm text-muted-foreground/80">The studio is quiet.</p>
                       </div>
                     </section>}
 
-                  {/* Hero Card: Coming Season 2 - Always visible */}
+                  {/* Hero Card: Coming Soon - Always visible */}
                   <section className="px-4 lg:px-6 py-8">
-                    <motion.div initial={{
-                    opacity: 0,
-                    y: 20
-                  }} animate={{
-                    opacity: 1,
-                    y: 0
-                  }} className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-obsidian via-carbon to-obsidian border border-border/20">
-                      {/* Subdued background - no colored glows */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-muted/5 via-transparent to-muted/5" />
-                      
-                      {/* Gavel image overlay - more subdued */}
-                      <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-20 lg:opacity-25">
-                        <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&h=400&fit=crop" alt="" className="w-full h-full object-cover object-center" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-carbon via-carbon/90 to-carbon/60" />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="relative w-full rounded-2xl overflow-hidden border border-border/30"
+                      style={{
+                        background: 'linear-gradient(135deg, hsl(var(--obsidian)) 0%, hsl(var(--carbon)) 50%, hsl(var(--obsidian)) 100%)'
+                      }}
+                    >
+                      {/* Abstract studio-themed background layers */}
+                      <div className="absolute inset-0">
+                        {/* Radial vignette */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--carbon)/0.8)_100%)]" />
+                        
+                        {/* Subtle texture overlay (noise effect via gradient) */}
+                        <div className="absolute inset-0 opacity-[0.03]" style={{
+                          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, hsl(var(--foreground)) 2px, hsl(var(--foreground)) 4px)',
+                          backgroundSize: '8px 8px'
+                        }} />
+                        
+                        {/* Warm ambient glow from bottom-left */}
+                        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+                        
+                        {/* Cool ambient glow from top-right */}
+                        <div className="absolute -top-20 -right-20 w-48 h-48 bg-muted/10 rounded-full blur-3xl" />
                       </div>
                       
                       {/* Content */}
-                      <div className="relative z-10 p-6 sm:p-8 lg:p-10">
-                        <div className="max-w-md">
-                          <h3 className="font-display text-xl sm:text-2xl lg:text-3xl text-foreground mb-2">
+                      <div className="relative z-10 p-8 sm:p-10 lg:p-12">
+                        <div className="max-w-lg">
+                          <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-foreground mb-3 tracking-tight">
                             Coming Soon
                           </h3>
-                          <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+                          <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">
                             Live Auctions. Be the first to know.
                           </p>
-                          <button onClick={handleJoinWaitlist} className="px-5 py-2.5 text-sm font-medium rounded-lg bg-muted/50 border border-border/50 text-foreground hover:bg-muted/70 transition-all duration-luxury ease-luxury">
-                            Join Waitlist
-                          </button>
+                          <motion.button 
+                            onClick={handleJoinWaitlist} 
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="group relative px-6 py-3 text-sm font-medium rounded-lg bg-foreground/5 border border-foreground/20 text-foreground transition-all duration-300 hover:border-foreground/40 hover:bg-foreground/10"
+                          >
+                            {/* Subtle glow on hover */}
+                            <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)]" />
+                            <span className="relative z-10">Join Waitlist</span>
+                          </motion.button>
                         </div>
                       </div>
                     </motion.div>
