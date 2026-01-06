@@ -9,6 +9,7 @@ import {
   MicOff,
   Video,
   VideoOff,
+  SwitchCamera,
   LogOut,
 } from "lucide-react";
 import {
@@ -24,6 +25,7 @@ interface LiveRoomControlsProps {
   isMicOn: boolean;
   isUIVisible: boolean;
   onToggleCamera: () => void;
+  onSwitchCamera?: () => void;
   onToggleMic: () => void;
   onEndStream: () => void;
   onLeave?: () => void;
@@ -40,6 +42,7 @@ export function LiveRoomControls({
   isMicOn,
   isUIVisible,
   onToggleCamera,
+  onSwitchCamera,
   onToggleMic,
   onEndStream,
   onLeave,
@@ -136,6 +139,23 @@ export function LiveRoomControls({
                         <p>{isCameraOn ? "Turn off camera" : "Turn on camera"}</p>
                       </TooltipContent>
                     </Tooltip>
+
+                    {/* Switch front/back camera (mobile) */}
+                    {onSwitchCamera && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={onSwitchCamera}
+                            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                          >
+                            <SwitchCamera className="w-5 h-5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Switch camera</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
 
                     <div className="w-px h-6 bg-white/20 mx-1" />
                   </>

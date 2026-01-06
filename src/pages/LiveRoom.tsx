@@ -86,6 +86,7 @@ export default function LiveRoom() {
     leave,
     reset,
     toggleCamera,
+    switchCamera,
     toggleMic,
   } = useDaily({
     roomUrl: event?.room_url || null,
@@ -648,6 +649,7 @@ export default function LiveRoom() {
             isMicOn={isMicOn}
             isUIVisible={isUIVisible && !showChat}
             onToggleCamera={toggleCamera}
+            onSwitchCamera={switchCamera}
             onToggleMic={toggleMic}
             onEndStream={handleClose}
             onLeave={handleLeave}
