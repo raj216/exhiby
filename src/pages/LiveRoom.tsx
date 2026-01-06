@@ -595,7 +595,7 @@ export default function LiveRoom() {
             <DailyVideoTile
               participant={hostParticipant}
               className="w-full h-full"
-              isMirrored={isCreator}
+              isMirrored={hostParticipant.isLocal} // Only mirror your own local preview, viewers see non-mirrored
               useContain={!isMobile} // Mobile: cover (FaceTime style), Desktop: contain (no crop)
             />
           ) : (
