@@ -30,12 +30,14 @@ export function SlideToAction({
   const handleDragEnd = () => {
     const currentX = x.get();
     if (currentX >= maxSlide * 0.85) {
-      animate(x, maxSlide, { type: "spring", stiffness: 400, damping: 30 });
+      // Luxury animation: slower, smoother spring
+      animate(x, maxSlide, { type: "spring", stiffness: 250, damping: 35, mass: 1 });
       setCompleted(true);
       triggerSuccessHaptic();
       onComplete();
     } else {
-      animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
+      // Luxury animation: calm return to start
+      animate(x, 0, { type: "spring", stiffness: 250, damping: 35, mass: 1 });
     }
   };
 

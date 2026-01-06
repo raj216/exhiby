@@ -66,6 +66,16 @@
 }
 
 @layer base {
+  /* Luxury Motion System - Global defaults */
+  :root {
+    --luxury-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --luxury-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --luxury-ease-in-out: cubic-bezier(0.45, 0, 0.15, 1);
+    --luxury-duration: 400ms;
+    --luxury-duration-slow: 500ms;
+    --luxury-duration-fast: 300ms;
+  }
+
   * {
     @apply border-border;
     /* Hide all scrollbars for native app feel */
@@ -104,6 +114,15 @@
   /* Ensure all UI elements use Inter */
   button, input, select, textarea, label {
     @apply font-sans;
+  }
+
+  /* Luxury button defaults - calm, deliberate interactions */
+  button {
+    transition: all var(--luxury-duration) var(--luxury-ease);
+  }
+
+  button:active {
+    transform: scale(0.98);
   }
 }
 
@@ -161,10 +180,19 @@
     }
   }
 
-  /* Category Button */
+  /* Category Button - Luxury motion */
   .category-btn {
-    @apply relative p-6 rounded-2xl border-2 border-border transition-all duration-300;
+    @apply relative p-6 rounded-2xl border-2 border-border;
     background: var(--gradient-card);
+    transition: all var(--luxury-duration) var(--luxury-ease);
+  }
+
+  .category-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .category-btn:active {
+    transform: scale(0.98);
   }
 
   .category-btn.selected {
@@ -268,21 +296,23 @@
     z-index: 0;
   }
 
-  /* Electric Clay CTA Button */
+  /* Electric Clay CTA Button - Luxury motion */
   .btn-electric {
-    @apply px-6 py-3 rounded-2xl font-semibold transition-all;
+    @apply px-6 py-3 rounded-2xl font-semibold;
     background: var(--gradient-electric);
     color: white;
     box-shadow: 0 4px 20px hsl(var(--electric-clay) / 0.4);
+    transition: all var(--luxury-duration) var(--luxury-ease);
   }
 
   .btn-electric:hover {
-    box-shadow: 0 6px 30px hsl(var(--electric-clay) / 0.6);
-    transform: translateY(-1px);
+    box-shadow: 0 8px 35px hsl(var(--electric-clay) / 0.5);
+    transform: translateY(-2px);
   }
 
   .btn-electric:active {
-    transform: translateY(0);
+    transform: scale(0.98);
+    box-shadow: 0 4px 20px hsl(var(--electric-clay) / 0.4);
   }
 
   /* Patron Badges */
@@ -453,5 +483,39 @@
 
   .border-electric {
     border-color: hsl(var(--electric-clay));
+  }
+
+  /* Luxury Motion Utilities */
+  .luxury-transition {
+    transition: all var(--luxury-duration) var(--luxury-ease);
+  }
+
+  .luxury-transition-slow {
+    transition: all var(--luxury-duration-slow) var(--luxury-ease);
+  }
+
+  .luxury-transition-fast {
+    transition: all var(--luxury-duration-fast) var(--luxury-ease);
+  }
+
+  .luxury-hover:hover {
+    transform: translateY(-2px);
+  }
+
+  .luxury-press:active {
+    transform: scale(0.98);
+  }
+
+  .luxury-card {
+    transition: all var(--luxury-duration) var(--luxury-ease);
+  }
+
+  .luxury-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .luxury-card:active {
+    transform: scale(0.99);
   }
 }

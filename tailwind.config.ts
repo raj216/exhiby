@@ -97,30 +97,61 @@ export default {
       backdropBlur: {
         '3xl': '64px',
       },
+      /* Luxury Motion System - Calm, deliberate, premium timing */
+      transitionTimingFunction: {
+        'luxury': 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'luxury-out': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'luxury-in-out': 'cubic-bezier(0.45, 0, 0.15, 1)',
+      },
+      transitionDuration: {
+        'luxury': '400ms',
+        'luxury-slow': '500ms',
+        'luxury-fast': '300ms',
+      },
       keyframes: {
         "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
+          from: { height: "0", opacity: "0" },
+          to: { height: "var(--radix-accordion-content-height)", opacity: "1" },
         },
         "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+          from: { height: "var(--radix-accordion-content-height)", opacity: "1" },
+          to: { height: "0", opacity: "0" },
         },
+        /* Luxury slide - minimal vertical movement */
         "slide-up": {
-          from: { transform: "translateY(100%)", opacity: "0" },
+          from: { transform: "translateY(16px)", opacity: "0" },
           to: { transform: "translateY(0)", opacity: "1" },
         },
         "slide-down": {
           from: { transform: "translateY(0)", opacity: "1" },
-          to: { transform: "translateY(100%)", opacity: "0" },
+          to: { transform: "translateY(16px)", opacity: "0" },
         },
+        /* Premium fade - deliberate timing */
         "fade-in": {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        "fade-out": {
+          from: { opacity: "1" },
+          to: { opacity: "0" },
+        },
+        /* Subtle scale - never exaggerated */
         "scale-in": {
-          from: { transform: "scale(0.95)", opacity: "0" },
+          from: { transform: "scale(0.98)", opacity: "0" },
           to: { transform: "scale(1)", opacity: "1" },
+        },
+        "scale-out": {
+          from: { transform: "scale(1)", opacity: "1" },
+          to: { transform: "scale(0.98)", opacity: "0" },
+        },
+        /* Modal entry - fade with minimal vertical movement */
+        "modal-in": {
+          from: { transform: "scale(0.98) translateY(8px)", opacity: "0" },
+          to: { transform: "scale(1) translateY(0)", opacity: "1" },
+        },
+        "modal-out": {
+          from: { transform: "scale(1) translateY(0)", opacity: "1" },
+          to: { transform: "scale(0.98) translateY(8px)", opacity: "0" },
         },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
@@ -136,14 +167,19 @@ export default {
         },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "slide-up": "slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-        "slide-down": "slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-        "fade-in": "fade-in 0.3s ease-out",
-        "scale-in": "scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        shimmer: "shimmer 2s linear infinite",
-        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        /* Luxury timing - slower, deliberate, calm */
+        "accordion-down": "accordion-down 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+        "accordion-up": "accordion-up 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
+        "slide-up": "slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1)",
+        "slide-down": "slide-down 0.45s cubic-bezier(0.22, 1, 0.36, 1)",
+        "fade-in": "fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+        "fade-out": "fade-out 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
+        "scale-in": "scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1)",
+        "scale-out": "scale-out 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
+        "modal-in": "modal-in 0.45s cubic-bezier(0.22, 1, 0.36, 1)",
+        "modal-out": "modal-out 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
+        shimmer: "shimmer 3s cubic-bezier(0.45, 0, 0.15, 1) infinite",
+        "pulse-glow": "pulse-glow 2.5s cubic-bezier(0.45, 0, 0.15, 1) infinite",
       },
       backgroundImage: {
         "gradient-electric": "linear-gradient(135deg, hsl(var(--electric-clay)), hsl(var(--hyper-crimson)))",
