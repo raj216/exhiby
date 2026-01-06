@@ -56,6 +56,9 @@ export function DailyVideoTile({
     };
   }, [participant.audioTrack, participant.audioOn, participant.isLocal]);
 
+  // Safety: never mirror remote video. Mirroring is only for the creator's local self-preview.
+  const shouldMirror = Boolean(isMirrored && participant.isLocal);
+
   return (
     <div className={`relative bg-black overflow-hidden ${className}`}>
       {/* Video element - useContain: true = contain (no crop), false = cover (FaceTime style) */}
@@ -64,14 +67,12 @@ export function DailyVideoTile({
         autoPlay
         playsInline
         muted={participant.isLocal}
-        className={`w-full h-full ${useContain ? "object-contain" : "object-cover"} object-center ${isMirrored ? "scale-x-[-1]" : ""}`}
+        className={`w-full h-full ${useContain ? "object-contain" : "object-cover"} object-center ${shouldMirror ? "scale-x-[-1]" : ""}`}
       />
-      
+
       {/* Audio element for remote participants */}
-      {!participant.isLocal && (
-        <audio ref={audioRef} autoPlay playsInline />
-      )}
-      
+      {!participant.isLocal && <audio ref={audioRef} autoPlay playsInline />}
+
       {/* Fallback when no video */}
       {!participant.videoOn && (
         <div className="absolute inset-0 flex items-center justify-center bg-black">
@@ -80,7 +81,7 @@ export function DailyVideoTile({
           </div>
         </div>
       )}
-      
+
       {/* Name badge */}
       {showName && (
         <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/50 backdrop-blur-sm">
