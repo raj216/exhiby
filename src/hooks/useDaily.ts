@@ -43,14 +43,23 @@ function getOrCreateCallObject(): Promise<DailyCall> {
   }
 
   // Create new instance
-  console.log("[Daily] Creating new call object");
+  console.log("[Daily] Creating new call object with HD settings");
   initializationPromise = new Promise((resolve) => {
     const call = Daily.createCallObject({
       subscribeToTracksAutomatically: true,
+      // Request HD video quality
+      dailyConfig: {
+        // Prefer high quality video
+        camSimulcastEncodings: [
+          { maxBitrate: 2500000, maxFramerate: 30, scaleResolutionDownBy: 1 },    // 1080p layer
+          { maxBitrate: 1000000, maxFramerate: 30, scaleResolutionDownBy: 2 },    // 540p layer
+          { maxBitrate: 400000, maxFramerate: 30, scaleResolutionDownBy: 4 },     // 270p layer
+        ],
+      },
     });
     globalCallObject = call;
     globalInstanceId++;
-    console.log("[Daily] Call object created, instanceId:", globalInstanceId);
+    console.log("[Daily] Call object created with HD, instanceId:", globalInstanceId);
     resolve(call);
   });
 
@@ -341,19 +350,48 @@ export function useDaily({
               userName,
               startVideoOff: !isHost,
               startAudioOff: !isHost,
+              // Request receive layer preference for best quality
+              receiveSettings: {
+                base: { video: { layer: 2 } }, // Request highest quality layer
+              },
             });
 
             console.log("[useDaily] Join resolved");
 
-            // Configure tracks for host
+            // Configure tracks for host with HD camera constraints
             if (isHost && mountedRef.current) {
-              console.log("[useDaily] Host: enabling camera + mic");
+              console.log("[useDaily] Host: enabling HD camera + mic");
+              
               await call.setLocalVideo(true);
               await call.setLocalAudio(true);
+              
+              // Request to send highest quality using updateSendSettings
+              try {
+                call.updateSendSettings({
+                  video: {
+                    maxQuality: 'high',
+                    encodings: {
+                      low: { maxBitrate: 400000, maxFramerate: 30 },
+                      medium: { maxBitrate: 1000000, maxFramerate: 30 },
+                      high: { maxBitrate: 2500000, maxFramerate: 30 },
+                    },
+                  },
+                });
+                console.log("[useDaily] Host: HD send settings applied");
+              } catch (e) {
+                console.warn("[useDaily] Could not apply HD send settings:", e);
+              }
+              
               setIsCameraOn(true);
               setIsMicOn(true);
             } else if (mountedRef.current) {
-              console.log("[useDaily] Viewer: ensuring camera + mic disabled");
+              console.log("[useDaily] Viewer: ensuring camera + mic disabled, requesting HD receive");
+              
+              // Viewers request to receive highest quality
+              call.updateReceiveSettings({
+                base: { video: { layer: 2 } }, // Request highest simulcast layer
+              });
+              
               setIsCameraOn(false);
               setIsMicOn(false);
             }
