@@ -55,14 +55,14 @@ export function DailyVideoTile({
   }, [participant.audioTrack, participant.audioOn, participant.isLocal]);
 
   return (
-    <div className={`relative bg-surface overflow-hidden ${className}`}>
-      {/* Video element */}
+    <div className={`relative bg-black overflow-hidden ${className}`}>
+      {/* Video element - using contain to show full frame without cropping */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={participant.isLocal}
-        className={`w-full h-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
+        className={`w-full h-full object-contain object-center ${isMirrored ? "scale-x-[-1]" : ""}`}
       />
       
       {/* Audio element for remote participants */}
@@ -72,7 +72,7 @@ export function DailyVideoTile({
       
       {/* Fallback when no video */}
       {!participant.videoOn && (
-        <div className="absolute inset-0 flex items-center justify-center bg-surface">
+        <div className="absolute inset-0 flex items-center justify-center bg-black">
           <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
             <User className="w-10 h-10 text-muted-foreground" />
           </div>
