@@ -266,7 +266,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
 
         {/* Header - Sticky */}
         <div className="flex items-center justify-between px-5 pb-4 pt-2 lg:pt-5 border-b border-border/30 bg-obsidian sticky top-0 z-10 flex-shrink-0 lg:rounded-t-3xl">
-          <h2 className="font-display text-xl text-foreground">Go Live</h2>
+          <h2 className="font-display text-xl text-foreground">Open Studio</h2>
           <button
             onClick={handleClose}
             disabled={isSubmitting}
@@ -308,36 +308,40 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             </button>
           </div>
 
-          {/* Category Chips - Moved to top */}
+          {/* Medium Selection */}
           <div>
             <Label className="text-sm text-muted-foreground mb-3 block">
-              Category <span className="text-electric">*</span>
+              Medium <span className="text-electric">*</span>
             </Label>
             <div className="flex flex-wrap gap-2">
-              {GO_LIVE_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    triggerClickHaptic();
-                    setCategory(category === cat.id ? "" : cat.id);
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-luxury ease-luxury ${
-                    category === cat.id
-                      ? "bg-muted text-foreground border border-border/50"
-                      : "bg-surface border border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
+              {GO_LIVE_CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      triggerClickHaptic();
+                      setCategory(category === cat.id ? "" : cat.id);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-luxury ease-luxury ${
+                      category === cat.id
+                        ? "bg-muted text-foreground border border-border/50"
+                        : "bg-surface border border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {cat.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Title */}
+          {/* Studio Title */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <Label htmlFor="title" className="text-sm text-muted-foreground">
-                Title <span className="text-electric">*</span>
+                Studio Title <span className="text-electric">*</span>
               </Label>
               <span className="text-xs text-muted-foreground">
                 {title.length}/{MAX_TITLE_LENGTH}
@@ -353,11 +357,11 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             />
           </div>
 
-          {/* Description */}
+          {/* Studio Notes */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <Label htmlFor="description" className="text-sm text-muted-foreground">
-                Description <span className="text-electric">*</span>
+                Studio Notes <span className="text-electric">*</span>
               </Label>
               <span className="text-xs text-muted-foreground">
                 {description.length}/{MAX_DESCRIPTION_LENGTH}
@@ -367,18 +371,18 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               id="description"
               value={description}
               onChange={handleDescriptionChange}
-              placeholder="Short description..."
+              placeholder="What are you creating today?"
               rows={2}
               maxLength={MAX_DESCRIPTION_LENGTH}
               className="bg-surface border-border/30 resize-none"
             />
           </div>
 
-          {/* Price Toggle */}
+          {/* Entry Type Toggle */}
           <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-foreground font-medium text-sm">Free Entrance</p>
+                <p className="text-foreground font-medium text-sm">{isFree ? "Free Entry" : "Ticketed Entry"}</p>
                 <p className="text-xs text-muted-foreground">Toggle off to set a price</p>
               </div>
               {isFree && (

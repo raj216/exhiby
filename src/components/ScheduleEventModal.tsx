@@ -195,7 +195,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
       if (error) throw error;
 
-      toast({ title: "Success", description: "Event scheduled!" });
+      toast({ title: "Success", description: "Studio scheduled!" });
       
       // Reset form
       setTitle("");
@@ -259,7 +259,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 pb-4 border-b border-border/30">
-              <h2 className="font-display text-xl text-foreground">Schedule Event</h2>
+              <h2 className="font-display text-xl text-foreground">Open the Studio</h2>
               <button
                 onClick={handleClose}
                 disabled={isSubmitting}
@@ -303,10 +303,10 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                 </div>
               </div>
 
-              {/* Category Selection */}
+              {/* Medium Selection */}
               <div>
                 <Label className="text-sm text-muted-foreground mb-2 block">
-                  Category <span className="text-electric">*</span>
+                  Medium <span className="text-electric">*</span>
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {GO_LIVE_CATEGORIES.map((cat) => {
@@ -330,11 +330,11 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                 </div>
               </div>
 
-              {/* Title */}
+              {/* Studio Title */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label htmlFor="title" className="text-sm text-muted-foreground">
-                    Title <span className="text-electric">*</span>
+                    Studio Title <span className="text-electric">*</span>
                   </Label>
                   <span className="text-xs text-muted-foreground">
                     {title.length}/{MAX_TITLE_LENGTH}
@@ -344,17 +344,17 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                   id="title"
                   value={title}
                   onChange={handleTitleChange}
-                  placeholder="Enter event title..."
+                  placeholder="What are you working on?"
                   maxLength={MAX_TITLE_LENGTH}
                   className="bg-surface border-border/30"
                 />
               </div>
 
-              {/* Description */}
+              {/* Studio Notes */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label htmlFor="description" className="text-sm text-muted-foreground">
-                    Description <span className="text-electric">*</span>
+                    Studio Notes <span className="text-electric">*</span>
                   </Label>
                   <span className="text-xs text-muted-foreground">
                     {description.length}/{MAX_DESCRIPTION_LENGTH}
@@ -400,10 +400,10 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                 </div>
               </div>
 
-              {/* Price Toggle */}
+              {/* Entry Type Toggle */}
               <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
                 <div>
-                  <p className="text-foreground font-medium">Free Event</p>
+                  <p className="text-foreground font-medium">{isFree ? "Free Entry" : "Ticketed Entry"}</p>
                   <p className="text-xs text-muted-foreground">Toggle off to set a price</p>
                 </div>
                 <Switch
@@ -451,17 +451,17 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Publishing...
+                    Scheduling...
                   </>
                 ) : (
-                  "Publish Event"
+                  "SCHEDULE STUDIO"
                 )}
               </Button>
 
               {/* Validation Hint */}
               {!canPublish && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Fill all required fields to publish
+                  Fill all required fields to schedule your studio
                 </p>
               )}
 
