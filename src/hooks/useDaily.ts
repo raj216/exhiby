@@ -505,6 +505,33 @@ export function useDaily({
     }
   }, [isCameraOn]);
 
+  // Switch between front/back camera (host only)
+  const switchCamera = useCallback(async () => {
+    if (!isHostRef.current) {
+      console.warn("[useDaily] Viewer cannot switch camera");
+      return;
+    }
+
+    const call = callRef.current || globalCallObject;
+    if (!call) return;
+
+    const cycleCamera = (call as any)?.cycleCamera as
+      | ((opts?: { preferDifferentFacingMode?: boolean }) => Promise<any>)
+      | undefined;
+
+    if (typeof cycleCamera !== "function") {
+      console.warn("[useDaily] cycleCamera() not available on this platform");
+      return;
+    }
+
+    try {
+      await cycleCamera({ preferDifferentFacingMode: true });
+      console.log("[useDaily] Camera switched");
+    } catch (e) {
+      console.error("[useDaily] Switch camera error:", e);
+    }
+  }, []);
+
   // Toggle mic (host only)
   const toggleMic = useCallback(async () => {
     if (!isHostRef.current) {
@@ -542,6 +569,7 @@ export function useDaily({
     leave,
     reset,
     toggleCamera,
+    switchCamera,
     toggleMic,
   };
 }
