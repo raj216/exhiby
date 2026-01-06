@@ -35,6 +35,7 @@ interface LiveRoomControlsProps {
   onOpenMaterials: () => void;
   onSwipeToPay: () => void;
   handRaised: boolean;
+  unreadChatCount?: number;
 }
 
 export function LiveRoomControls({
@@ -53,6 +54,7 @@ export function LiveRoomControls({
   onOpenMaterials,
   onSwipeToPay,
   handRaised,
+  unreadChatCount = 0,
 }: LiveRoomControlsProps) {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -196,9 +198,15 @@ export function LiveRoomControls({
                     <button
                       onClick={onOpenChat}
                       disabled={isEnding}
-                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                      className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                     >
                       <MessageCircle className="w-5 h-5" />
+                      {/* Unread badge */}
+                      {unreadChatCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white border-2 border-black/40">
+                          {unreadChatCount > 9 ? "9+" : unreadChatCount}
+                        </span>
+                      )}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
