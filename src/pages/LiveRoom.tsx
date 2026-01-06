@@ -596,7 +596,7 @@ export default function LiveRoom() {
             <DailyVideoTile
               participant={hostParticipant}
               className="w-full h-full"
-              isMirrored={isCreator && hostParticipant.isLocal} // Mirror only for the creator's own self-preview
+              isMirrored={false} // Never mirror the stream preview (fixes "inverted" look on mobile)
               useContain={!isMobile} // Mobile: cover (FaceTime style), Desktop: contain (no crop)
             />
           ) : (
@@ -672,7 +672,7 @@ export default function LiveRoom() {
               <DailyVideoTile
                 participant={localParticipant}
                 className="w-full h-full"
-                isMirrored
+                isMirrored={false}
                 showName
               />
             </div>
