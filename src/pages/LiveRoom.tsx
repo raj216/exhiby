@@ -8,6 +8,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { useMaterials } from "@/hooks/useMaterials";
 import { useDaily, DailyJoinStatus } from "@/hooks/useDaily";
+import { useLiveChat } from "@/hooks/useLiveChat";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -16,7 +17,6 @@ import {
   LiveRoomHeader,
   LiveRoomChat,
   LiveRoomMaterials,
-  ChatMessage,
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
 
@@ -52,7 +52,6 @@ export default function LiveRoom() {
   const [showChat, setShowChat] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
@@ -62,6 +61,17 @@ export default function LiveRoom() {
   const { viewerCount, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId || null);
   
   const isCreator = user?.id === event?.creator_id;
+
+  // Live chat from database with realtime
+  const {
+    messages: chatMessages,
+    status: chatStatus,
+    messageCount: chatMessageCount,
+    sendMessage: sendChatMessage,
+  } = useLiveChat({
+    eventId: eventId || null,
+    creatorId: event?.creator_id || null,
+  });
 
   // Materials from database
   const {
@@ -316,17 +326,8 @@ export default function LiveRoom() {
     setShowChat(false);
   };
 
-  const handleSendMessage = (message: string) => {
-    const displayName = profile?.name || profile?.handle || user?.email?.split("@")[0] || "You";
-    const newMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      userId: user?.id || "",
-      username: displayName,
-      message,
-      timestamp: new Date(),
-      isHost: isCreator,
-    };
-    setChatMessages((prev) => [...prev, newMessage]);
+  const handleSendMessage = async (message: string) => {
+    return await sendChatMessage(message);
   };
 
   // Materials handlers
@@ -629,7 +630,10 @@ export default function LiveRoom() {
             isOpen={showChat}
             onClose={handleCloseChat}
             messages={chatMessages}
+            status={chatStatus}
+            messageCount={chatMessageCount}
             onSendMessage={handleSendMessage}
+            isAuthenticated={!!user}
           />
 
           {/* Materials Panel */}
