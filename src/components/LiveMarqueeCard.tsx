@@ -22,15 +22,15 @@ interface LiveMarqueeCardProps {
 function SmartBadge({ price }: { price: number }) {
   if (price === 0) {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent border border-white/40 backdrop-blur-sm">
-        <span className="text-xs sm:text-sm font-medium text-white whitespace-nowrap">🟢 Free Entry</span>
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/80 border border-border/50 backdrop-blur-sm">
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap">Free Entry</span>
       </div>
     );
   }
   
   return (
-    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 shadow-lg">
-      <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">🎓 Masterclass • ${price}</span>
+    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/15 border border-accent/40 shadow-lg">
+      <span className="text-xs sm:text-sm font-semibold text-accent whitespace-nowrap">🎓 Masterclass • ${price}</span>
     </div>
   );
 }

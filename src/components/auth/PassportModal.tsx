@@ -291,18 +291,18 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                       <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
                     )}
                     {!isCheckingHandle && handleAvailable && (
-                      <Check className="w-4 h-4 text-green-500" />
+                      <Check className="w-4 h-4 text-electric" />
                     )}
                     {!isCheckingHandle && handleError && handle.length >= 3 && (
-                      <X className="w-4 h-4 text-crimson" />
+                      <X className="w-4 h-4 text-destructive" />
                     )}
                   </div>
                 </div>
                 {handleError && (
-                  <p className="mt-2 text-xs text-crimson">{handleError}</p>
+                  <p className="mt-2 text-xs text-destructive">{handleError}</p>
                 )}
                 {handleAvailable && !isCheckingHandle && (
-                  <p className="mt-2 text-xs text-green-500">Handle available!</p>
+                  <p className="mt-2 text-xs text-electric">Handle available!</p>
                 )}
               </motion.div>
 

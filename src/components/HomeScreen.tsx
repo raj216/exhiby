@@ -382,7 +382,7 @@ export function HomeScreen({
                     y: 0
                   }} className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-obsidian via-carbon to-obsidian border border-border/30">
                       {/* Background glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-electric/10" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-transparent to-electric/10" />
                       
                       {/* Gavel image overlay */}
                       <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-30 lg:opacity-40">
@@ -393,7 +393,7 @@ export function HomeScreen({
                       {/* Content */}
                       <div className="relative z-10 p-6 sm:p-8 lg:p-10">
                         <div className="max-w-md">
-                        <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-amber-400 mb-3">
+                        <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-accent mb-3">
                             Coming Soon
                           </h3>
                           <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">

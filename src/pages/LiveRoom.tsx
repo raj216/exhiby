@@ -431,7 +431,7 @@ export default function LiveRoom() {
           onRecreateRoom={handleRecreateRoom}
         />
         <div className="text-center max-w-md px-6">
-          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+          <AlertCircle className="w-12 h-12 text-electric mx-auto mb-4" />
           <h2 className="text-xl font-display text-foreground mb-2">Room Not Ready</h2>
           <p className="text-muted-foreground mb-6">
             The live room hasn't been created yet.

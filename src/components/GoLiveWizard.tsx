@@ -382,7 +382,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                 <p className="text-xs text-muted-foreground">Toggle off to set a price</p>
               </div>
               {isFree && (
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
+                <Badge variant="neutral" className="text-xs">
                   Free
                 </Badge>
               )}

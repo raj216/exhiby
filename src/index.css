@@ -53,8 +53,8 @@
     /* Live indicator */
     --live: 345 100% 50%;
     
-    /* Success */
-    --success: 142 70% 45%;
+    /* Success - use primary accent */
+    --success: 7 100% 67%;
 
     /* Gradients */
     --gradient-electric: linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%));

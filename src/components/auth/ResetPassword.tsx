@@ -89,9 +89,9 @@ export function ResetPassword() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.2 }}
-            className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center"
+            className="w-20 h-20 mx-auto mb-6 rounded-full bg-electric/20 flex items-center justify-center"
           >
-            <Check className="w-10 h-10 text-green-500" />
+            <Check className="w-10 h-10 text-electric" />
           </motion.div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Password Updated!</h2>
           <p className="text-muted-foreground">Redirecting you to the app...</p>
