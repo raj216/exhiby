@@ -17,6 +17,7 @@ import {
   LiveRoomHeader,
   LiveRoomChat,
   LiveRoomMaterials,
+  ChatNotificationToast,
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
 
@@ -69,6 +70,12 @@ export default function LiveRoom() {
     status: chatStatus,
     messageCount: chatMessageCount,
     sendMessage: sendChatMessage,
+    unreadCount: chatUnreadCount,
+    latestUnreadMessage,
+    isChatOpen,
+    openChat,
+    closeChat,
+    clearLatestUnread,
   } = useLiveChat({
     eventId: eventId || null,
     creatorId: event?.creator_id || null,
@@ -330,14 +337,20 @@ export default function LiveRoom() {
     navigate("/");
   }, [leaveAsViewer, leave, navigate]);
 
-  // Chat handlers
+  // Chat handlers - use the hook's open/close methods for proper unread tracking
   const handleOpenChat = () => {
+    openChat();
     setShowChat(true);
     setShowMaterials(false);
   };
 
   const handleCloseChat = () => {
+    closeChat();
     setShowChat(false);
+  };
+
+  const handleChatNotificationView = () => {
+    handleOpenChat();
   };
 
   const handleSendMessage = async (message: string) => {
@@ -678,6 +691,15 @@ export default function LiveRoom() {
             onOpenMaterials={handleOpenMaterials}
             onSwipeToPay={handleSwipeToPay}
             handRaised={handRaised}
+            unreadChatCount={showChat ? 0 : chatUnreadCount}
+          />
+
+          {/* Chat Notification Toast */}
+          <ChatNotificationToast
+            message={latestUnreadMessage}
+            isChatOpen={showChat}
+            onView={handleChatNotificationView}
+            onDismiss={clearLatestUnread}
           />
         </div>
 
