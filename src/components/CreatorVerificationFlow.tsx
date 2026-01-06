@@ -116,15 +116,15 @@ export function CreatorVerificationFlow({
                   Open Your Studio
                 </h1>
                 <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                  Join our verified creator community. Host live sessions, 
-                  sell your art, and build your collector base.
+                  Join our verified artist community. Open your process to collectors 
+                  and share how you create.
                 </p>
                 <div className="space-y-3 mb-8">
                   {[
-                    "Host unlimited live sessions",
-                    "Sell digital & physical art",
-                    "Earn from ticket sales & tips",
-                    "Access analytics dashboard",
+                    "Open unlimited studio sessions",
+                    "Share your process with collectors",
+                    "Earn from sessions & tips",
+                    "Access your studio analytics",
                   ].map((benefit, idx) => (
                     <div 
                       key={idx}

@@ -46,7 +46,7 @@ export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
           </div>
         </motion.div>
 
-        {/* Upcoming Events */}
+        {/* Studio Schedule */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -54,7 +54,7 @@ export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
           className="glass-card p-4"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display text-sm text-foreground">Upcoming</h3>
+            <h3 className="font-display text-sm text-foreground">Studio Schedule</h3>
             <button className="text-xs text-muted-foreground hover:text-electric transition-colors flex items-center gap-1">
               View all <ChevronRight className="w-3 h-3" />
             </button>

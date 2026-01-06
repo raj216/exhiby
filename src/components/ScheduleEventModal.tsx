@@ -364,7 +364,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                   id="description"
                   value={description}
                   onChange={handleDescriptionChange}
-                  placeholder="What will you be creating?"
+                  placeholder="What are you creating today?"
                   rows={3}
                   maxLength={MAX_DESCRIPTION_LENGTH}
                   className="bg-surface border-border/30 resize-none"

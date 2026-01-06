@@ -73,7 +73,7 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
 
   return (
     <div className="px-4 mt-4">
-      <h3 className="text-sm font-medium text-muted-foreground mb-3">My Upcoming Schedule</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-3">My Studio Schedule</h3>
       <div className="space-y-2">
         <AnimatePresence>
           {events.map((event) => (

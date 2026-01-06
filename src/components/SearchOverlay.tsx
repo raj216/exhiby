@@ -172,7 +172,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search artists, events, styles..."
+                    placeholder="Explore studios, artists, and process..."
                     className="w-full pl-10 pr-10 py-3 bg-transparent text-foreground placeholder:text-muted-foreground font-sans text-sm focus:outline-none"
                   />
                   {query && (
