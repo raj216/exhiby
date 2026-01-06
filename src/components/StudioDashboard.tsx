@@ -169,7 +169,7 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
           
-          {/* Mode Switch */}
+          {/* Mode Switch - Subtle toggle, not a primary CTA */}
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -178,10 +178,10 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
               triggerClickHaptic();
               onSwitchMode();
             }}
-            className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-destructive/50 flex items-center gap-2"
+            className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center gap-2"
           >
-            <span className="text-xs text-destructive font-medium">Switch to Buying</span>
-            <ChevronRight className="w-4 h-4 text-destructive" />
+            <span className="text-xs text-muted-foreground font-medium">Switch to Buying</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </motion.button>
         </div>
       </div>
@@ -264,16 +264,16 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
               triggerClickHaptic();
               setShowEditProfile(true);
             }}
-            className="px-5 py-2.5 rounded-full bg-surface-elevated border border-border/50 text-foreground text-sm font-medium flex items-center gap-2"
+            className="px-5 py-2.5 rounded-full bg-muted/50 border border-border/40 text-muted-foreground text-sm font-medium flex items-center gap-2 hover:bg-muted/70 transition-colors"
           >
             <Pencil className="w-4 h-4" />
             Edit Profile
           </button>
           <button
             onClick={handleShare}
-            className="w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-muted/50 border border-border/40 flex items-center justify-center hover:bg-muted/70 transition-colors"
           >
-            <Share2 className="w-4 h-4 text-foreground" />
+            <Share2 className="w-4 h-4 text-muted-foreground" />
           </button>
         </motion.div>
 
@@ -319,15 +319,15 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         </motion.p>
       </div>
 
-      {/* Schedule Event Button - Glass Morphism */}
+      {/* Schedule Event Button - Primary CTA */}
       <div className="px-4 mt-6">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleScheduleClick}
-          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-obsidian/80 backdrop-blur-md border border-border/30 shadow-deep"
+          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl btn-electric"
         >
           <span className="text-lg">📅</span>
-          <span className="text-sm font-semibold text-foreground">Schedule Upcoming Event</span>
+          <span className="text-sm font-semibold text-white">Schedule Upcoming Event</span>
         </motion.button>
       </div>
 
