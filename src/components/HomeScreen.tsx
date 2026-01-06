@@ -378,51 +378,52 @@ export function HomeScreen({
                       </div>
                     </section>}
 
-                  {/* Hero Card: Coming Soon - Always visible */}
+                  {/* Hero Card: Auctions Coming Soon - Always visible */}
                   <section className="px-4 lg:px-6 py-8">
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="relative w-full rounded-2xl overflow-hidden border border-border/30"
                       style={{
-                        background: 'linear-gradient(135deg, hsl(var(--obsidian)) 0%, hsl(var(--carbon)) 50%, hsl(var(--obsidian)) 100%)'
+                        background: 'linear-gradient(145deg, hsl(var(--carbon)) 0%, hsl(var(--obsidian)) 40%, hsl(var(--carbon)) 100%)'
                       }}
                     >
-                      {/* Abstract studio-themed background layers */}
+                      {/* Abstract background layers - dark gradient with texture */}
                       <div className="absolute inset-0">
-                        {/* Radial vignette */}
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--carbon)/0.8)_100%)]" />
+                        {/* Deep radial vignette for depth */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,hsl(var(--muted)/0.08)_0%,transparent_50%)]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,hsl(var(--muted)/0.05)_0%,transparent_40%)]" />
                         
-                        {/* Subtle texture overlay (noise effect via gradient) */}
-                        <div className="absolute inset-0 opacity-[0.03]" style={{
-                          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, hsl(var(--foreground)) 2px, hsl(var(--foreground)) 4px)',
-                          backgroundSize: '8px 8px'
+                        {/* Subtle grain texture */}
+                        <div className="absolute inset-0 opacity-[0.02]" style={{
+                          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+                          backgroundSize: '128px 128px'
                         }} />
                         
-                        {/* Warm ambient glow from bottom-left */}
-                        <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+                        {/* Soft studio-light shadow from top */}
+                        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/[0.02] to-transparent" />
                         
-                        {/* Cool ambient glow from top-right */}
-                        <div className="absolute -top-20 -right-20 w-48 h-48 bg-muted/10 rounded-full blur-3xl" />
+                        {/* Edge vignette */}
+                        <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.4)]" />
                       </div>
                       
                       {/* Content */}
-                      <div className="relative z-10 p-8 sm:p-10 lg:p-12">
+                      <div className="relative z-10 p-8 sm:p-10 lg:p-14">
                         <div className="max-w-lg">
                           <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-foreground mb-3 tracking-tight">
-                            Coming Soon
+                            Auctions Opening Soon
                           </h3>
-                          <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">
-                            Live Auctions. Be the first to know.
+                          <p className="text-sm sm:text-base text-muted-foreground/90 mb-6 leading-relaxed">
+                            Private drops. Limited access.
                           </p>
                           <motion.button 
                             onClick={handleJoinWaitlist} 
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="group relative px-6 py-3 text-sm font-medium rounded-lg bg-foreground/5 border border-foreground/20 text-foreground transition-all duration-300 hover:border-foreground/40 hover:bg-foreground/10"
+                            className="group relative px-6 py-3 text-sm font-medium rounded-lg bg-transparent border border-electric/50 text-electric transition-all duration-300 hover:border-electric hover:bg-electric/5"
                           >
-                            {/* Subtle glow on hover */}
-                            <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[inset_0_0_20px_rgba(255,255,255,0.05)]" />
+                            {/* Subtle red glow on hover only */}
+                            <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_20px_hsl(var(--electric)/0.15)]" />
                             <span className="relative z-10">Join Waitlist</span>
                           </motion.button>
                         </div>
