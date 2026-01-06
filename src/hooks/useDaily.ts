@@ -513,20 +513,43 @@ export function useDaily({
     }
 
     const call = callRef.current || globalCallObject;
-    if (!call) return;
-
-    const cycleCamera = (call as any)?.cycleCamera as
-      | ((opts?: { preferDifferentFacingMode?: boolean }) => Promise<any>)
-      | undefined;
-
-    if (typeof cycleCamera !== "function") {
-      console.warn("[useDaily] cycleCamera() not available on this platform");
+    if (!call) {
+      console.warn("[useDaily] No call object for switchCamera");
       return;
     }
 
     try {
-      await cycleCamera({ preferDifferentFacingMode: true });
-      console.log("[useDaily] Camera switched");
+      // Use Daily's cycleCamera method - must call it bound to the call object
+      if (typeof (call as any).cycleCamera === "function") {
+        console.log("[useDaily] Calling cycleCamera...");
+        await (call as any).cycleCamera();
+        console.log("[useDaily] Camera switched successfully");
+      } else {
+        // Fallback: enumerate devices and switch manually
+        console.log("[useDaily] cycleCamera not available, using fallback...");
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === "videoinput");
+        
+        if (videoDevices.length < 2) {
+          console.warn("[useDaily] Only one camera available");
+          return;
+        }
+
+        // Get current camera
+        const inputSettings = await call.getInputDevices();
+        const currentCameraId = (inputSettings?.camera as any)?.deviceId as string | undefined;
+        
+        // Find next camera
+        const currentIndex = currentCameraId 
+          ? videoDevices.findIndex(d => d.deviceId === currentCameraId)
+          : 0;
+        const nextIndex = (currentIndex + 1) % videoDevices.length;
+        const nextCamera = videoDevices[nextIndex];
+        
+        console.log("[useDaily] Switching to camera:", nextCamera.label);
+        await call.setInputDevicesAsync({ videoDeviceId: nextCamera.deviceId });
+        console.log("[useDaily] Camera switched via fallback");
+      }
     } catch (e) {
       console.error("[useDaily] Switch camera error:", e);
     }
