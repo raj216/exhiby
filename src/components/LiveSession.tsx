@@ -108,7 +108,7 @@ export function LiveSession({ eventData, onClose }: LiveSessionProps) {
 
       {/* Session Info */}
       <div className="absolute bottom-32 left-0 right-0 px-4">
-        <h2 className="font-serif text-2xl text-foreground mb-1">
+        <h2 className="font-display text-2xl font-semibold text-foreground mb-1 tracking-tight">
           {eventData.title || "Untitled Session"}
         </h2>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
