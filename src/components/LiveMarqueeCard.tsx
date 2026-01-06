@@ -135,7 +135,7 @@ export function LiveMarqueeCard({
         {/* Category • Description */}
         <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
           {category && (
-            <span className="text-primary">{category}</span>
+            <span>{category}</span>
           )}
           {category && description && (
             <span className="mx-1">•</span>
@@ -144,7 +144,7 @@ export function LiveMarqueeCard({
             <span>{description}</span>
           )}
           {!category && !description && (
-            <span>Live stream</span>
+            <span>Studio session</span>
           )}
         </p>
       </div>

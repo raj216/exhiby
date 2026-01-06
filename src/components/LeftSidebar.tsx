@@ -46,16 +46,16 @@ export function LeftSidebar({ onSelectCategory, activeCategory = "All" }: LeftSi
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
                   isActive
-                    ? "bg-electric/15 text-electric border border-electric/30"
+                    ? "bg-muted/30 text-foreground border border-border/40"
                     : "text-foreground/80 hover:bg-white/5 hover:text-foreground"
                 }`}
               >
-                <IconComponent className={`w-4 h-4 ${isActive ? "text-electric" : "text-muted-foreground"}`} />
+                <IconComponent className={`w-4 h-4 ${isActive ? "text-foreground" : "text-muted-foreground"}`} />
                 {cat.name}
                 {isActive && (
                   <motion.div
                     layoutId="category-indicator"
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-electric"
+                    className="ml-auto w-1.5 h-1.5 rounded-full bg-foreground"
                   />
                 )}
               </motion.button>

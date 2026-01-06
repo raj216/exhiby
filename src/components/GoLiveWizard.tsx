@@ -321,10 +321,10 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                     triggerClickHaptic();
                     setCategory(category === cat.id ? "" : cat.id);
                   }}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-luxury ease-luxury ${
                     category === cat.id
-                      ? "bg-electric text-white"
-                      : "bg-surface border border-border/30 text-muted-foreground hover:border-electric/50"
+                      ? "bg-muted text-foreground border border-border/50"
+                      : "bg-surface border border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
                   }`}
                 >
                   {cat.name}

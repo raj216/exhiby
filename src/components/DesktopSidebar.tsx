@@ -30,7 +30,7 @@ export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
           className="glass-card p-4"
         >
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-electric" />
+            <TrendingUp className="w-4 h-4 text-muted-foreground" />
             <h3 className="font-display text-sm text-foreground">Trending Tags</h3>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -38,7 +38,7 @@ export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
               <button
                 key={tag}
                 onClick={() => triggerHaptic("light")}
-                className="px-3 py-1.5 rounded-full bg-obsidian border border-border/30 text-xs text-foreground hover:border-electric/50 hover:text-electric transition-colors"
+                className="px-3 py-1.5 rounded-full bg-obsidian border border-border/30 text-xs text-foreground hover:border-border/60 hover:bg-muted/20 transition-colors"
               >
                 {tag}
               </button>
@@ -55,7 +55,7 @@ export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display text-sm text-foreground">Studio Schedule</h3>
-            <button className="text-xs text-muted-foreground hover:text-electric transition-colors flex items-center gap-1">
+            <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
               View all <ChevronRight className="w-3 h-3" />
             </button>
           </div>
@@ -84,7 +84,7 @@ export function DesktopSidebar({ onRemind }: DesktopSidebarProps) {
                       triggerHaptic("light");
                       onRemind?.(event.id);
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-electric/10 text-electric text-xs font-medium hover:bg-electric/20 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted/30 border border-border/40 text-muted-foreground text-xs font-medium hover:bg-muted/50 hover:text-foreground transition-colors"
                   >
                     <Bell className="w-3 h-3" />
                     Remind

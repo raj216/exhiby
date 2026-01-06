@@ -380,26 +380,26 @@ export function HomeScreen({
                   }} animate={{
                     opacity: 1,
                     y: 0
-                  }} className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-obsidian via-carbon to-obsidian border border-border/30">
-                      {/* Background glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-accent/10 via-transparent to-electric/10" />
+                  }} className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-br from-obsidian via-carbon to-obsidian border border-border/20">
+                      {/* Subdued background - no colored glows */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-muted/5 via-transparent to-muted/5" />
                       
-                      {/* Gavel image overlay */}
-                      <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-30 lg:opacity-40">
+                      {/* Gavel image overlay - more subdued */}
+                      <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-20 lg:opacity-25">
                         <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&h=400&fit=crop" alt="" className="w-full h-full object-cover object-center" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-carbon via-carbon/80 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-carbon via-carbon/90 to-carbon/60" />
                       </div>
                       
                       {/* Content */}
                       <div className="relative z-10 p-6 sm:p-8 lg:p-10">
                         <div className="max-w-md">
-                        <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-accent mb-3">
+                          <h3 className="font-display text-xl sm:text-2xl lg:text-3xl text-foreground mb-2">
                             Coming Soon
                           </h3>
-                          <p className="text-sm sm:text-base text-muted-foreground mb-6 leading-relaxed">
+                          <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
                             Live Auctions. Be the first to know.
                           </p>
-                          <button onClick={handleJoinWaitlist} className="btn-electric px-6 py-3 text-sm sm:text-base font-medium">
+                          <button onClick={handleJoinWaitlist} className="px-5 py-2.5 text-sm font-medium rounded-lg bg-muted/50 border border-border/50 text-foreground hover:bg-muted/70 transition-all duration-luxury ease-luxury">
                             Join Waitlist
                           </button>
                         </div>
