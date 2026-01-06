@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle,
@@ -24,6 +24,7 @@ interface LiveRoomControlsProps {
   isCameraOn: boolean;
   isMicOn: boolean;
   isUIVisible: boolean;
+  isEnding?: boolean;
   onToggleCamera: () => void;
   onSwitchCamera?: () => void;
   onToggleMic: () => void;
@@ -41,6 +42,7 @@ export function LiveRoomControls({
   isCameraOn,
   isMicOn,
   isUIVisible,
+  isEnding = false,
   onToggleCamera,
   onSwitchCamera,
   onToggleMic,
@@ -53,16 +55,32 @@ export function LiveRoomControls({
   handRaised,
 }: LiveRoomControlsProps) {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+
+  const armEndConfirm = () => {
+    setShowEndConfirm(true);
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    // Give more time on mobile/tablet to hit the 2nd tap
+    confirmTimerRef.current = setTimeout(() => setShowEndConfirm(false), 5500);
+  };
 
   const handleEndStream = () => {
+    if (isEnding) return;
+
     if (showEndConfirm) {
-      onEndStream();
       setShowEndConfirm(false);
-    } else {
-      setShowEndConfirm(true);
-      // Auto-hide confirm after 3 seconds
-      setTimeout(() => setShowEndConfirm(false), 3000);
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+      onEndStream();
+      return;
     }
+
+    armEndConfirm();
   };
 
   return (
@@ -78,7 +96,7 @@ export function LiveRoomControls({
         >
           {/* End Stream Confirmation (Host) */}
           <AnimatePresence>
-            {isHost && showEndConfirm && (
+            {isHost && showEndConfirm && !isEnding && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -107,32 +125,42 @@ export function LiveRoomControls({
                       <TooltipTrigger asChild>
                         <button
                           onClick={onToggleMic}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                          disabled={isEnding}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             isMicOn
                               ? "bg-white/10 text-white hover:bg-white/20"
                               : "bg-destructive/80 text-white hover:bg-destructive"
                           }`}
                         >
-                          {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                          {isMicOn ? (
+                            <Mic className="w-5 h-5" />
+                          ) : (
+                            <MicOff className="w-5 h-5" />
+                          )}
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         <p>{isMicOn ? "Mute" : "Unmute"}</p>
                       </TooltipContent>
                     </Tooltip>
-                    
+
                     {/* Camera Toggle */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           onClick={onToggleCamera}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                          disabled={isEnding}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             isCameraOn
                               ? "bg-white/10 text-white hover:bg-white/20"
                               : "bg-destructive/80 text-white hover:bg-destructive"
                           }`}
                         >
-                          {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                          {isCameraOn ? (
+                            <Video className="w-5 h-5" />
+                          ) : (
+                            <VideoOff className="w-5 h-5" />
+                          )}
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
@@ -146,7 +174,8 @@ export function LiveRoomControls({
                         <TooltipTrigger asChild>
                           <button
                             onClick={onSwitchCamera}
-                            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                            disabled={isEnding}
+                            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                           >
                             <SwitchCamera className="w-5 h-5" />
                           </button>
@@ -166,7 +195,8 @@ export function LiveRoomControls({
                   <TooltipTrigger asChild>
                     <button
                       onClick={onOpenChat}
-                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                      disabled={isEnding}
+                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                     >
                       <MessageCircle className="w-5 h-5" />
                     </button>
@@ -181,7 +211,8 @@ export function LiveRoomControls({
                   <TooltipTrigger asChild>
                     <button
                       onClick={onOpenMaterials}
-                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                      disabled={isEnding}
+                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                     >
                       <Palette className="w-5 h-5" />
                     </button>
@@ -199,7 +230,8 @@ export function LiveRoomControls({
                       <TooltipTrigger asChild>
                         <button
                           onClick={onRaiseHand}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                          disabled={isEnding}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             handRaised
                               ? "bg-gold/80 text-background"
                               : "bg-white/10 text-white hover:bg-white/20"
@@ -218,7 +250,8 @@ export function LiveRoomControls({
                       <TooltipTrigger asChild>
                         <button
                           onClick={onSwipeToPay}
-                          className="w-10 h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors"
+                          disabled={isEnding}
+                          className="w-10 h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors disabled:opacity-60 disabled:pointer-events-none"
                         >
                           <DollarSign className="w-5 h-5" />
                         </button>
@@ -235,7 +268,8 @@ export function LiveRoomControls({
                       <TooltipTrigger asChild>
                         <button
                           onClick={onLeave || onEndStream}
-                          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                          disabled={isEnding}
+                          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                         >
                           <LogOut className="w-5 h-5" />
                         </button>
@@ -255,13 +289,16 @@ export function LiveRoomControls({
                       <TooltipTrigger asChild>
                         <button
                           onClick={handleEndStream}
-                          className={`px-4 h-10 rounded-full flex items-center justify-center gap-2 font-medium transition-colors ${
-                            showEndConfirm
+                          disabled={isEnding}
+                          className={`px-4 h-10 rounded-full flex items-center justify-center gap-2 font-medium transition-colors disabled:opacity-70 disabled:pointer-events-none ${
+                            isEnding
                               ? "bg-destructive text-white"
-                              : "bg-destructive/80 text-white hover:bg-destructive"
+                              : showEndConfirm
+                                ? "bg-destructive text-white"
+                                : "bg-destructive/80 text-white hover:bg-destructive"
                           }`}
                         >
-                          <span className="text-sm">End Stream</span>
+                          <span className="text-sm">{isEnding ? "Ending..." : "End Stream"}</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
