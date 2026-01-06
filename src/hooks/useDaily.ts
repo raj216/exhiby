@@ -506,6 +506,58 @@ export function useDaily({
   }, [isCameraOn]);
 
   // Switch between front/back camera (host only)
+  // On mobile (especially iOS), "cycleCamera" can cycle through multiple rear lenses (wide/ultra/tele),
+  // which looks like zooming. We instead deterministically toggle between ONE front and ONE back camera.
+  const preferredCameraIdsRef = useRef<{ front?: string; back?: string } | null>(null);
+  const currentFacingRef = useRef<"user" | "environment" | null>(null);
+
+  const pickPreferredCameraIds = (videoDevices: MediaDeviceInfo[]) => {
+    const byLabel = (re: RegExp) =>
+      videoDevices.filter((d) => re.test((d.label || "").toLowerCase()));
+
+    const frontCandidates = byLabel(/front|user/);
+    const backCandidates = byLabel(/back|rear|environment/);
+
+    const pickBack = (candidates: MediaDeviceInfo[]) => {
+      if (candidates.length === 0) return undefined;
+      // Heuristic: prefer the "main" rear camera to avoid zoom-lens cycling
+      const preferred =
+        candidates.find((d) => /wide|1x|main|standard/.test((d.label || "").toLowerCase())) ||
+        candidates.find((d) => !/ultra|tele|zoom|0\.5x|2x|3x/.test((d.label || "").toLowerCase())) ||
+        candidates[0];
+      return preferred.deviceId;
+    };
+
+    // If labels are missing, fall back to stable indexing when possible
+    if (frontCandidates.length === 0 && backCandidates.length === 0) {
+      return {
+        front: videoDevices[0]?.deviceId,
+        back: videoDevices[1]?.deviceId,
+      };
+    }
+
+    return {
+      front: frontCandidates[0]?.deviceId,
+      back: pickBack(backCandidates),
+    };
+  };
+
+  const inferFacingFromDevice = (
+    deviceId: string | undefined,
+    ids: { front?: string; back?: string } | null,
+    devices: MediaDeviceInfo[]
+  ): "user" | "environment" | null => {
+    if (!deviceId) return null;
+    if (ids?.front && deviceId === ids.front) return "user";
+    if (ids?.back && deviceId === ids.back) return "environment";
+
+    const match = devices.find((d) => d.deviceId === deviceId);
+    const label = (match?.label || "").toLowerCase();
+    if (/back|rear|environment/.test(label)) return "environment";
+    if (/front|user/.test(label)) return "user";
+    return null;
+  };
+
   const switchCamera = useCallback(async () => {
     if (!isHostRef.current) {
       console.warn("[useDaily] Viewer cannot switch camera");
@@ -519,37 +571,38 @@ export function useDaily({
     }
 
     try {
-      // Use Daily's cycleCamera method - must call it bound to the call object
-      if (typeof (call as any).cycleCamera === "function") {
-        console.log("[useDaily] Calling cycleCamera...");
-        await (call as any).cycleCamera();
-        console.log("[useDaily] Camera switched successfully");
-      } else {
-        // Fallback: enumerate devices and switch manually
-        console.log("[useDaily] cycleCamera not available, using fallback...");
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(d => d.kind === "videoinput");
-        
-        if (videoDevices.length < 2) {
-          console.warn("[useDaily] Only one camera available");
-          return;
-        }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((d) => d.kind === "videoinput");
 
-        // Get current camera
+      if (videoDevices.length < 2) {
+        console.warn("[useDaily] Less than 2 cameras available");
+        return;
+      }
+
+      if (!preferredCameraIdsRef.current) {
+        preferredCameraIdsRef.current = pickPreferredCameraIds(videoDevices);
+      }
+
+      const ids = preferredCameraIdsRef.current;
+      if (!ids?.front || !ids?.back) {
+        console.warn("[useDaily] Could not resolve both front and back cameras", ids);
+        return;
+      }
+
+      // Determine current facing mode once
+      if (!currentFacingRef.current) {
         const inputSettings = await call.getInputDevices();
         const currentCameraId = (inputSettings?.camera as any)?.deviceId as string | undefined;
-        
-        // Find next camera
-        const currentIndex = currentCameraId 
-          ? videoDevices.findIndex(d => d.deviceId === currentCameraId)
-          : 0;
-        const nextIndex = (currentIndex + 1) % videoDevices.length;
-        const nextCamera = videoDevices[nextIndex];
-        
-        console.log("[useDaily] Switching to camera:", nextCamera.label);
-        await call.setInputDevicesAsync({ videoDeviceId: nextCamera.deviceId });
-        console.log("[useDaily] Camera switched via fallback");
+        currentFacingRef.current = inferFacingFromDevice(currentCameraId, ids, videoDevices) || "user";
       }
+
+      const nextFacing: "user" | "environment" =
+        currentFacingRef.current === "environment" ? "user" : "environment";
+      const nextDeviceId = nextFacing === "user" ? ids.front : ids.back;
+
+      console.log(`[useDaily] Switching camera to ${nextFacing} (${nextDeviceId})`);
+      await call.setInputDevicesAsync({ videoDeviceId: nextDeviceId });
+      currentFacingRef.current = nextFacing;
     } catch (e) {
       console.error("[useDaily] Switch camera error:", e);
     }
