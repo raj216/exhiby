@@ -79,7 +79,7 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                 animate={{ opacity: 1, x: 0 }}
                 className="flex-shrink-0 lg:hidden"
               >
-                <h1 className="font-cinzel text-2xl text-gradient-electric">Exhiby</h1>
+                <h1 className="font-display text-2xl font-semibold text-gradient-electric tracking-tight">Exhiby</h1>
               </motion.div>
             )}
 

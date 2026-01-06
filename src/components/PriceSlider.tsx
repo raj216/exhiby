@@ -28,7 +28,7 @@ export function PriceSlider({ value, onChange }: PriceSliderProps) {
           animate={{ scale: 1, opacity: 1 }}
           className="inline-block"
         >
-          <span className="text-5xl font-serif text-gradient-gold">
+          <span className="text-5xl font-display font-semibold text-gradient-gold tracking-tight">
             {value === 0 ? "Free" : `$${value}`}
           </span>
         </motion.div>

@@ -18,7 +18,7 @@ export function LeftSidebar({ onSelectCategory, activeCategory = "All" }: LeftSi
         <motion.h1
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="font-cinzel text-2xl text-gradient-electric"
+          className="font-display text-2xl font-semibold text-gradient-electric tracking-tight"
         >
           Exhiby
         </motion.h1>

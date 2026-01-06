@@ -101,7 +101,7 @@
     @apply font-medium;
   }
 
-  /* Ensure all UI elements use Satoshi */
+  /* Ensure all UI elements use Inter */
   button, input, select, textarea, label {
     @apply font-sans;
   }

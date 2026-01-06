@@ -21,11 +21,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Satoshi', 'system-ui', 'sans-serif'],
-        serif: ['Clash Display', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Clash Display', 'serif'],
-        logo: ['Cinzel Decorative', 'serif'],
-        cinzel: ['Cinzel Decorative', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",

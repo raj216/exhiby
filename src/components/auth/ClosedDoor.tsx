@@ -30,7 +30,7 @@ export function ClosedDoor({
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
         <motion.h1
-          className="text-6xl md:text-8xl font-bold tracking-tighter font-cinzel"
+          className="text-6xl md:text-8xl font-bold tracking-tighter font-display"
           animate={{
             textShadow: [
               "0 0 20px hsl(7 100% 67% / 0.5), 0 0 40px hsl(7 100% 67% / 0.3), 0 0 60px hsl(7 100% 67% / 0.1)",
