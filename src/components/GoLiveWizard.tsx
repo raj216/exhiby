@@ -429,17 +429,17 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Going Live...
+                Opening Studio...
               </>
             ) : (
-              "GO LIVE NOW"
+              "OPEN STUDIO"
             )}
           </Button>
 
           {/* Validation hint */}
           {!canGoLive && (
             <p className="text-xs text-muted-foreground text-center">
-              Fill all required fields to go live
+              Fill all required fields to open your studio
             </p>
           )}
 

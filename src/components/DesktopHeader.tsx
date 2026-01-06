@@ -97,7 +97,7 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                 className="w-full flex items-center gap-3 px-5 py-2.5 rounded-xl bg-obsidian border border-border/30 hover:border-electric/50 transition-colors group"
               >
                 <Search className="w-4 h-4 text-muted-foreground group-hover:text-electric transition-colors" />
-                <span className="text-sm text-muted-foreground">Search artists, events, styles...</span>
+                <span className="text-sm text-muted-foreground">Explore studios, artists, and process...</span>
                 <kbd className="hidden lg:flex ml-auto items-center gap-1 px-2 py-0.5 rounded bg-surface text-[10px] text-muted-foreground border border-border/30">
                   ⌘K
                 </kbd>
@@ -118,7 +118,7 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                 <Search className="w-5 h-5 text-muted-foreground" />
               </button>
 
-              {/* Go Live Button - Desktop (only active for creators) */}
+              {/* Open Studio Button - Desktop (only active for creators) */}
               <button
                 onClick={isVerifiedCreator ? onGoLive : () => setShowActivationModal(true)}
                 className={`hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all ${
@@ -128,7 +128,7 @@ export function DesktopHeader({ onOpenSearch, onViewProfile, onGoLive, hideLogo 
                 }`}
               >
                 <Plus className="w-4 h-4" />
-                Go Live
+                Open Studio
               </button>
 
               {/* Notifications */}

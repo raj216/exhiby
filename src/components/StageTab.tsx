@@ -25,7 +25,7 @@ export function StageTab({ events, onBuyTicket }: StageTabProps) {
           <Calendar className="w-8 h-8 text-muted-foreground" />
         </div>
         <p className="text-muted-foreground text-center">
-          No upcoming events scheduled
+          The studio is quiet.
         </p>
       </div>
     );

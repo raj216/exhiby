@@ -73,7 +73,7 @@ export function PaymentDrawer({
                   />
                 </div>
                 <div className="flex flex-col justify-center">
-                  <p className="text-xs text-muted-foreground mb-1">Joining live session</p>
+                  <p className="text-xs text-muted-foreground mb-1">Joining studio session</p>
                   <h3 className="font-display text-lg text-foreground line-clamp-2">
                     {eventTitle}
                   </h3>

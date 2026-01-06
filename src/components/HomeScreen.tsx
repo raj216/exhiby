@@ -172,8 +172,8 @@ export function HomeScreen({
     // Don't allow joining ended streams
     if (event.endedAt) {
       toast({
-        title: "Stream Ended",
-        description: "This live session has ended."
+        title: "Session Ended",
+        description: "This studio session has ended."
       });
       return;
     }
@@ -303,10 +303,10 @@ export function HomeScreen({
                           <Clock className="w-8 h-8 text-muted-foreground" />
                         </div>
                         <h3 className="font-display text-lg text-foreground mb-2">
-                          {selectedCategory === "All" ? "The Studios are Quiet" : `No ${selectedCategory} streams right now`}
+                          {selectedCategory === "All" ? "The Studios are Quiet" : `No ${selectedCategory} studios open`}
                         </h3>
                         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                          {selectedCategory === "All" ? "Check back soon or schedule an event." : "Try selecting a different category or check back later."}
+                          {selectedCategory === "All" ? "Waiting to be opened." : "Try selecting a different category or check back later."}
                         </p>
                       </motion.div>
                     </section>}
@@ -316,7 +316,7 @@ export function HomeScreen({
                       <div className="flex items-center justify-between px-4 lg:px-6 mb-4">
                         <div>
                           <h2 className="font-display text-xl lg:text-2xl text-foreground">Studio Schedule</h2>
-                          <p className="text-sm text-muted-foreground">Upcoming events</p>
+                          <p className="text-sm text-muted-foreground">Upcoming sessions</p>
                         </div>
                         <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
                           See all <ChevronRight className="w-4 h-4" />
@@ -360,15 +360,15 @@ export function HomeScreen({
                       </div>
                     </section>}
 
-                  {/* Empty Box Office State */}
+                  {/* Empty Studio Schedule State */}
                   {!hasUpcomingEvents && !loadingEvents && <section className="py-6 px-4 lg:px-6">
                       <div className="mb-4">
-                        <h2 className="font-display text-xl lg:text-2xl text-foreground">Box Office</h2>
-                        <p className="text-sm text-muted-foreground">Upcoming events</p>
+                        <h2 className="font-display text-xl lg:text-2xl text-foreground">Studio Schedule</h2>
+                        <p className="text-sm text-muted-foreground">Upcoming sessions</p>
                       </div>
                       <div className="text-center py-8 px-6 rounded-2xl bg-obsidian/30 border border-border/10">
                         <Calendar className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground">No upcoming events scheduled yet.</p>
+                        <p className="text-sm text-muted-foreground">The studio is quiet.</p>
                       </div>
                     </section>}
 

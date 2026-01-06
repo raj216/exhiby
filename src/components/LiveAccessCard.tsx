@@ -45,7 +45,7 @@ export function LiveAccessCard({
   };
 
   const startedLabel = getStartedLabel();
-  const ctaText = isOwnProfile ? "Go to Live Room" : "Join Live";
+  const ctaText = isOwnProfile ? "Enter Studio" : "Join Studio";
 
   return (
     <motion.div

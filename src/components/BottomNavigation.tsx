@@ -361,7 +361,7 @@ export function BottomNavigation({
                   )}
                 </button>
 
-                {/* Go Live - Center FAB (inside grid column) */}
+                {/* Open Studio - Center FAB (inside grid column) */}
                 <div className="flex flex-col items-center justify-end">
                   <motion.button
                     onClick={() => {

@@ -319,19 +319,19 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
         </motion.p>
       </div>
 
-      {/* Schedule Event Button - Primary CTA */}
+      {/* Open Studio Button - Primary CTA */}
       <div className="px-4 mt-6">
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleScheduleClick}
           className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl btn-electric"
         >
-          <span className="text-lg">📅</span>
-          <span className="text-sm font-semibold text-white">Schedule Upcoming Event</span>
+          <span className="text-lg">🎨</span>
+          <span className="text-sm font-semibold text-white">Open the Studio</span>
         </motion.button>
       </div>
 
-      {/* Upcoming Events List */}
+      {/* Studio Schedule */}
       <UpcomingEventsList 
         events={upcomingEvents} 
         onEventDeleted={fetchUpcomingEvents} 

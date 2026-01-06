@@ -19,14 +19,14 @@ const preferences = [
   },
   {
     id: "live",
-    label: "Only Live Events",
-    description: "Get notified when they go live",
+    label: "Studio Sessions Only",
+    description: "Get notified when they open their studio",
     icon: Radio,
   },
   {
     id: "shop",
-    label: "Only Shop Drops",
-    description: "New products and releases",
+    label: "New Work Only",
+    description: "New work and releases",
     icon: ShoppingBag,
   },
 ];

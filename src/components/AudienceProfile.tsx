@@ -335,18 +335,18 @@ export function AudienceProfile({
                 exit={{ opacity: 0, y: -10 }}
                 className="p-4"
               >
-                {/* Upcoming Access - Empty state until tickets table exists */}
-                <h3 className="font-display text-lg text-foreground mb-4">Upcoming Access</h3>
+                {/* Upcoming Sessions - Empty state until tickets table exists */}
+                <h3 className="font-display text-lg text-foreground mb-4">Upcoming Sessions</h3>
                 <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
                   <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
                   <p className="text-muted-foreground">No tickets yet</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">Book a session to get your first ticket</p>
                 </div>
 
-                {/* Past Events - Empty state until purchase history exists */}
-                <h3 className="font-display text-lg text-foreground mt-8 mb-4">Past Events</h3>
+                {/* Past Sessions - Empty state until purchase history exists */}
+                <h3 className="font-display text-lg text-foreground mt-8 mb-4">Past Sessions</h3>
                 <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
-                  <p className="text-muted-foreground/60 text-sm">No past events</p>
+                  <p className="text-muted-foreground/60 text-sm">No past sessions</p>
                 </div>
               </motion.div>
             )}

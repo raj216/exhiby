@@ -256,7 +256,7 @@ export function LiveRoomPortal({
           {/* Event Info */}
           <div className="p-6 border-b border-border">
             <h2 className="font-display text-xl text-foreground mb-2">{title}</h2>
-            <p className="text-sm text-muted-foreground">Live session with {artistName}</p>
+            <p className="text-sm text-muted-foreground">Studio session with {artistName}</p>
             <div className="flex items-center gap-2 mt-2 text-muted-foreground">
               <Users className="w-4 h-4" />
               <motion.span 
