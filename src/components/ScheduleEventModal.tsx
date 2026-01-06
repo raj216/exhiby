@@ -316,10 +316,10 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                       <button
                         key={cat.id}
                         onClick={() => handleCategorySelect(cat.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors duration-luxury ease-luxury ${
                           isSelected
-                            ? "bg-electric text-carbon font-medium"
-                            : "bg-surface border border-border/50 text-muted-foreground hover:border-electric/50"
+                            ? "bg-muted text-foreground font-medium border border-border/50"
+                            : "bg-surface border border-border/50 text-muted-foreground hover:border-border/80 hover:text-foreground"
                         }`}
                       >
                         <Icon className="w-3.5 h-3.5" />

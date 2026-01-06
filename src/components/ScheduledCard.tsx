@@ -63,7 +63,7 @@ export function ScheduledCard({
               />
             ) : (
               <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-full glass min-h-[28px]">
-                <Clock className="w-3 h-3 text-electric flex-shrink-0" />
+                <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                 <span className="text-xs font-medium text-foreground whitespace-nowrap leading-none">
                   {countdownLabel}
                 </span>
@@ -80,16 +80,16 @@ export function ScheduledCard({
           <p className="text-xs text-muted-foreground mb-2">{artistName}</p>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gold">
+            <span className="text-xs font-semibold text-muted-foreground">
               {price === 0 ? "Free" : `$${price}`}
             </span>
 
             {/* Remind Button */}
             <button
               onClick={handleRemind}
-              className={`p-2 rounded-full transition-all ${
+              className={`p-2 rounded-full transition-all duration-luxury ease-luxury ${
                 reminded
-                  ? "bg-electric text-white shadow-electric"
+                  ? "bg-muted text-foreground border border-border/50"
                   : "bg-obsidian text-muted-foreground hover:text-foreground border border-border/50"
               }`}
             >

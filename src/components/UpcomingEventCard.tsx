@@ -95,7 +95,7 @@ export function UpcomingEventCard({
         {/* Date Badge - Top Left */}
         <div className="absolute top-3 left-3">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-obsidian/80 backdrop-blur-sm border border-border/30">
-            <Calendar className="w-3 h-3 text-electric" />
+            <Calendar className="w-3 h-3 text-muted-foreground" />
             <span className="text-xs font-medium text-foreground whitespace-nowrap">
               {formatEventDate(scheduledAt)}
             </span>
@@ -104,8 +104,14 @@ export function UpcomingEventCard({
 
         {/* Price Badge - Top Right */}
         <div className="absolute top-3 right-3">
-          <div className="inline-flex items-center px-2.5 py-1.5 rounded-full bg-electric shadow-lg">
-            <span className="text-xs font-bold text-obsidian">
+          <div className={`inline-flex items-center px-2.5 py-1.5 rounded-full ${
+            isFree 
+              ? 'bg-muted/80 border border-border/40' 
+              : 'bg-accent/15 border border-accent/40'
+          }`}>
+            <span className={`text-xs font-semibold ${
+              isFree ? 'text-muted-foreground' : 'text-accent'
+            }`}>
               {isFree ? "Free" : `$${price}`}
             </span>
           </div>
@@ -115,10 +121,10 @@ export function UpcomingEventCard({
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-carbon via-carbon/80 to-transparent">
           <button 
             onClick={handleRemind}
-            className={`w-full py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-2 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-luxury ease-luxury ${
               reminded 
-                ? 'bg-electric text-obsidian' 
-                : 'bg-obsidian/60 border border-electric/50 text-electric hover:bg-electric/10'
+                ? 'bg-muted text-foreground border border-border/50' 
+                : 'bg-obsidian/60 border border-border/50 text-muted-foreground hover:bg-muted/20 hover:text-foreground'
             }`}
           >
             {reminded ? (
@@ -146,7 +152,7 @@ export function UpcomingEventCard({
         {/* Category */}
         {category && (
           <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-            <span className="text-primary">{category}</span>
+            {category}
           </p>
         )}
       </div>
