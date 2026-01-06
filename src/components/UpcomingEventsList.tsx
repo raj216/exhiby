@@ -111,8 +111,8 @@ export function UpcomingEventsList({ events, onEventDeleted }: UpcomingEventsLis
               <div className="flex-shrink-0">
                 <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                   event.is_free 
-                    ? "bg-electric/20 text-electric" 
-                    : "bg-gold/20 text-gold"
+                    ? "bg-muted/80 text-muted-foreground border border-border/50" 
+                    : "bg-accent/15 text-accent border border-accent/30"
                 }`}>
                   {event.is_free ? "Free" : `$${event.price.toFixed(2)}`}
                 </span>

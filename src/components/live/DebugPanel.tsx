@@ -38,10 +38,10 @@ export function DebugPanel({
 
   const statusColors: Record<DailyJoinStatus, string> = {
     idle: "text-muted-foreground",
-    creating: "text-amber-500",
-    ready: "text-blue-500",
-    joining: "text-amber-500",
-    joined: "text-green-500",
+    creating: "text-electric",
+    ready: "text-electric",
+    joining: "text-electric",
+    joined: "text-electric",
     error: "text-destructive",
     timeout: "text-destructive",
   };
@@ -53,9 +53,9 @@ export function DebugPanel({
         className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-muted/50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Bug className="w-4 h-4 text-amber-500" />
+          <Bug className="w-4 h-4 text-electric" />
           <span className="font-semibold text-foreground">Debug Panel</span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400">
+          <span className="px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground">
             {isDev ? "DEV" : "?debug=1"}
           </span>
         </div>
@@ -85,13 +85,13 @@ export function DebugPanel({
                 </div>
                 <div>
                   <span className="text-muted-foreground">room_url: </span>
-                  <span className={eventData.room_url ? "text-green-500" : "text-destructive"}>
+                  <span className={eventData.room_url ? "text-electric" : "text-destructive"}>
                     {eventData.room_url || "null"}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">is_live: </span>
-                  <span className={eventData.is_live ? "text-green-500" : "text-amber-500"}>
+                  <span className={eventData.is_live ? "text-electric" : "text-muted-foreground"}>
                     {String(eventData.is_live)}
                   </span>
                 </div>

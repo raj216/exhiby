@@ -300,15 +300,9 @@ export function StudioDashboard({ onBack, onSwitchMode, onGoLive, profile }: Stu
             </div>
           )}
           {/* Verified Creator Badge */}
-          <div 
-            className="px-3 py-1.5 rounded-full border flex items-center gap-1.5"
-            style={{
-              background: "hsl(217 91% 60% / 0.15)",
-              borderColor: "hsl(217 91% 60% / 0.4)"
-            }}
-          >
+          <div className="px-3 py-1.5 rounded-full border border-border/60 bg-muted/50 flex items-center gap-1.5">
             <BadgeCheck className="w-3.5 h-3.5 text-electric" />
-            <span className="text-xs font-medium text-electric">
+            <span className="text-xs font-medium text-foreground">
               Verified Creator
             </span>
           </div>
