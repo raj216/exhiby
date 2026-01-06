@@ -620,7 +620,8 @@ export default function LiveRoom() {
             eventTitle={event.title}
             viewerCount={viewerCount}
             isUIVisible={isUIVisible && !showMaterials}
-            onClose={handleClose}
+            isHost={isCreator}
+            onSwitchCamera={isCreator ? switchCamera : undefined}
           />
 
           {/* Chat Overlay */}

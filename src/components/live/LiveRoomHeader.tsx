@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Users } from "lucide-react";
+import { Users, SwitchCamera } from "lucide-react";
 
 interface LiveRoomHeaderProps {
   creatorName: string;
@@ -7,7 +7,8 @@ interface LiveRoomHeaderProps {
   eventTitle: string;
   viewerCount: number;
   isUIVisible: boolean;
-  onClose: () => void;
+  isHost: boolean;
+  onSwitchCamera?: () => void;
 }
 
 export function LiveRoomHeader({
@@ -16,7 +17,8 @@ export function LiveRoomHeader({
   eventTitle,
   viewerCount,
   isUIVisible,
-  onClose,
+  isHost,
+  onSwitchCamera,
 }: LiveRoomHeaderProps) {
   return (
     <AnimatePresence>
@@ -73,13 +75,15 @@ export function LiveRoomHeader({
               </div>
             </div>
 
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
+            {/* Flip Camera Button - Host only on mobile/tablet */}
+            {isHost && onSwitchCamera && (
+              <button
+                onClick={onSwitchCamera}
+                className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+              >
+                <SwitchCamera className="w-5 h-5 text-white" />
+              </button>
+            )}
           </div>
 
           {/* Event Title */}
