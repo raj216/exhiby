@@ -149,7 +149,7 @@ export function AudienceProfile({
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </motion.button>
             
-            {/* Mode Switch (only for verified creators) */}
+            {/* Mode Switch - Subtle toggle, not a primary CTA */}
             {isVerifiedCreator && onSwitchMode && (
               <motion.button
                 initial={{ opacity: 0 }}
@@ -159,10 +159,10 @@ export function AudienceProfile({
                   triggerClickHaptic();
                   onSwitchMode();
                 }}
-                className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-destructive/50 flex items-center gap-2"
+                className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center gap-2"
               >
-                <span className="text-xs text-destructive font-medium">Switch to Studio</span>
-                <ChevronRight className="w-4 h-4 text-destructive" />
+                <span className="text-xs text-muted-foreground font-medium">Switch to Studio</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </motion.button>
             )}
           </div>
@@ -247,16 +247,16 @@ export function AudienceProfile({
                 triggerClickHaptic();
                 setShowEditProfile(true);
               }}
-              className="px-5 py-2.5 rounded-full bg-surface-elevated border border-border/50 text-foreground text-sm font-medium flex items-center gap-2"
+              className="px-5 py-2.5 rounded-full bg-muted/50 border border-border/40 text-muted-foreground text-sm font-medium flex items-center gap-2 hover:bg-muted/70 transition-colors"
             >
               <Pencil className="w-4 h-4" />
               Edit Profile
             </button>
             <button
               onClick={handleShare}
-              className="w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-muted/50 border border-border/40 flex items-center justify-center hover:bg-muted/70 transition-colors"
             >
-              <Share2 className="w-4 h-4 text-foreground" />
+              <Share2 className="w-4 h-4 text-muted-foreground" />
             </button>
           </motion.div>
 
