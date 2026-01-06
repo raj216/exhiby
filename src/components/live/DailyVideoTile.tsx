@@ -7,6 +7,7 @@ interface DailyVideoTileProps {
   className?: string;
   showName?: boolean;
   isMirrored?: boolean;
+  useContain?: boolean; // true = contain (desktop), false = cover (mobile FaceTime style)
 }
 
 export function DailyVideoTile({
@@ -14,6 +15,7 @@ export function DailyVideoTile({
   className = "",
   showName = false,
   isMirrored = false,
+  useContain = true, // Default to contain for teaching use-case
 }: DailyVideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -56,13 +58,13 @@ export function DailyVideoTile({
 
   return (
     <div className={`relative bg-black overflow-hidden ${className}`}>
-      {/* Video element - using contain to show full frame without cropping */}
+      {/* Video element - useContain: true = contain (no crop), false = cover (FaceTime style) */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={participant.isLocal}
-        className={`w-full h-full object-contain object-center ${isMirrored ? "scale-x-[-1]" : ""}`}
+        className={`w-full h-full ${useContain ? "object-contain" : "object-cover"} object-center ${isMirrored ? "scale-x-[-1]" : ""}`}
       />
       
       {/* Audio element for remote participants */}
