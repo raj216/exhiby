@@ -27,8 +27,8 @@ function getEndedLabel(endedAt: string): string {
   return `Ended ${diffHours} hours ago`;
 }
 
-// Hook to auto-update ended label every minute
-function useEndedLabel(endedAt: string | null | undefined): string {
+// Hook to auto-update ended label every minute (exported for card use)
+export function useEndedLabel(endedAt: string | null | undefined): string {
   const [label, setLabel] = useState(() => endedAt ? getEndedLabel(endedAt) : "");
   
   useEffect(() => {

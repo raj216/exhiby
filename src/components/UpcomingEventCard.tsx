@@ -123,8 +123,8 @@ export function UpcomingEventCard({
             onClick={handleRemind}
             className={`w-full py-2 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-luxury ease-luxury ${
               reminded 
-                ? 'bg-muted text-foreground border border-border/50' 
-                : 'bg-obsidian/60 border border-border/50 text-muted-foreground hover:bg-muted/20 hover:text-foreground'
+                ? 'bg-electric/10 text-electric border border-electric/50' 
+                : 'bg-transparent border border-electric/60 text-electric/90 hover:bg-electric/10 hover:text-electric'
             }`}
           >
             {reminded ? (
