@@ -46,6 +46,7 @@ export default function LiveRoom() {
   const [permissionError, setPermissionError] = useState(false);
   const [isRecreatingRoom, setIsRecreatingRoom] = useState(false);
   const [isRetryingDaily, setIsRetryingDaily] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
 
   // UI State
   const [isUIVisible, setIsUIVisible] = useState(true);
@@ -282,32 +283,45 @@ export default function LiveRoom() {
 
   // Handle closing the live room (host = end stream, viewer = leave)
   const handleClose = useCallback(async () => {
-    if (isCreator && event) {
-      console.log("[LiveRoom] Creator ending stream...");
+    if (isEnding) return;
+    setIsEnding(true);
 
-      const { error: updateError } = await supabase
-        .from("events")
-        .update({
-          is_live: false,
-          live_ended_at: new Date().toISOString(),
-        })
-        .eq("id", event.id);
+    // Start leaving immediately for a snappier UX
+    const leavePromise = leave();
 
-      if (updateError) {
-        console.error("[LiveRoom] Error ending stream:", updateError);
-        toast.error("Failed to end stream");
+    try {
+      if (isCreator && event) {
+        console.log("[LiveRoom] Creator ending stream...");
+
+        const [updateRes] = await Promise.all([
+          supabase
+            .from("events")
+            .update({
+              is_live: false,
+              live_ended_at: new Date().toISOString(),
+            })
+            .eq("id", event.id),
+
+          // Clean up all viewers (doesn't need to block UI)
+          supabase.from("live_viewers").delete().eq("event_id", event.id),
+        ]);
+
+        if (updateRes?.error) {
+          console.error("[LiveRoom] Error ending stream:", updateRes.error);
+          toast.error("Failed to end stream");
+        } else {
+          toast.success("Stream ended");
+        }
       } else {
-        // Clean up all viewers
-        await supabase.from("live_viewers").delete().eq("event_id", event.id);
-        toast.success("Stream ended");
+        await leaveAsViewer();
       }
-    } else {
-      await leaveAsViewer();
-    }
 
-    await leave();
-    navigate("/");
-  }, [isCreator, event, leaveAsViewer, leave, navigate]);
+      // Don't let slow leave() calls trap the user on the page
+      await Promise.race([leavePromise, new Promise((r) => setTimeout(r, 1200))]);
+    } finally {
+      navigate("/");
+    }
+  }, [isEnding, isCreator, event, leaveAsViewer, leave, navigate]);
 
   // Viewer leave handler
   const handleLeave = useCallback(async () => {
@@ -653,6 +667,7 @@ export default function LiveRoom() {
             isCameraOn={isCameraOn}
             isMicOn={isMicOn}
             isUIVisible={isUIVisible && !showChat}
+            isEnding={isEnding}
             onToggleCamera={toggleCamera}
             onSwitchCamera={switchCamera}
             onToggleMic={toggleMic}
