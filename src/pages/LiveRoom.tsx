@@ -583,14 +583,20 @@ export default function LiveRoom() {
 
       {/* Video Container - Responsive Layout */}
       <div
-        className={`w-full h-full ${
+        className={`w-full h-full flex ${
           isMobile
-            ? "flex flex-col" // Mobile: vertical
-            : "flex flex-row" // Desktop: horizontal
-        }`}
+            ? "flex-col items-center justify-center" // Mobile/Tablet: centered video call style
+            : "flex-row" // Desktop: horizontal layout
+        } bg-black`}
       >
         {/* Main Video (Host or Self) */}
-        <div className={`relative ${isMobile ? "flex-1" : "flex-1"} bg-surface overflow-hidden`}>
+        <div
+          className={`relative overflow-hidden ${
+            isMobile
+              ? "w-full max-w-full aspect-video" // Mobile/Tablet: 16:9 landscape video player
+              : "flex-1 h-full" // Desktop: fill available space
+          } bg-black`}
+        >
           {hostParticipant ? (
             <DailyVideoTile
               participant={hostParticipant}
@@ -598,12 +604,12 @@ export default function LiveRoom() {
               isMirrored={isCreator}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-surface">
+            <div className="w-full h-full flex items-center justify-center bg-black">
               {event.cover_url ? (
                 <img
                   src={event.cover_url}
                   alt={event.title}
-                  className="w-full h-full object-cover opacity-50"
+                  className="w-full h-full object-contain opacity-50"
                 />
               ) : (
                 <p className="text-muted-foreground">Waiting for host...</p>
