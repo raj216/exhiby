@@ -56,8 +56,8 @@ export function DailyVideoTile({
     };
   }, [participant.audioTrack, participant.audioOn, participant.isLocal]);
 
-  // Safety: never mirror remote video. Mirroring is only for the creator's local self-preview.
-  const shouldMirror = Boolean(isMirrored && participant.isLocal);
+  // Flip video horizontally when requested (used to correct front-camera mirroring across both local + remote renders)
+  const shouldFlipHorizontal = Boolean(isMirrored);
 
   return (
     <div className={`relative bg-black overflow-hidden ${className}`}>
@@ -67,7 +67,7 @@ export function DailyVideoTile({
         autoPlay
         playsInline
         muted={participant.isLocal}
-        className={`w-full h-full ${useContain ? "object-contain" : "object-cover"} object-center ${shouldMirror ? "scale-x-[-1]" : ""}`}
+        className={`w-full h-full ${useContain ? "object-contain" : "object-cover"} object-center ${shouldFlipHorizontal ? "scale-x-[-1]" : ""}`}
       />
 
       {/* Audio element for remote participants */}

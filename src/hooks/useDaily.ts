@@ -110,6 +110,8 @@ export interface DailyParticipantInfo {
   audioTrack: MediaStreamTrack | null;
   videoOn: boolean;
   audioOn: boolean;
+  // Best-effort camera facing mode for the *sender* (used to correct front-camera mirroring)
+  facingMode?: "user" | "environment" | null;
 }
 
 interface UseDailyOptions {
@@ -176,15 +178,24 @@ export function useDaily({
 
   // Convert Daily participant to our format
   const convertParticipant = useCallback(
-    (p: any): DailyParticipantInfo => ({
-      sessionId: p.session_id,
-      userName: p.user_name || "Guest",
-      isLocal: p.local,
-      videoTrack: p.tracks?.video?.track || null,
-      audioTrack: p.tracks?.audio?.track || null,
-      videoOn: p.tracks?.video?.state === "playable",
-      audioOn: p.tracks?.audio?.state === "playable",
-    }),
+    (p: any): DailyParticipantInfo => {
+      const userData = p?.userData ?? p?.user_data ?? p?.user_data?.data ?? null;
+      const facingMode =
+        userData?.facingMode === "user" || userData?.facingMode === "environment"
+          ? userData.facingMode
+          : null;
+
+      return {
+        sessionId: p.session_id,
+        userName: p.user_name || "Guest",
+        isLocal: p.local,
+        videoTrack: p.tracks?.video?.track || null,
+        audioTrack: p.tracks?.audio?.track || null,
+        videoOn: p.tracks?.video?.state === "playable",
+        audioOn: p.tracks?.audio?.state === "playable",
+        facingMode,
+      };
+    },
     []
   );
 
@@ -364,6 +375,13 @@ export function useDaily({
               
               await call.setLocalVideo(true);
               await call.setLocalAudio(true);
+              
+              // Best-effort: broadcast current facing mode to others (default: front/user)
+              try {
+                call.setUserData({ facingMode: "user" });
+              } catch (e) {
+                console.warn("[useDaily] Could not set facingMode userData:", e);
+              }
               
               // Request to send highest quality using updateSendSettings
               try {
@@ -603,6 +621,13 @@ export function useDaily({
       console.log(`[useDaily] Switching camera to ${nextFacing} (${nextDeviceId})`);
       await call.setInputDevicesAsync({ videoDeviceId: nextDeviceId });
       currentFacingRef.current = nextFacing;
+
+      // Broadcast facing mode so viewers can render front camera correctly
+      try {
+        call.setUserData({ facingMode: nextFacing });
+      } catch (e) {
+        console.warn("[useDaily] Could not set facingMode userData:", e);
+      }
     } catch (e) {
       console.error("[useDaily] Switch camera error:", e);
     }
