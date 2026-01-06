@@ -80,13 +80,30 @@
   body {
     min-height: 100dvh;
     position: relative;
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Satoshi', sans-serif;
+    @apply bg-background text-foreground antialiased font-sans;
     overflow-x: hidden;
   }
 
+  /* Headings use Clash Display with premium tracking */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Clash Display', sans-serif;
+    @apply font-display tracking-tight;
+  }
+
+  h1 {
+    @apply font-semibold;
+  }
+
+  h2, h3 {
+    @apply font-semibold;
+  }
+
+  h4, h5, h6 {
+    @apply font-medium;
+  }
+
+  /* Ensure all UI elements use Satoshi */
+  button, input, select, textarea, label {
+    @apply font-sans;
   }
 }
 
