@@ -72,13 +72,10 @@ export function PassportStamp({ userName, onComplete }: PassportStampProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <h3 
-              className="text-3xl font-bold text-gradient-electric"
-              style={{ fontFamily: "'Clash Display', sans-serif" }}
-            >
+            <h3 className="font-cinzel text-3xl font-bold text-gradient-electric tracking-tight">
               EXHIBY
             </h3>
-            <p className="text-xs text-muted-foreground tracking-[0.2em] text-center mt-1">
+            <p className="font-sans text-xs text-muted-foreground tracking-[0.2em] text-center mt-1">
               STUDIO PASS
             </p>
           </motion.div>
@@ -121,7 +118,7 @@ export function PassportStamp({ userName, onComplete }: PassportStampProps) {
                         Welcome
                       </motion.p>
                       <motion.h4 
-                        className="text-xl font-bold text-foreground mb-2 max-w-32 truncate"
+                        className="font-display text-xl font-bold text-foreground mb-2 max-w-32 truncate tracking-tight"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.25 }}
