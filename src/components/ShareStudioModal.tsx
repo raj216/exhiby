@@ -170,15 +170,16 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
           />
 
           {/* Centered Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={(e) => e.target === e.currentTarget && onClose()}
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
           >
-            <div className="bg-obsidian border border-border/30 rounded-2xl w-full max-w-[360px] md:max-w-[400px] lg:max-w-[420px]">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-obsidian border border-border/30 rounded-2xl w-full max-w-[360px] md:max-w-[400px] lg:max-w-[420px] pointer-events-auto"
+            >
               {/* Header */}
               <div className="flex items-center justify-between p-5 pb-3">
                 <div>
@@ -375,8 +376,8 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
                   </div>
                 )}
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
