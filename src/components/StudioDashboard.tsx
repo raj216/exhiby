@@ -362,6 +362,7 @@ export function StudioDashboard({
         onClose={() => setShowShareModal(false)}
         handle={localProfile?.handle || null}
         userId={user?.id}
+        creatorName={localProfile?.name}
       />
     </div>;
 }

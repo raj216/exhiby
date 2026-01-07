@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Copy, Share2, QrCode, Check, ExternalLink } from "lucide-react";
+import { X, Copy, Share2, QrCode, Check, ExternalLink, MessageCircle, Mail } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -10,19 +10,25 @@ interface ShareStudioModalProps {
   onClose: () => void;
   handle: string | null;
   userId?: string;
+  creatorName?: string;
 }
 
-export function ShareStudioModal({ isOpen, onClose, handle, userId }: ShareStudioModalProps) {
+export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName }: ShareStudioModalProps) {
   const [showQR, setShowQR] = useState(false);
+  const [showShareOptions, setShowShareOptions] = useState(false);
   const [copied, setCopied] = useState(false);
   const [studioUrl, setStudioUrl] = useState<string | null>(null);
   const [urlError, setUrlError] = useState(false);
+
+  const shareTitle = `Exhiby Studio — ${creatorName || handle || "Artist"}`;
+  const shareText = "Step into my studio on Exhiby. Live sessions + scheduled drops.";
 
   // Generate studio URL
   useEffect(() => {
     if (!isOpen) {
       setCopied(false);
       setShowQR(false);
+      setShowShareOptions(false);
       return;
     }
 
@@ -84,28 +90,68 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId }: ShareStudi
 
     triggerClickHaptic();
 
+    // Check if native share is available
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Visit my Studio on Exhiby",
-          text: "Check out my creative studio",
+          title: shareTitle,
+          text: shareText,
           url: studioUrl,
         });
+        return; // Success - exit early
       } catch (err) {
-        // User cancelled or share failed silently
-        if ((err as Error).name !== "AbortError") {
-          console.error("Share failed:", err);
+        // User cancelled or share failed
+        if ((err as Error).name === "AbortError") {
+          return; // User cancelled, do nothing
         }
+        console.error("Native share failed, falling back to options:", err);
       }
-    } else {
-      // Fallback to copy
-      handleCopyLink();
+    }
+    
+    // Fallback: Copy link + show share options panel
+    try {
+      await navigator.clipboard.writeText(studioUrl);
+      toast({
+        title: "Studio link copied",
+        description: "Choose a platform to share",
+      });
+    } catch (err) {
+      console.error("Clipboard failed:", err);
+    }
+    
+    setShowShareOptions(true);
+  };
+
+  const getShareLinks = () => {
+    if (!studioUrl) return null;
+    
+    const encodedUrl = encodeURIComponent(studioUrl);
+    const encodedText = encodeURIComponent(shareText);
+    const encodedTitle = encodeURIComponent(shareTitle);
+    
+    return {
+      whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+      twitter: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+      email: `mailto:?subject=${encodedTitle}&body=${encodedText}%0A%0A${encodedUrl}`,
+    };
+  };
+
+  const handleSharePlatform = (platform: string) => {
+    triggerClickHaptic();
+    const links = getShareLinks();
+    if (!links) return;
+    
+    const url = links[platform as keyof typeof links];
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
   const handleToggleQR = () => {
     triggerClickHaptic();
     setShowQR(!showQR);
+    if (!showQR) setShowShareOptions(false);
   };
 
   if (!isOpen) return null;
@@ -258,6 +304,67 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId }: ShareStudi
                             {copied ? "Copied" : "Copy link"}
                           </span>
                         </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Share Options Panel (Desktop Fallback) */}
+                <AnimatePresence>
+                  {showShareOptions && studioUrl && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-6 p-4 rounded-2xl bg-carbon border border-border/30">
+                        <p className="text-xs text-muted-foreground text-center mb-4">
+                          Share on your favorite platform
+                        </p>
+                        
+                        <div className="grid grid-cols-4 gap-3">
+                          {/* WhatsApp */}
+                          <button
+                            onClick={() => handleSharePlatform("whatsapp")}
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <MessageCircle className="w-5 h-5 text-[#25D366]" />
+                            <span className="text-xs text-muted-foreground">WhatsApp</span>
+                          </button>
+                          
+                          {/* X (Twitter) */}
+                          <button
+                            onClick={() => handleSharePlatform("twitter")}
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <svg className="w-5 h-5 text-foreground" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                            </svg>
+                            <span className="text-xs text-muted-foreground">X</span>
+                          </button>
+                          
+                          {/* LinkedIn */}
+                          <button
+                            onClick={() => handleSharePlatform("linkedin")}
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <svg className="w-5 h-5 text-[#0A66C2]" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                            </svg>
+                            <span className="text-xs text-muted-foreground">LinkedIn</span>
+                          </button>
+                          
+                          {/* Email */}
+                          <button
+                            onClick={() => handleSharePlatform("email")}
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <Mail className="w-5 h-5 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">Email</span>
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   )}
