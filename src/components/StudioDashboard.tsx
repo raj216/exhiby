@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
-import { toast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
 import { ScheduleEventModal } from "./ScheduleEventModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
 import { PortfolioGrid } from "./PortfolioGrid";
 import { FollowListModal } from "./FollowListModal";
+import { ShareStudioModal } from "./ShareStudioModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
@@ -64,6 +64,7 @@ export function StudioDashboard({
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [localProfile, setLocalProfile] = useState(profile);
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
 
@@ -128,10 +129,7 @@ export function StudioDashboard({
   };
   const handleShare = () => {
     triggerClickHaptic();
-    toast({
-      title: "Share Profile",
-      description: "Link copied to clipboard!"
-    });
+    setShowShareModal(true);
   };
   return <div className="min-h-screen bg-carbon">
       {/* Cover Photo - Full Width (NOT clickable - edit through Edit Profile) */}
@@ -357,5 +355,13 @@ export function StudioDashboard({
 
       {/* Follow List Modal */}
       {user && <FollowListModal isOpen={showFollowList !== null} onClose={() => setShowFollowList(null)} userId={user.id} type={showFollowList || "followers"} />}
+
+      {/* Share Studio Modal */}
+      <ShareStudioModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        handle={localProfile?.handle || null}
+        userId={user?.id}
+      />
     </div>;
 }
