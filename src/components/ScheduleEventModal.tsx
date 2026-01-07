@@ -250,15 +250,15 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-3xl z-50 max-h-[90vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-2xl z-50 max-h-[92vh] overflow-y-auto"
           >
             {/* Handle */}
-            <div className="flex justify-center pt-2 pb-1">
+            <div className="flex justify-center py-1.5">
               <div className="w-10 h-1 bg-border/50 rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-border/30">
+            <div className="flex items-center justify-between px-5 pb-3 border-b border-border/30">
               <h2 className="font-display text-xl text-foreground">Open the Studio</h2>
               <button
                 onClick={handleClose}
