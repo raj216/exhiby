@@ -75,9 +75,9 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-background rounded-2xl shadow-2xl border border-border/30 overflow-hidden mx-4">
+            <div className="bg-background rounded-2xl shadow-2xl border border-border/30 overflow-hidden w-full max-w-sm sm:max-w-md">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-border/30">
                 <h2 className="text-lg font-semibold text-foreground capitalize">
