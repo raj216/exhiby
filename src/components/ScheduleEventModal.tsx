@@ -253,12 +253,12 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
             className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-3xl z-50 max-h-[90vh] overflow-y-auto"
           >
             {/* Handle */}
-            <div className="flex justify-center pt-3 pb-2">
+            <div className="flex justify-center pt-2 pb-1">
               <div className="w-10 h-1 bg-border/50 rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-4 border-b border-border/30">
+            <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-border/30">
               <h2 className="font-display text-xl text-foreground">Open the Studio</h2>
               <button
                 onClick={handleClose}
