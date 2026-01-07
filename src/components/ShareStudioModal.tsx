@@ -175,10 +175,10 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => e.target === e.currentTarget && onClose()}
           >
-            <div className="bg-obsidian border border-border/30 rounded-2xl overflow-hidden w-full max-w-[360px] md:max-w-[400px] lg:max-w-[420px] max-h-[85vh] overflow-y-auto">
+            <div className="bg-obsidian border border-border/30 rounded-2xl w-full max-w-[360px] md:max-w-[400px] lg:max-w-[420px]">
               {/* Header */}
               <div className="flex items-center justify-between p-5 pb-3">
                 <div>
