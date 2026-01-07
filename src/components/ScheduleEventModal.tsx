@@ -246,28 +246,32 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
           {/* Modal */}
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
+            initial={{ y: "100%", x: "-50%" }}
+            animate={{ y: 0, x: "-50%" }}
+            exit={{ y: "100%", x: "-50%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-2xl z-50 max-h-[92vh] overflow-y-auto"
+            className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[85vh] lg:my-[7.5vh]"
+            style={{ transform: "translateX(-50%)" }}
           >
-            {/* Handle */}
-            <div className="flex justify-center py-1.5">
+            {/* Handle - Mobile only */}
+            <div className="flex justify-center pt-3 pb-2 lg:hidden flex-shrink-0">
               <div className="w-10 h-1 bg-border/50 rounded-full" />
             </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-3 border-b border-border/30">
+            {/* Header - Sticky */}
+            <div className="flex items-center justify-between px-5 pb-4 pt-2 lg:pt-5 border-b border-border/30 bg-obsidian sticky top-0 z-10 flex-shrink-0 lg:rounded-t-3xl">
               <h2 className="font-display text-xl text-foreground">Open the Studio</h2>
               <button
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center hover:bg-surface transition-colors"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
+            
+            {/* Scrollable Content Area */}
+            <div className="overflow-y-auto flex-1 min-h-0">
 
             {/* Form */}
             <div className="p-5 space-y-5">
@@ -466,7 +470,8 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
               )}
 
               {/* Bottom padding for safe area */}
-              <div className="h-6" />
+              <div className="h-4" />
+            </div>
             </div>
           </motion.div>
 
