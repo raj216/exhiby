@@ -115,9 +115,7 @@ export function PortfolioGrid({
             y: 0
           }} onClick={() => handleImageClick(item)} className="w-full rounded-xl overflow-hidden relative group">
                     <img src={item.image_url} alt={item.title || "Portfolio artwork"} className="w-full h-auto object-cover" loading="lazy" />
-                    {canEdit && <button onClick={e => handleDelete(e, item.id)} className="absolute top-2 right-2 w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-muted">
-                        <Trash2 className="w-4 h-4 text-destructive bg-primary" />
-                      </button>}
+                    {canEdit}
                   </motion.button>)}
               </div>)}
           </div>
