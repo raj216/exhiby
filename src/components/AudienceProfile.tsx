@@ -11,9 +11,9 @@ import {
   Pencil
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
-import { toast } from "@/hooks/use-toast";
 import { EditProfileModal } from "./EditProfileModal";
 import { FollowListModal } from "./FollowListModal";
+import { ShareProfileModal } from "./ShareProfileModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudienceStats } from "@/hooks/useAudienceStats";
@@ -62,6 +62,7 @@ export function AudienceProfile({
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
+  const [showShareProfile, setShowShareProfile] = useState(false);
   
   // Sync local profile with prop changes
   useEffect(() => {
@@ -117,7 +118,7 @@ export function AudienceProfile({
 
   const handleShare = () => {
     triggerClickHaptic();
-    toast({ title: "Share Profile", description: "Link copied to clipboard!" });
+    setShowShareProfile(true);
   };
 
   return (
@@ -388,6 +389,14 @@ export function AudienceProfile({
           type={showFollowList || "followers"}
         />
       )}
+
+      {/* Share Profile Modal */}
+      <ShareProfileModal
+        isOpen={showShareProfile}
+        onClose={() => setShowShareProfile(false)}
+        handle={localProfile?.handle || null}
+        userId={user?.id}
+      />
     </div>
   );
 }
