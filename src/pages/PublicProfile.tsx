@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { triggerHaptic } from "@/lib/haptics";
+import { safeExternalUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { FollowListModal } from "@/components/FollowListModal";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
@@ -255,6 +256,9 @@ export default function PublicProfile() {
     ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
     : null;
 
+  const websiteHref = safeExternalUrl(profile?.website);
+
+
   // Lightweight per-page SEO (no extra deps)
   useEffect(() => {
     if (!profile) return;
@@ -432,14 +436,14 @@ export default function PublicProfile() {
               No bio yet
             </p>
           )}
-          {profile.website && (
+          {websiteHref && (
             <a
-              href={profile.website}
+              href={websiteHref}
               target="_blank"
               rel="noopener noreferrer"
               className="text-electric text-sm hover:underline mt-1 block"
             >
-              {profile.website.replace(/^https?:\/\//, "")}
+              {websiteHref.replace(/^https?:\/\//, "")}
             </a>
           )}
         </motion.div>
