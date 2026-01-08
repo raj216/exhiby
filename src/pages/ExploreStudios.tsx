@@ -26,37 +26,51 @@ export default function ExploreStudios() {
   const [studios, setStudios] = useState<StudioItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch all studios (live events, scheduled events, and creators without active events)
-  useEffect(() => {
-    const fetchStudios = async () => {
-      try {
-        // Fetch live events
-        const { data: liveEvents } = await supabase
-          .from("events")
-          .select("id, creator_id, category")
-          .eq("is_live", true)
-          .is("live_ended_at", null);
+  // Fetch all studios (live events, scheduled events, and verified creators)
+  const fetchStudios = async () => {
+    try {
+      console.log("[ExploreStudios] Fetching real studio data...");
+      
+      // Fetch verified creators (users with creator role)
+      const { data: creatorRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "creator");
 
-        // Fetch scheduled events
-        const { data: scheduledEvents } = await supabase
-          .from("events")
-          .select("id, creator_id, category")
-          .gt("scheduled_at", new Date().toISOString())
-          .eq("is_live", false);
+      const creatorUserIds = new Set((creatorRoles || []).map((r) => r.user_id));
+      console.log(`[ExploreStudios] Found ${creatorUserIds.size} verified creators`);
 
-        // Get all creator profiles
-        const { data: profiles } = await supabase.rpc("get_all_public_profiles");
+      // Fetch live events (currently streaming)
+      const { data: liveEvents } = await supabase
+        .from("events")
+        .select("id, creator_id, category, title, live_started_at")
+        .eq("is_live", true)
+        .not("room_url", "is", null)
+        .is("live_ended_at", null)
+        .order("live_started_at", { ascending: false });
 
-        const profileMap = new Map(
-          (profiles || []).map((p: CreatorProfile) => [p.user_id, p])
-        );
+      // Fetch scheduled events (upcoming)
+      const { data: scheduledEvents } = await supabase
+        .from("events")
+        .select("id, creator_id, category, title, scheduled_at")
+        .gt("scheduled_at", new Date().toISOString())
+        .eq("is_live", false)
+        .order("scheduled_at", { ascending: true });
 
-        // Build studio list
-        const studioList: StudioItem[] = [];
-        const seenCreators = new Set<string>();
+      // Get all public profiles
+      const { data: profiles } = await supabase.rpc("get_all_public_profiles");
 
-        // Add live studios first
-        (liveEvents || []).forEach((event) => {
+      const profileMap = new Map(
+        (profiles || []).map((p: CreatorProfile) => [p.user_id, p])
+      );
+
+      // Build studio list
+      const studioList: StudioItem[] = [];
+      const seenCreators = new Set<string>();
+
+      // Add live studios first (priority)
+      (liveEvents || []).forEach((event) => {
+        if (creatorUserIds.has(event.creator_id)) {
           studioList.push({
             id: event.id,
             creator_id: event.creator_id,
@@ -65,44 +79,80 @@ export default function ExploreStudios() {
             creator: profileMap.get(event.creator_id),
           });
           seenCreators.add(event.creator_id);
-        });
+        }
+      });
 
-        // Add scheduled studios
-        (scheduledEvents || []).forEach((event) => {
-          if (!seenCreators.has(event.creator_id)) {
-            studioList.push({
-              id: event.id,
-              creator_id: event.creator_id,
-              category: event.category,
-              status: "scheduled",
-              creator: profileMap.get(event.creator_id),
-            });
-            seenCreators.add(event.creator_id);
-          }
-        });
+      // Add scheduled studios
+      (scheduledEvents || []).forEach((event) => {
+        if (creatorUserIds.has(event.creator_id) && !seenCreators.has(event.creator_id)) {
+          studioList.push({
+            id: event.id,
+            creator_id: event.creator_id,
+            category: event.category,
+            status: "scheduled",
+            creator: profileMap.get(event.creator_id),
+          });
+          seenCreators.add(event.creator_id);
+        }
+      });
 
-        // Add quiet studios (creators without active/scheduled events)
-        (profiles || []).forEach((profile: CreatorProfile) => {
-          if (!seenCreators.has(profile.user_id)) {
+      // Add quiet studios (verified creators without active/scheduled events)
+      creatorUserIds.forEach((userId) => {
+        if (!seenCreators.has(userId)) {
+          const profile = profileMap.get(userId);
+          if (profile) {
             studioList.push({
-              id: `quiet-${profile.user_id}`,
-              creator_id: profile.user_id,
+              id: `quiet-${userId}`,
+              creator_id: userId,
               category: null,
               status: "quiet",
               creator: profile,
             });
           }
-        });
+        }
+      });
 
-        setStudios(studioList);
-      } catch (err) {
-        console.error("Error fetching studios:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      console.log(`[ExploreStudios] Built ${studioList.length} studios (${liveEvents?.length || 0} live, ${scheduledEvents?.length || 0} scheduled)`);
+      setStudios(studioList);
+    } catch (err) {
+      console.error("[ExploreStudios] Error fetching studios:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchStudios();
+
+    // Subscribe to realtime changes for live updates
+    const eventsChannel = supabase
+      .channel("explore_studios_events")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
+        () => {
+          console.log("[ExploreStudios] Event change detected, refreshing...");
+          fetchStudios();
+        }
+      )
+      .subscribe();
+
+    const rolesChannel = supabase
+      .channel("explore_studios_roles")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles" },
+        () => {
+          console.log("[ExploreStudios] Role change detected, refreshing...");
+          fetchStudios();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(rolesChannel);
+    };
   }, []);
 
   // Filter studios by category
