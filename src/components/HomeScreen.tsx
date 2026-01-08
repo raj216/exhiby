@@ -307,11 +307,21 @@ export function HomeScreen({
                           <Clock className="w-8 h-8 text-muted-foreground/60" />
                         </div>
                         <h3 className="relative font-display text-lg text-foreground mb-2">
-                          {selectedCategory === "All" ? "The Studios are Quiet" : `No ${selectedCategory} studios open`}
+                          {selectedCategory === "All" ? "The studio is quiet." : `No ${selectedCategory} studios open`}
                         </h3>
-                        <p className="relative text-sm text-muted-foreground/80 max-w-sm mx-auto">
-                          {selectedCategory === "All" ? "Waiting to be opened." : "Try selecting a different category or check back later."}
+                        <p className="relative text-sm text-muted-foreground/80 max-w-sm mx-auto mb-4">
+                          {selectedCategory === "All" ? "Discover open and upcoming artist studios." : "Try selecting a different category or check back later."}
                         </p>
+                        
+                        {/* Explore Studios CTA - only on audience home when no live sessions */}
+                        {mode === "audience" && selectedCategory === "All" && (
+                          <button
+                            onClick={() => navigate("/explore")}
+                            className="relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium text-muted-foreground border border-border/40 bg-transparent hover:border-border/60 hover:text-foreground transition-colors"
+                          >
+                            Explore Studios
+                          </button>
+                        )}
                       </motion.div>
                     </section>}
 
