@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
   Image as ImageIcon, 
@@ -8,7 +9,9 @@ import {
   Ticket,
   ChevronRight,
   Share2,
-  Pencil
+  Pencil,
+  Calendar,
+  Clock
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
@@ -18,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudienceStats } from "@/hooks/useAudienceStats";
 import { useFollowStats } from "@/hooks/useFollowStats";
+import { useTickets, UpcomingSession, PastSession } from "@/hooks/useTickets";
 
 interface UserProfile {
   name: string;
@@ -56,9 +60,11 @@ export function AudienceProfile({
   onOpenStudio,
   profile
 }: AudienceProfileProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { stats } = useAudienceStats(user?.id);
   const { stats: followStats } = useFollowStats(user?.id);
+  const { upcomingSessions, pastSessions, isLoading: ticketsLoading } = useTickets(user?.id);
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
@@ -336,19 +342,96 @@ export function AudienceProfile({
                 exit={{ opacity: 0, y: -10 }}
                 className="p-4"
               >
-                {/* Upcoming Sessions - Empty state until tickets table exists */}
+                {/* Upcoming Sessions */}
                 <h3 className="font-display text-lg text-foreground mb-4">Upcoming Sessions</h3>
-                <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
-                  <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">No tickets yet</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Book a session to get your first ticket</p>
-                </div>
+                {ticketsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                    <div className="w-8 h-8 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
+                  </div>
+                ) : upcomingSessions.length > 0 ? (
+                  <div className="space-y-3">
+                    {upcomingSessions.map((session) => (
+                      <motion.div
+                        key={session.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        onClick={() => {
+                          triggerClickHaptic();
+                          navigate(`/live/${session.eventId}`);
+                        }}
+                        className="bg-obsidian rounded-xl border border-border/30 p-4 cursor-pointer hover:border-border/50 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          {session.artistAvatar ? (
+                            <img
+                              src={session.artistAvatar}
+                              alt={session.artistName}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                              {session.artistName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
+                            <p className="text-xs text-muted-foreground">{session.artistName}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {session.scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {session.scheduledAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                              </span>
+                            </div>
+                          </div>
+                          {session.isLive && (
+                            <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-medium">
+                              LIVE
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                    <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">No tickets yet</p>
+                  </div>
+                )}
 
-                {/* Past Sessions - Empty state until purchase history exists */}
+                {/* Past Sessions */}
                 <h3 className="font-display text-lg text-foreground mt-8 mb-4">Past Sessions</h3>
-                <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
-                  <p className="text-muted-foreground/60 text-sm">No past sessions</p>
-                </div>
+                {ticketsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
+                    <div className="w-6 h-6 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
+                  </div>
+                ) : pastSessions.length > 0 ? (
+                  <div className="space-y-2">
+                    {pastSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="bg-obsidian/50 rounded-xl border border-border/20 p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{session.artistName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {session.category || "Studio Session"} · {session.attendedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
+                    <p className="text-muted-foreground/60 text-sm">No past sessions</p>
+                  </div>
+                )}
               </motion.div>
             )}
 
