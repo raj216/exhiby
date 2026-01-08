@@ -310,6 +310,41 @@ export type Database = {
         }
         Relationships: []
       }
+      tickets: {
+        Row: {
+          attended_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          attended_at?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          attended_at?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
