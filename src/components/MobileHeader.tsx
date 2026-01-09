@@ -20,7 +20,7 @@ export function MobileHeader({ className = "" }: MobileHeaderProps) {
         {/* Notification Bell */}
         <button
           onClick={() => setShowNotifications(true)}
-          className="relative p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors"
+          className="relative p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors duration-200"
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5 text-muted-foreground" />
