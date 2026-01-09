@@ -6,6 +6,7 @@ import { UpcomingEventCard } from "./UpcomingEventCard";
 import { LiveStudioView, StudioRoom } from "./studio";
 import { PaymentDrawer } from "./PaymentDrawer";
 import { DesktopHeader } from "./DesktopHeader";
+import { MobileHeader } from "./MobileHeader";
 import { LeftSidebar } from "./LeftSidebar";
 import { BottomNavigation } from "./BottomNavigation";
 import { useUserMode } from "@/contexts/UserModeContext";
@@ -218,6 +219,9 @@ export function HomeScreen({
 
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile Header - visible on mobile/tablet only */}
+        <MobileHeader />
+
         {/* Desktop Header - hidden on mobile */}
         <div className="hidden lg:block">
           <DesktopHeader onOpenSearch={onOpenSearch} onViewProfile={onViewAudienceProfile} onGoLive={onGoLive} onOpenStudio={onOpenStudio} onLogout={onLogout} hideLogo />
