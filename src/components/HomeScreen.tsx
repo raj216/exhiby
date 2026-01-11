@@ -296,14 +296,15 @@ export function HomeScreen({
 
                   {/* Empty Live State - Show when no streams for selected category */}
                   {!hasLiveContent && <section className="py-8 px-4 lg:px-6">
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="relative text-center py-14 px-6 rounded-2xl overflow-hidden border border-border/20"
-                        style={{
-                          background: 'linear-gradient(145deg, hsl(var(--obsidian)/0.6) 0%, hsl(var(--carbon)/0.4) 100%)'
-                        }}
-                      >
+                      <motion.div initial={{
+                    opacity: 0,
+                    y: 10
+                  }} animate={{
+                    opacity: 1,
+                    y: 0
+                  }} className="relative text-center py-14 px-6 rounded-2xl overflow-hidden border border-border/20" style={{
+                    background: 'linear-gradient(145deg, hsl(var(--obsidian)/0.6) 0%, hsl(var(--carbon)/0.4) 100%)'
+                  }}>
                         {/* Subtle radial gradient for depth */}
                         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--muted)/0.08)_0%,transparent_70%)]" />
                         
@@ -318,14 +319,9 @@ export function HomeScreen({
                         </p>
                         
                         {/* Explore Studios CTA - only on audience home when no live sessions */}
-                        {mode === "audience" && selectedCategory === "All" && (
-                          <button
-                            onClick={() => navigate("/explore")}
-                            className="relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium text-muted-foreground border border-border/40 bg-transparent hover:border-border/60 hover:text-foreground transition-colors"
-                          >
+                        {mode === "audience" && selectedCategory === "All" && <button onClick={() => navigate("/explore")} className="relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium text-muted-foreground border border-border/40 bg-transparent hover:border-border/60 hover:text-foreground transition-colors">
                             Explore Studios
-                          </button>
-                        )}
+                          </button>}
                       </motion.div>
                     </section>}
 
@@ -394,14 +390,15 @@ export function HomeScreen({
 
                   {/* Hero Card: Auctions Coming Soon - Always visible */}
                   <section className="px-4 lg:px-6 py-8">
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="relative w-full rounded-2xl overflow-hidden border border-border/30"
-                      style={{
-                        background: 'linear-gradient(145deg, hsl(var(--carbon)) 0%, hsl(var(--obsidian)) 40%, hsl(var(--carbon)) 100%)'
-                      }}
-                    >
+                    <motion.div initial={{
+                    opacity: 0,
+                    y: 20
+                  }} animate={{
+                    opacity: 1,
+                    y: 0
+                  }} className="relative w-full rounded-2xl overflow-hidden border border-border/30" style={{
+                    background: 'linear-gradient(145deg, hsl(var(--carbon)) 0%, hsl(var(--obsidian)) 40%, hsl(var(--carbon)) 100%)'
+                  }}>
                       {/* Abstract background layers - dark gradient with texture */}
                       <div className="absolute inset-0">
                         {/* Deep radial vignette for depth */}
@@ -410,9 +407,9 @@ export function HomeScreen({
                         
                         {/* Subtle grain texture */}
                         <div className="absolute inset-0 opacity-[0.02]" style={{
-                          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-                          backgroundSize: '128px 128px'
-                        }} />
+                        backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+                        backgroundSize: '128px 128px'
+                      }} />
                         
                         {/* Soft studio-light shadow from top */}
                         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/[0.02] to-transparent" />
@@ -427,18 +424,15 @@ export function HomeScreen({
                           <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-foreground mb-3 tracking-tight">
                             Live Art Exhibitions
                           </h3>
-                          <p className="text-sm sm:text-base text-muted-foreground/90 mb-6 leading-relaxed">
-                            Private drops. Limited access.
-                          </p>
-                          <motion.button 
-                            onClick={handleJoinWaitlist} 
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="group relative px-6 py-3 text-sm font-medium rounded-lg bg-transparent border border-electric/50 text-electric transition-all duration-300 hover:border-electric hover:bg-electric/5"
-                          >
+                          <p className="text-sm sm:text-base text-muted-foreground/90 mb-6 leading-relaxed">Monetizing the exhibition experience — not just the art.</p>
+                          <motion.button onClick={handleJoinWaitlist} whileHover={{
+                          scale: 1.02
+                        }} whileTap={{
+                          scale: 0.98
+                        }} className="group relative px-6 py-3 text-sm font-medium rounded-lg bg-transparent border border-electric/50 text-electric transition-all duration-300 hover:border-electric hover:bg-electric/5">
                             {/* Subtle red glow on hover only */}
                             <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_20px_hsl(var(--electric)/0.15)]" />
-                            <span className="relative z-10">Join Waitlist</span>
+                            <span className="relative z-10">Request Exhibition Access</span>
                           </motion.button>
                         </div>
                       </div>
