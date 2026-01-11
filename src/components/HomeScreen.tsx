@@ -425,7 +425,7 @@ export function HomeScreen({
                       <div className="relative z-10 p-8 sm:p-10 lg:p-14">
                         <div className="max-w-lg">
                           <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-foreground mb-3 tracking-tight">
-                            Auctions Opening Soon
+                            Live Art Exhibitions
                           </h3>
                           <p className="text-sm sm:text-base text-muted-foreground/90 mb-6 leading-relaxed">
                             Private drops. Limited access.
