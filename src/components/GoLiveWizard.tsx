@@ -351,7 +351,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               id="title"
               value={title}
               onChange={handleTitleChange}
-              placeholder="What are you working on?"
+              placeholder="Name your studio session"
               maxLength={MAX_TITLE_LENGTH}
               className="bg-surface border-border/30"
             />
