@@ -371,7 +371,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
               id="description"
               value={description}
               onChange={handleDescriptionChange}
-              placeholder="What are you creating today?"
+              placeholder="Tell your audience what they'll experience inside your studio"
               rows={2}
               maxLength={MAX_DESCRIPTION_LENGTH}
               className="bg-surface border-border/30 resize-none"
