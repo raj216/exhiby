@@ -341,7 +341,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
           <div>
             <div className="flex justify-between items-center mb-2">
               <Label htmlFor="title" className="text-sm text-muted-foreground">
-                Name your studio session <span className="text-electric">*</span>
+                Studio Title <span className="text-electric">*</span>
               </Label>
               <span className="text-xs text-muted-foreground">
                 {title.length}/{MAX_TITLE_LENGTH}
