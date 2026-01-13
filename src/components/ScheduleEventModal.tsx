@@ -32,6 +32,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [isFree, setIsFree] = useState(true);
+  const [capacity, setCapacity] = useState<string>("10");
   const [price, setPrice] = useState("");
   const [coverImage, setCoverImage] = useState<Blob | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -368,7 +369,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                   id="description"
                   value={description}
                   onChange={handleDescriptionChange}
-                  placeholder="What are you creating today?"
+                  placeholder="Tell your audience what they'll experience inside your studio"
                   rows={3}
                   maxLength={MAX_DESCRIPTION_LENGTH}
                   className="bg-surface border-border/30 resize-none"
@@ -404,15 +405,56 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
                 </div>
               </div>
 
+              {/* Studio Capacity */}
+              <div>
+                <Label className="text-sm text-muted-foreground mb-2 block">
+                  Studio Capacity <span className="text-electric">*</span>
+                </Label>
+                <div className="flex gap-2">
+                  {["5", "10", "25", "unlimited"].map((option) => {
+                    const isUnlimited = option === "unlimited";
+                    const isDisabled = isUnlimited && !isFree;
+                    const isSelected = capacity === option;
+                    
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => setCapacity(option)}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                          isSelected
+                            ? "bg-electric text-white"
+                            : isDisabled
+                            ? "bg-surface/50 text-muted-foreground/40 cursor-not-allowed"
+                            : "bg-surface border border-border/30 text-muted-foreground hover:bg-surface/80"
+                        }`}
+                      >
+                        {isUnlimited ? "Unlimited" : `${option} seats`}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground/70 mt-2">
+                  Limited seats create better interaction inside the studio
+                </p>
+              </div>
+
               {/* Entry Type Toggle */}
               <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
                 <div>
-                  <p className="text-foreground font-medium">{isFree ? "Free Entry" : "Ticketed Entry"}</p>
+                  <p className="text-foreground font-medium">{isFree ? "Free Studio" : "Ticketed Entry"}</p>
                   <p className="text-xs text-muted-foreground">Toggle off to set a price</p>
                 </div>
                 <Switch
                   checked={isFree}
-                  onCheckedChange={setIsFree}
+                  onCheckedChange={(checked) => {
+                    setIsFree(checked);
+                    // Reset to non-unlimited if switching to paid
+                    if (!checked && capacity === "unlimited") {
+                      setCapacity("10");
+                    }
+                  }}
                 />
               </div>
 
