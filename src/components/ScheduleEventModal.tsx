@@ -443,8 +443,10 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
               {/* Entry Type Toggle */}
               <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
                 <div>
-                  <p className="text-foreground font-medium">{isFree ? "Free Studio" : "Ticketed Entry"}</p>
-                  <p className="text-xs text-muted-foreground">Toggle off to set a price</p>
+                  <p className="text-foreground font-medium">{isFree ? "Free Studio" : "Paid Studio"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isFree ? "Toggle off to set a price" : "Paid studios support focused interaction."}
+                  </p>
                 </div>
                 <Switch
                   checked={isFree}
