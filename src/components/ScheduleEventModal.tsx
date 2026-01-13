@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
@@ -442,11 +443,18 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
               {/* Entry Type Toggle */}
               <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
-                <div>
-                  <p className="text-foreground font-medium">{isFree ? "Free Studio" : "Paid Studio"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {isFree ? "Toggle off to set a price" : "Paid studios support focused interaction."}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-foreground font-medium text-sm">{isFree ? "Free Studio" : "Paid Studio"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isFree ? "Toggle off to set a price" : "Paid studios support focused interaction."}
+                    </p>
+                  </div>
+                  {isFree && (
+                    <Badge variant="neutral" className="text-xs">
+                      Free
+                    </Badge>
+                  )}
                 </div>
                 <Switch
                   checked={isFree}
