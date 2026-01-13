@@ -8,9 +8,10 @@ import { UpcomingEventsList } from "./UpcomingEventsList";
 import { PortfolioGrid } from "./PortfolioGrid";
 import { FollowListModal } from "./FollowListModal";
 import { ShareStudioModal } from "./ShareStudioModal";
+import { AnalyticsBreakdownModal } from "./AnalyticsBreakdownModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreatorStats } from "@/hooks/useCreatorStats";
+import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { useFollowStats } from "@/hooks/useFollowStats";
 interface ScheduledEvent {
   id: string;
@@ -55,8 +56,8 @@ export function StudioDashboard({
     user
   } = useAuth();
   const {
-    stats
-  } = useCreatorStats(user?.id);
+    analytics
+  } = useMonthlyAnalytics(user?.id);
   const {
     stats: followStats
   } = useFollowStats(user?.id);
@@ -65,6 +66,7 @@ export function StudioDashboard({
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState<"earnings" | "tickets" | null>(null);
   const [localProfile, setLocalProfile] = useState(profile);
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
 
@@ -318,27 +320,41 @@ export function StudioDashboard({
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          {/* Earnings - 50% width */}
-          <div className="bg-obsidian rounded-2xl p-5 border border-border/30">
+          {/* Earnings - 50% width - Clickable */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              triggerClickHaptic();
+              setShowAnalyticsModal("earnings");
+            }}
+            className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors"
+          >
             <div className="flex items-center gap-2 mb-3">
               <DollarSign className="w-5 h-5 text-gold" />
               <span className="text-sm text-muted-foreground">This Month</span>
             </div>
             <p className="font-display text-3xl text-gold">
-              {showEarnings ? `$${stats.earnings.toLocaleString()}` : "••••"}
+              {showEarnings ? `$${analytics.totalEarnings.toLocaleString()}` : "••••"}
             </p>
-          </div>
+          </motion.button>
           
-          {/* Tickets Sold - 50% width */}
-          <div className="bg-obsidian rounded-2xl p-5 border border-border/30">
+          {/* Tickets Sold - 50% width - Clickable */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              triggerClickHaptic();
+              setShowAnalyticsModal("tickets");
+            }}
+            className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-electric/30 transition-colors"
+          >
             <div className="flex items-center gap-2 mb-3">
               <Ticket className="w-5 h-5 text-electric" />
               <span className="text-sm text-muted-foreground">Tickets</span>
             </div>
             <p className="font-display text-3xl text-foreground">
-              {stats.ticketsSold}
+              {analytics.totalTickets}
             </p>
-          </div>
+          </motion.button>
         </div>
       </div>
 
@@ -363,6 +379,16 @@ export function StudioDashboard({
         handle={localProfile?.handle || null}
         userId={user?.id}
         creatorName={localProfile?.name}
+      />
+
+      {/* Analytics Breakdown Modal */}
+      <AnalyticsBreakdownModal
+        isOpen={showAnalyticsModal !== null}
+        onClose={() => setShowAnalyticsModal(null)}
+        type={showAnalyticsModal || "earnings"}
+        total={showAnalyticsModal === "tickets" ? analytics.totalTickets : analytics.totalEarnings}
+        breakdowns={analytics.sessionBreakdowns}
+        showValues={showEarnings}
       />
     </div>;
 }
