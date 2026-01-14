@@ -21,22 +21,19 @@ export function useAudienceStats(userId: string | undefined) {
 
     setLoading(true);
     try {
-      // Events attended - check live_viewers table for past participation
-      // For now, we'll count distinct events the user joined
-      const { count: viewerCount, error: viewerError } = await supabase
-        .from("live_viewers")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
+      // Events attended - use secure RPC function
+      const { data: attendanceCount, error: attendanceError } = await supabase
+        .rpc("get_user_attendance_count", { target_user_id: userId });
 
-      if (viewerError) {
-        console.error("Error fetching viewer count:", viewerError);
+      if (attendanceError) {
+        console.error("Error fetching attendance count:", attendanceError);
       }
 
       // Items collected - will be 0 until purchases/collections table exists
       const itemsCollected = 0;
 
       setStats({
-        eventsAttended: viewerCount || 0,
+        eventsAttended: attendanceCount || 0,
         itemsCollected,
       });
     } catch (err) {
