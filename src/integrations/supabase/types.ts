@@ -404,6 +404,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notification: {
+        Args: {
+          p_link?: string
+          p_message?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       get_active_viewer_count: { Args: { event_uuid: string }; Returns: number }
       get_all_public_profiles: {
         Args: never
@@ -418,6 +428,14 @@ export type Database = {
           updated_at: string
           user_id: string
           website: string
+        }[]
+      }
+      get_event_viewers: {
+        Args: { p_event_id: string }
+        Returns: {
+          joined_at: string
+          last_seen: string
+          user_id: string
         }[]
       }
       get_follower_count: { Args: { target_user_id: string }; Returns: number }
@@ -480,6 +498,10 @@ export type Database = {
           user_id: string
           website: string
         }[]
+      }
+      get_user_attendance_count: {
+        Args: { target_user_id: string }
+        Returns: number
       }
       has_role: {
         Args: {
