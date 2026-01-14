@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,9 @@ import { FollowListModal } from "@/components/FollowListModal";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
 import { LiveAccessCard } from "@/components/LiveAccessCard";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
+import { usePublicCreatorStats } from "@/hooks/usePublicCreatorStats";
+import { CreatorReputationStats } from "@/components/CreatorReputationStats";
+import { UpcomingSessionsPreview } from "@/components/UpcomingSessionsPreview";
 
 interface LiveEventData {
   id: string;
@@ -51,6 +54,9 @@ export default function PublicProfile() {
   
   // Real-time viewer count for the live event
   const { viewerCount } = useLiveViewers(liveEvent?.id ?? null);
+  
+  // Public creator stats (only show if user is a creator)
+  const { stats: creatorStats, loading: creatorStatsLoading } = usePublicCreatorStats(profile?.user_id);
   
   // Check if user is a founding member from database
   const isFoundingMember = profile?.is_founding_member ?? false;
@@ -448,6 +454,17 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
+        {/* Creator Reputation Stats - Only show for creators */}
+        {creatorStats.isCreator && !creatorStatsLoading && (
+          <div className="mt-4">
+            <CreatorReputationStats
+              sessionsHosted={creatorStats.sessionsHosted}
+              averageRating={creatorStats.averageRating}
+              totalGuests={creatorStats.totalGuests}
+            />
+          </div>
+        )}
+
         {/* Stats */}
         <motion.div
           className="mt-6 flex gap-6"
@@ -518,6 +535,21 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
+        {/* Verified Creator Badge - Only show for creators */}
+        {creatorStats.isCreator && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.32 }}
+            className="flex justify-center mt-4"
+          >
+            <div className="px-3 py-1.5 rounded-full border border-electric/40 bg-electric/10 flex items-center gap-1.5">
+              <BadgeCheck className="w-3.5 h-3.5 text-electric" />
+              <span className="text-xs font-medium text-electric">Verified Creator</span>
+            </div>
+          </motion.div>
+        )}
+
         {/* Founding Member Badge */}
         {isFoundingMember && (
           <motion.div
@@ -569,6 +601,11 @@ export default function PublicProfile() {
           >
             Member since {memberSince}
           </motion.p>
+        )}
+
+        {/* Upcoming Sessions - Only show for creators */}
+        {creatorStats.isCreator && (
+          <UpcomingSessionsPreview creatorUserId={profile.user_id} />
         )}
 
         {/* Portfolio Section */}
