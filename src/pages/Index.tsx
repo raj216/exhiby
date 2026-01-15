@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
@@ -8,22 +8,32 @@ import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { PassportStamp, LogoutOverlay, PassportModal } from "@/components/auth";
+import { PageTransition } from "@/components/PageTransition";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigationHistory, type Screen } from "@/hooks/useNavigationHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 
 import { EventData } from "@/components/GoLiveWizard";
 
-type Screen = "home" | "wizard" | "live" | "creatorProfile" | "profile";
-
 function IndexContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading } = useAuth();
   const { mode } = useUserMode();
-  const [currentScreen, setCurrentScreen] = useState<Screen>("home");
+  
+  // Navigation history for proper back button support
+  const { 
+    currentScreen, 
+    navigate: navTo, 
+    goBack, 
+    goHome,
+    canGoBack 
+  } = useNavigationHistory("home");
+  
+  const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
   const [showWizard, setShowWizard] = useState(false);
   const [showLiveSession, setShowLiveSession] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -34,6 +44,33 @@ function IndexContent() {
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
   const [needsPassportSetup, setNeedsPassportSetup] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+
+  // Navigate forward to a screen
+  const navigateToScreen = useCallback((screen: Screen) => {
+    setTransitionDirection("forward");
+    navTo(screen);
+  }, [navTo]);
+
+  // Handle back navigation
+  const handleBack = useCallback(() => {
+    if (canGoBack) {
+      setTransitionDirection("backward");
+      const previousEntry = goBack();
+      if (previousEntry) {
+        // Update active tab based on screen
+        if (previousEntry.screen === "home") {
+          setActiveTab(mode === "audience" ? "home" : "studio");
+        } else if (previousEntry.screen === "profile") {
+          setActiveTab(mode === "audience" ? "passport" : "profile");
+        }
+      }
+    } else {
+      // Already at home, do nothing
+      setTransitionDirection("backward");
+      goHome();
+      setActiveTab(mode === "audience" ? "home" : "studio");
+    }
+  }, [canGoBack, goBack, goHome, mode]);
 
   // Check if user needs passport setup (first-time users)
   useEffect(() => {
@@ -87,19 +124,19 @@ function IndexContent() {
     const state = location.state as { openProfile?: boolean; openEditProfile?: boolean } | null;
     if (state?.openProfile) {
       console.log("[Index] Opening own profile from navigation state");
-      setCurrentScreen("profile");
+      navigateToScreen("profile");
       setActiveTab(mode === "audience" ? "passport" : "profile");
       // Clear the state to prevent re-triggering
       navigate(location.pathname, { replace: true, state: {} });
     }
     if (state?.openEditProfile) {
       console.log("[Index] Opening edit profile from navigation state");
-      setCurrentScreen("profile");
+      navigateToScreen("profile");
       setActiveTab(mode === "audience" ? "passport" : "profile");
       // Clear the state
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, mode, navigate, location.pathname]);
+  }, [location.state, mode, navigate, location.pathname, navigateToScreen]);
 
   const handleStampComplete = () => {
     setShowWelcomeStamp(false);
@@ -129,15 +166,12 @@ function IndexContent() {
     });
   };
 
-  const handleBack = () => {
-    setCurrentScreen("home");
-  };
-
   const handleTabChange = (tab: string) => {
     if (tab === "profile" || tab === "passport") {
-      setCurrentScreen("profile");
+      navigateToScreen("profile");
     } else if (tab === "home" || tab === "studio") {
-      setCurrentScreen("home");
+      setTransitionDirection("backward");
+      goHome();
     } else {
       toast.info("Coming Soon", {
         description: `${tab.charAt(0).toUpperCase() + tab.slice(1)} feature is under development`,
@@ -187,48 +221,55 @@ function IndexContent() {
     return <PassportStamp userName={userName} onComplete={handleStampComplete} />;
   }
 
-  // Creator Profile (viewing another creator)
-  if (currentScreen === "creatorProfile") {
-    return (
-      <div className="min-h-screen bg-background">
-        <CreatorProfile onBack={handleBack} />
-      </div>
-    );
-  }
-
-  // User's own Profile (Audience Passport or Creator Studio Dashboard)
-  if (currentScreen === "profile") {
-    return (
-      <div className="min-h-screen bg-background">
-        <ProfileScreen 
-          onBack={() => {
-            setCurrentScreen("home");
-            setActiveTab(mode === "audience" ? "home" : "studio");
-          }} 
-          onGoLive={() => setShowWizard(true)}
-        />
-      </div>
-    );
-  }
+  // Render current screen with smooth transitions
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case "creatorProfile":
+        return (
+          <PageTransition key="creatorProfile" direction={transitionDirection}>
+            <CreatorProfile onBack={handleBack} />
+          </PageTransition>
+        );
+      
+      case "profile":
+        return (
+          <PageTransition key="profile" direction={transitionDirection}>
+            <ProfileScreen 
+              onBack={handleBack} 
+              onGoLive={() => setShowWizard(true)}
+            />
+          </PageTransition>
+        );
+      
+      default:
+        return (
+          <PageTransition key="home" direction={transitionDirection}>
+            <HomeScreen 
+              onGoLive={() => setShowWizard(true)} 
+              onViewCreatorProfile={() => navigateToScreen("creatorProfile")}
+              onViewAudienceProfile={() => {
+                navigateToScreen("profile");
+                setActiveTab(mode === "audience" ? "passport" : "profile");
+              }}
+              onOpenStudio={() => {
+                navigateToScreen("profile");
+                setActiveTab("profile");
+              }}
+              onOpenSearch={() => setShowSearch(true)}
+              onLogout={handleLogout}
+            />
+          </PageTransition>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-center" />
       
-      <HomeScreen 
-        onGoLive={() => setShowWizard(true)} 
-        onViewCreatorProfile={() => setCurrentScreen("creatorProfile")}
-        onViewAudienceProfile={() => {
-          setCurrentScreen("profile");
-          setActiveTab(mode === "audience" ? "passport" : "profile");
-        }}
-        onOpenStudio={() => {
-          setCurrentScreen("profile");
-          setActiveTab("profile");
-        }}
-        onOpenSearch={() => setShowSearch(true)}
-        onLogout={handleLogout}
-      />
+      <AnimatePresence mode="wait">
+        {renderScreen()}
+      </AnimatePresence>
 
       {/* Cinematic Logout Overlay */}
       <LogoutOverlay 
@@ -242,7 +283,7 @@ function IndexContent() {
         onClose={() => setShowSearch(false)}
         onSelectArtist={() => {
           setShowSearch(false);
-          setCurrentScreen("creatorProfile");
+          navigateToScreen("creatorProfile");
         }}
         onJoinLive={() => {
           setShowSearch(false);
@@ -252,12 +293,11 @@ function IndexContent() {
           toast.info(`Filtering by ${tag}`);
         }}
         onOpenOwnProfile={() => {
-          // Same logic as Profile tab - opens user's own profile screen
-          setCurrentScreen("profile");
+          setShowSearch(false);
+          navigateToScreen("profile");
           setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
       />
-
 
       <AnimatePresence>
         {showWizard && (

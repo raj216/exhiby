@@ -45,14 +45,20 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="fixed inset-0 bg-carbon/80 backdrop-blur-sm z-50"
             onClick={handleClose}
           />
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            initial={{ y: "100%", opacity: 0.9 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0.9 }}
+            transition={{ 
+              type: "spring", 
+              damping: 28, 
+              stiffness: 350,
+              mass: 0.8 
+            }}
             className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-3xl z-50 max-h-[85vh] overflow-y-auto"
           >
             <div className="p-6 flex flex-col min-h-[60vh]">
@@ -89,6 +95,12 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 400, 
+                        damping: 30,
+                        mass: 0.8
+                      }}
                       className="space-y-3"
                     >
                       {/* Payment Methods */}
@@ -164,6 +176,12 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 400, 
+                        damping: 30,
+                        mass: 0.8
+                      }}
                       className="space-y-3"
                     >
                       {/* FAQ */}
@@ -223,6 +241,12 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 400, 
+                        damping: 30,
+                        mass: 0.8
+                      }}
                       className="space-y-3"
                     >
                       {/* Terms of Service */}
