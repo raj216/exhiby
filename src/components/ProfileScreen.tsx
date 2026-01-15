@@ -62,8 +62,10 @@ export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
             opacity: 0 
           }}
           transition={{ 
-            duration: 0.15,
-            ease: "easeInOut"
+            type: "spring",
+            stiffness: 400,
+            damping: 30,
+            mass: 0.8
           }}
           style={{ 
             transformStyle: "preserve-3d",

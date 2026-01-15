@@ -139,6 +139,7 @@ export function BottomNavigation({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="fixed inset-0 z-30 lg:hidden"
             onClick={() => setShowProfileMenu(false)}
           />
@@ -157,7 +158,12 @@ export function BottomNavigation({
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 400, 
+                damping: 28,
+                mass: 0.7
+              }}
               className="absolute bottom-full right-4 mb-2 w-56 bg-obsidian border border-border/30 rounded-xl shadow-2xl overflow-hidden"
             >
               {/* User Info Header */}
