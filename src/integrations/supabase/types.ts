@@ -209,6 +209,42 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_live: boolean
+          email_reminders: boolean
+          email_scheduled: boolean
+          id: string
+          inapp_live: boolean
+          inapp_scheduled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_live?: boolean
+          email_reminders?: boolean
+          email_scheduled?: boolean
+          id?: string
+          inapp_live?: boolean
+          inapp_scheduled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_live?: boolean
+          email_reminders?: boolean
+          email_scheduled?: boolean
+          id?: string
+          inapp_live?: boolean
+          inapp_scheduled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -342,6 +378,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sent_emails: {
+        Row: {
+          email_type: string
+          event_id: string
+          id: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          email_type: string
+          event_id: string
+          id?: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          email_type?: string
+          event_id?: string
+          id?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_emails_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tickets: {
         Row: {

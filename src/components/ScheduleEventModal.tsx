@@ -182,7 +182,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
       const scheduledAt = localDateTime.toISOString(); // Automatically converts to UTC
 
       // Insert event
-      const { error } = await supabase
+      const { data: insertedEvent, error } = await supabase
         .from('events')
         .insert({
           creator_id: user.id,
@@ -193,9 +193,30 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
           scheduled_at: scheduledAt,
           is_free: isFree,
           price: isFree ? 0 : parseFloat(price) || 0,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // Trigger notifications for followers (fire and forget)
+      if (insertedEvent?.id) {
+        const { data: session } = await supabase.auth.getSession();
+        fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-followers`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.session?.access_token}`,
+            },
+            body: JSON.stringify({
+              event_id: insertedEvent.id,
+              notification_type: "studio_scheduled",
+            }),
+          }
+        ).catch((err) => console.error("Failed to trigger notifications:", err));
+      }
 
       toast({ title: "Success", description: "Studio scheduled!" });
       
