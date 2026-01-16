@@ -108,8 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
     let message = "";
     const link = `/live/${event_id}`;
 
-    // Get scheduled time for scheduled notifications
-    let scheduledTimeStr = "";
+    // Get scheduled time for scheduled notifications - store ISO string for client-side formatting
     if (notification_type === "studio_scheduled") {
       const { data: eventDetails } = await supabase
         .from("events")
@@ -117,45 +116,12 @@ const handler = async (req: Request): Promise<Response> => {
         .eq("id", event_id)
         .single();
       
-      if (eventDetails?.scheduled_at) {
-        const scheduledDate = new Date(eventDetails.scheduled_at);
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const isToday = scheduledDate.toDateString() === now.toDateString();
-        const isTomorrow = scheduledDate.toDateString() === tomorrow.toDateString();
-        
-        const timeStr = scheduledDate.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-        
-        if (isToday) {
-          scheduledTimeStr = `Today at ${timeStr}`;
-        } else if (isTomorrow) {
-          scheduledTimeStr = `Tomorrow at ${timeStr}`;
-        } else {
-          const dateStr = scheduledDate.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          });
-          scheduledTimeStr = `${dateStr} at ${timeStr}`;
-        }
-      }
-    }
-
-    switch (notification_type) {
-      case "studio_scheduled":
-        title = `${creatorName} scheduled a Live Studio`;
-        message = scheduledTimeStr || event.title;
-        break;
-      case "studio_live":
-        title = `${creatorName} is LIVE now`;
-        message = "Enter the Studio";
-        break;
+      title = `${creatorName} scheduled a Live Studio`;
+      // Store the ISO timestamp so client can format in user's timezone
+      message = eventDetails?.scheduled_at ? `scheduled:${eventDetails.scheduled_at}` : event.title;
+    } else if (notification_type === "studio_live") {
+      title = `${creatorName} is LIVE now`;
+      message = "Enter the Studio";
     }
 
     // Create in-app notifications for eligible followers

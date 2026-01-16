@@ -215,22 +215,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
 
       console.log("[GoLiveWizard] Live room created:", result.room_url);
 
-      // Trigger notifications for followers (fire and forget)
-      const notifySession = await supabase.auth.getSession();
-      fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-followers`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${notifySession?.data?.session?.access_token}`,
-          },
-          body: JSON.stringify({
-            event_id: insertedEvent.id,
-            notification_type: "studio_live",
-          }),
-        }
-      ).catch((err) => console.error("Failed to trigger notifications:", err));
+      // Note: Live notifications are now triggered inside create-live-room
+      // after is_live is confirmed true in the database
 
       // Close wizard and navigate to live room
       onClose();
