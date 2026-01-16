@@ -48,6 +48,40 @@ export function LiveNotificationToast() {
       if (isLive) icon = "🔴";
       if (isStartingSoon) icon = "⏰";
 
+      // Format scheduled message in user's timezone
+      let displayMessage = notification.message;
+      if (notification.message?.startsWith("scheduled:")) {
+        const isoTime = notification.message.replace("scheduled:", "");
+        try {
+          const scheduledDate = new Date(isoTime);
+          const now = new Date();
+          const tomorrow = new Date(now);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          const isToday = scheduledDate.toDateString() === now.toDateString();
+          const isTomorrow = scheduledDate.toDateString() === tomorrow.toDateString();
+          
+          const timeStr = scheduledDate.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          });
+          
+          if (isToday) displayMessage = `Today at ${timeStr}`;
+          else if (isTomorrow) displayMessage = `Tomorrow at ${timeStr}`;
+          else {
+            const dateStr = scheduledDate.toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
+            displayMessage = `${dateStr} at ${timeStr}`;
+          }
+        } catch {
+          displayMessage = notification.message;
+        }
+      }
+
       // Show sonner toast with custom styling
       sonnerToast.custom(
         (t) => (
@@ -86,9 +120,9 @@ export function LiveNotificationToast() {
               <p className={`font-medium text-sm leading-snug ${isLive ? "text-white" : "text-foreground"}`}>
                 {notification.title}
               </p>
-              {notification.message && (
+              {displayMessage && (
                 <p className={`text-xs mt-1 truncate ${isLive ? "text-white/80" : "text-muted-foreground"}`}>
-                  {notification.message}
+                  {displayMessage}
                 </p>
               )}
               {notification.link && (

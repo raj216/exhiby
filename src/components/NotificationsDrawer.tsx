@@ -49,6 +49,45 @@ function NotificationItem({
     return time;
   };
 
+  // Format the notification message - handle scheduled time in user's timezone
+  const formatMessage = (msg: string | null) => {
+    if (!msg) return null;
+    
+    // Check if message contains a scheduled timestamp
+    if (msg.startsWith("scheduled:")) {
+      const isoTime = msg.replace("scheduled:", "");
+      try {
+        const scheduledDate = new Date(isoTime);
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const isToday = scheduledDate.toDateString() === now.toDateString();
+        const isTomorrow = scheduledDate.toDateString() === tomorrow.toDateString();
+        
+        const timeStr = scheduledDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+        
+        if (isToday) return `Today at ${timeStr}`;
+        if (isTomorrow) return `Tomorrow at ${timeStr}`;
+        
+        const dateStr = scheduledDate.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+        return `${dateStr} at ${timeStr}`;
+      } catch {
+        return msg;
+      }
+    }
+    
+    return msg;
+  };
+
   return (
     <button
       onClick={() => onNavigate(notification.link, notification.id)}
@@ -81,7 +120,7 @@ function NotificationItem({
           {/* Message if present */}
           {notification.message && (
             <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">
-              {notification.message}
+              {formatMessage(notification.message)}
             </p>
           )}
 
@@ -150,7 +189,14 @@ function NotificationListContent({
 export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { notifications, loading, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, loading, markAsRead, markAllAsRead, refetch } = useNotifications();
+
+  // Refetch notifications when drawer opens to ensure we have the latest
+  useEffect(() => {
+    if (open) {
+      refetch();
+    }
+  }, [open, refetch]);
 
   // Mark all as read when drawer opens
   useEffect(() => {

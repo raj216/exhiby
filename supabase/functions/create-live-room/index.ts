@@ -187,7 +187,72 @@ serve(async (req) => {
       });
     }
 
-    console.log("[create-live-room] Event updated successfully");
+    console.log("[create-live-room] Event updated successfully, is_live is now TRUE");
+
+    // NOW trigger live notifications since is_live is confirmed true
+    // Get creator profile for notification
+    const { data: creatorProfile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("user_id", user.id)
+      .single();
+
+    const creatorName = creatorProfile?.name || "A creator";
+
+    // Get all followers
+    const { data: followers } = await supabase
+      .from("follows")
+      .select("follower_id")
+      .eq("following_id", user.id);
+
+    if (followers && followers.length > 0) {
+      const followerIds = followers.map((f) => f.follower_id);
+
+      // Get notification preferences
+      const { data: preferences } = await supabase
+        .from("notification_preferences")
+        .select("user_id, inapp_live")
+        .in("user_id", followerIds);
+
+      const prefsMap = new Map<string, boolean>();
+      (preferences || []).forEach((p) => prefsMap.set(p.user_id, p.inapp_live));
+
+      const title = `${creatorName} is LIVE now`;
+      const message = "Enter the Studio";
+      const link = `/live/${event_id}`;
+
+      let createdCount = 0;
+      for (const followerId of followerIds) {
+        const shouldNotify = prefsMap.get(followerId) ?? true; // Default to true
+
+        if (shouldNotify) {
+          const { error: notifError } = await supabase.rpc("create_notification", {
+            p_user_id: followerId,
+            p_type: "studio_live",
+            p_title: title,
+            p_message: message,
+            p_link: link,
+          });
+
+          if (!notifError) createdCount++;
+        }
+      }
+      console.log(`[create-live-room] Created ${createdCount} live notifications`);
+
+      // Trigger email notifications (fire and forget)
+      const functionUrl = `${supabaseUrl}/functions/v1/send-notification-email`;
+      fetch(functionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          event_id: event_id,
+          email_type: "studio_live",
+        }),
+      }).catch((err) => console.error("[create-live-room] Email trigger error:", err));
+    }
 
     return new Response(JSON.stringify({ room_url: roomUrl, event_id }), {
       status: 200,
