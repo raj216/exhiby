@@ -2,3 +2,12 @@ project_id = "owvwwslbwbarvmjjtlkz"
 
 [functions.create-live-room]
 verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
+
+[functions.notify-followers]
+verify_jwt = false
+
+[functions.check-starting-soon]
+verify_jwt = false
