@@ -217,27 +217,38 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
     }
   };
 
-  // Mobile/Tablet: Bottom drawer
+  // Mobile: Full-screen sheet sliding from left
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DrawerContent className="bg-carbon border-t border-border/20 max-h-[85vh]">
-          <DrawerHeader className="border-b border-border/10 pb-4">
-            <div className="flex items-center justify-center">
-              <DrawerTitle className="font-display text-base text-foreground">
+      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+        <SheetContent
+          side="left"
+          className="w-full sm:max-w-full bg-carbon border-r border-border/20 p-0"
+        >
+          <SheetHeader className="px-5 py-4 border-b border-border/10">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="font-display text-base text-foreground flex items-center gap-2">
+                <Bell className="w-4 h-4 text-muted-foreground" />
                 Notifications
-              </DrawerTitle>
+              </SheetTitle>
+              <button
+                onClick={onClose}
+                className="p-2 -mr-2 rounded-full hover:bg-muted/30 transition-colors"
+                aria-label="Close notifications"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
             </div>
-          </DrawerHeader>
-          <div className="flex-1 overflow-hidden">
+          </SheetHeader>
+          <div className="flex-1 h-[calc(100vh-80px)] overflow-hidden">
             <NotificationListContent
               notifications={notifications}
               loading={loading}
               onNavigate={handleNavigate}
             />
           </div>
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
     );
   }
 
