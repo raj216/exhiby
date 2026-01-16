@@ -21,8 +21,29 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Authorization: Verify the caller is authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const jwt = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
+
+    if (userError || !user) {
+      console.error("Invalid user token:", userError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { event_id, notification_type }: NotifyRequest = await req.json();
-    console.log(`Creating ${notification_type} notifications for event: ${event_id}`);
+    console.log(`Creating ${notification_type} notifications for event: ${event_id} by user: ${user.id}`);
 
     // Fetch event details
     const { data: event, error: eventError } = await supabase
@@ -35,6 +56,15 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Event not found:", eventError);
       return new Response(JSON.stringify({ error: "Event not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Authorization: Verify the caller is the event creator
+    if (event.creator_id !== user.id) {
+      console.error(`User ${user.id} is not the creator of event ${event_id}`);
+      return new Response(JSON.stringify({ error: "Not authorized to send notifications for this event" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
