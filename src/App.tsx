@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LiveNotificationToast } from "@/components/LiveNotificationToast";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import PublicProfile from "./pages/PublicProfile";
@@ -17,7 +18,8 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-center" />
+        <LiveNotificationToast />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
