@@ -101,7 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Create in-app notifications
         const title = `${creatorName}'s session starts in 15 minutes!`;
         const message = event.title;
-        const link = `/studio/${event.id}`;
+        const link = `/live/${event.id}`;
 
         for (const followerId of followerIds) {
           const prefs = prefsMap.get(followerId) || { inapp_scheduled: true };

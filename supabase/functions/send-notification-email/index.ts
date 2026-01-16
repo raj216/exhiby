@@ -167,8 +167,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Prepare email content based on type
     const domain = "https://exhiby.lovable.app";
-    const studioLink = `${domain}/studio/${event_id}`;
-    const settingsLink = `${domain}/settings/notifications`;
+    const studioLink = `${domain}/live/${event_id}`;
+    const settingsLink = `${domain}/?view=settings`;
     const scheduledDate = new Date(event.scheduled_at).toLocaleString("en-US", {
       weekday: "long",
       year: "numeric",

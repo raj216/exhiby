@@ -76,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Prepare notification content
     let title = "";
     let message = "";
-    const link = `/studio/${event_id}`;
+    const link = `/live/${event_id}`;
 
     switch (notification_type) {
       case "studio_scheduled":

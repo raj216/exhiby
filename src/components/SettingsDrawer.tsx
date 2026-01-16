@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
   CreditCard,
-  MapPin,
   Bell,
   ChevronRight,
   Palette,
@@ -14,11 +13,16 @@ import {
   Bug,
   BookOpen,
   Shield,
-  Trash2
+  Trash2,
+  Mail,
+  Smartphone,
+  Loader2
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { useUserMode } from "@/contexts/UserModeContext";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
+import { Switch } from "@/components/ui/switch";
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -26,11 +30,21 @@ interface SettingsDrawerProps {
   onOpenStudio?: () => void;
 }
 
-type SettingsView = "main" | "support" | "legal";
+type SettingsView = "main" | "support" | "legal" | "notifications";
 
 export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawerProps) {
   const [settingsView, setSettingsView] = useState<SettingsView>("main");
   const { isVerifiedCreator } = useUserMode();
+  const { preferences, loading: prefsLoading, saving, updatePreferences } = useNotificationPreferences();
+
+  const handleToggle = async (key: keyof typeof preferences) => {
+    triggerClickHaptic();
+    try {
+      await updatePreferences({ [key]: !preferences[key] });
+    } catch {
+      toast({ title: "Error", description: "Failed to update preference", variant: "destructive" });
+    }
+  };
 
   const handleClose = () => {
     onClose();
@@ -71,7 +85,7 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                   >
                     <ArrowLeft className="w-5 h-5" />
                     <span className="font-display text-xl">
-                      {settingsView === "support" ? "Support" : "Legal"}
+                      {settingsView === "support" ? "Support" : settingsView === "legal" ? "Legal" : "Notifications"}
                     </span>
                   </button>
                 ) : (
@@ -115,6 +129,20 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </button>
 
+                      {/* Notifications */}
+                      <button 
+                        onClick={() => {
+                          triggerClickHaptic();
+                          setSettingsView("notifications");
+                        }}
+                        className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Bell className="w-5 h-5 text-electric" />
+                          <span className="text-foreground">Notifications</span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </button>
 
                       {/* Get Help - Opens Support Sub-menu */}
                       <button 
@@ -293,6 +321,106 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                           <ChevronRight className="w-5 h-5 text-destructive/60" />
                         </button>
                       </div>
+                    </motion.div>
+                  )}
+
+                  {/* Notifications Sub-menu */}
+                  {settingsView === "notifications" && (
+                    <motion.div
+                      key="notifications"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 400, 
+                        damping: 30,
+                        mass: 0.8
+                      }}
+                      className="space-y-6"
+                    >
+                      {prefsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-electric" />
+                        </div>
+                      ) : (
+                        <>
+                          {/* Email Notifications Section */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm font-medium text-muted-foreground">Email Notifications</span>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30">
+                                <div>
+                                  <span className="text-foreground">Live sessions</span>
+                                  <p className="text-xs text-muted-foreground">When creators you follow go live</p>
+                                </div>
+                                <Switch
+                                  checked={preferences.email_live}
+                                  onCheckedChange={() => handleToggle("email_live")}
+                                  disabled={saving}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30">
+                                <div>
+                                  <span className="text-foreground">Scheduled sessions</span>
+                                  <p className="text-xs text-muted-foreground">When a new session is scheduled</p>
+                                </div>
+                                <Switch
+                                  checked={preferences.email_scheduled}
+                                  onCheckedChange={() => handleToggle("email_scheduled")}
+                                  disabled={saving}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30">
+                                <div>
+                                  <span className="text-foreground">Reminders</span>
+                                  <p className="text-xs text-muted-foreground">15 minutes before a session starts</p>
+                                </div>
+                                <Switch
+                                  checked={preferences.email_reminders}
+                                  onCheckedChange={() => handleToggle("email_reminders")}
+                                  disabled={saving}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* In-App Notifications Section */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <Smartphone className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-sm font-medium text-muted-foreground">In-App Notifications</span>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30">
+                                <div>
+                                  <span className="text-foreground">Live sessions</span>
+                                  <p className="text-xs text-muted-foreground">When creators you follow go live</p>
+                                </div>
+                                <Switch
+                                  checked={preferences.inapp_live}
+                                  onCheckedChange={() => handleToggle("inapp_live")}
+                                  disabled={saving}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30">
+                                <div>
+                                  <span className="text-foreground">Scheduled sessions</span>
+                                  <p className="text-xs text-muted-foreground">When a new session is scheduled</p>
+                                </div>
+                                <Switch
+                                  checked={preferences.inapp_scheduled}
+                                  onCheckedChange={() => handleToggle("inapp_scheduled")}
+                                  disabled={saving}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
