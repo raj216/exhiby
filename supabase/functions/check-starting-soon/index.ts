@@ -98,9 +98,9 @@ const handler = async (req: Request): Promise<Response> => {
         const prefsMap = new Map<string, any>();
         (preferences || []).forEach((p) => prefsMap.set(p.user_id, p));
 
-        // Create in-app notifications
-        const title = `${creatorName}'s session starts in 15 minutes!`;
-        const message = event.title;
+        // Create in-app notifications with clear, human-readable copy
+        const title = `${creatorName}'s studio starts in 15 minutes`;
+        const message = "Get ready to enter";
         const link = `/live/${event.id}`;
 
         for (const followerId of followerIds) {
