@@ -169,6 +169,8 @@ const handler = async (req: Request): Promise<Response> => {
     const domain = "https://exhiby.lovable.app";
     const studioLink = `${domain}/live/${event_id}`;
     const settingsLink = `${domain}/?view=settings`;
+    
+    // Format date/time for display
     const scheduledDate = new Date(event.scheduled_at).toLocaleString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -176,69 +178,103 @@ const handler = async (req: Request): Promise<Response> => {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZoneName: "short",
     });
 
     let subject = "";
-    let htmlContent = "";
+    let bodyText = "";
+    let ctaText = "";
+    let ctaColor = "#18181b";
 
     switch (email_type) {
       case "studio_scheduled":
-        subject = `🎨 ${creatorName} scheduled a new studio session`;
-        htmlContent = `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #1a1a1a;">${creatorName} has a new session!</h1>
-            <h2 style="color: #333;">${event.title}</h2>
-            <p style="color: #666; font-size: 16px;">📅 ${scheduledDate}</p>
-            ${event.cover_url ? `<img src="${event.cover_url}" alt="${event.title}" style="width: 100%; max-width: 500px; border-radius: 8px; margin: 16px 0;" />` : ""}
-            <p style="margin: 24px 0;">
-              <a href="${studioLink}" style="background: #18181b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">View Studio</a>
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-            <p style="color: #999; font-size: 12px;">
-              <a href="${settingsLink}" style="color: #999;">Manage notification preferences</a>
-            </p>
-          </div>
-        `;
+        subject = `Upcoming Studio: ${creatorName} — ${event.title}`;
+        bodyText = `${creatorName} scheduled a live studio session for ${scheduledDate}. Enter the studio live and ask questions in real time.`;
+        ctaText = "View Studio";
+        ctaColor = "#18181b";
         break;
 
       case "studio_live":
-        subject = `🔴 ${creatorName} is LIVE now!`;
-        htmlContent = `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #dc2626;">🔴 ${creatorName} is LIVE!</h1>
-            <h2 style="color: #333;">${event.title}</h2>
-            ${event.cover_url ? `<img src="${event.cover_url}" alt="${event.title}" style="width: 100%; max-width: 500px; border-radius: 8px; margin: 16px 0;" />` : ""}
-            <p style="color: #666; font-size: 16px;">Join now to catch the session!</p>
-            <p style="margin: 24px 0;">
-              <a href="${studioLink}" style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Join Live Session</a>
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-            <p style="color: #999; font-size: 12px;">
-              <a href="${settingsLink}" style="color: #999;">Manage notification preferences</a>
-            </p>
-          </div>
-        `;
+        subject = `${creatorName} is live now — Enter the Studio`;
+        bodyText = `${creatorName} is live right now. Watch the process and interact live.`;
+        ctaText = "Enter Now";
+        ctaColor = "#dc2626";
         break;
 
       case "studio_starting_soon":
-        subject = `⏰ ${creatorName}'s session starts in 15 minutes!`;
-        htmlContent = `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #f59e0b;">⏰ Starting in 15 minutes!</h1>
-            <h2 style="color: #333;">${event.title}</h2>
-            <p style="color: #666; font-size: 16px;">by ${creatorName}</p>
-            ${event.cover_url ? `<img src="${event.cover_url}" alt="${event.title}" style="width: 100%; max-width: 500px; border-radius: 8px; margin: 16px 0;" />` : ""}
-            <p style="margin: 24px 0;">
-              <a href="${studioLink}" style="background: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">Set a Reminder</a>
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
-            <p style="color: #999; font-size: 12px;">
-              <a href="${settingsLink}" style="color: #999;">Manage notification preferences</a>
-            </p>
-          </div>
-        `;
+        subject = `Starting soon: ${creatorName}'s Studio`;
+        bodyText = `Reminder — ${event.title} starts in 15 minutes.`;
+        ctaText = "Enter Studio";
+        ctaColor = "#f59e0b";
         break;
     }
+
+    // Build HTML email template
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
+    <tr>
+      <td style="padding: 40px 20px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 32px 24px 32px; text-align: center;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #18181b; letter-spacing: -0.5px;">EXHIBY</h1>
+            </td>
+          </tr>
+          
+          ${event.cover_url ? `
+          <!-- Cover Image -->
+          <tr>
+            <td style="padding: 0 32px;">
+              <img src="${event.cover_url}" alt="${event.title}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
+            </td>
+          </tr>
+          ` : ""}
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${event.title}</h2>
+              <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #52525b;">
+                ${bodyText}
+              </p>
+              
+              <!-- CTA Button -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="border-radius: 8px; background-color: ${ctaColor};">
+                    <a href="${studioLink}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 8px;">${ctaText}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0; font-size: 13px; color: #a1a1aa; text-align: center;">
+                You're receiving this email because you follow ${creatorName} on Exhiby.
+                <br />
+                <a href="${settingsLink}" style="color: #71717a; text-decoration: underline;">Manage notification preferences</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
 
     // Send emails via Brevo
     let sentCount = 0;
@@ -254,10 +290,10 @@ const handler = async (req: Request): Promise<Response> => {
             "api-key": brevoApiKey,
           },
           body: JSON.stringify({
-            sender: { name: "EXHIBY", email: "noreply@exhiby.lovable.app" },
+            sender: { name: "Exhiby Studio", email: "studio@joinexhiby.com" },
             to: [{ email: follower.email, name: follower.name }],
             subject: subject,
-            htmlContent: htmlContent.replace("there", follower.name),
+            htmlContent: htmlContent,
           }),
         });
 
