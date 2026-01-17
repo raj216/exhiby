@@ -26,13 +26,14 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
     const fetchUpcomingSessions = async () => {
       setLoading(true);
       try {
-        // Get upcoming events for this creator
+        // Get scheduled events for this creator (not ended, not currently live)
+        // This includes future events AND past-scheduled events that haven't started
         const { data: events, error: eventsError } = await supabase
           .from("events")
-          .select("id, title, scheduled_at, price, is_free, cover_url")
+          .select("id, title, scheduled_at, price, is_free, cover_url, is_live")
           .eq("creator_id", creatorUserId)
-          .gte("scheduled_at", new Date().toISOString())
           .is("live_ended_at", null)
+          .or("is_live.is.null,is_live.eq.false") // Not currently live
           .order("scheduled_at", { ascending: true })
           .limit(3);
 

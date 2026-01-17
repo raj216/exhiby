@@ -21,6 +21,8 @@ interface ScheduledEvent {
   is_free: boolean;
   price: number;
   creator_id: string;
+  is_live: boolean | null;
+  live_ended_at: string | null;
 }
 interface UserProfile {
   name: string;
@@ -70,15 +72,19 @@ export function StudioDashboard({
   const [localProfile, setLocalProfile] = useState(profile);
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
 
-  // Fetch upcoming events
+  // Fetch upcoming events + ready-to-go-live events (scheduled time passed, not live yet, not ended)
   const fetchUpcomingEvents = useCallback(async () => {
     if (!user) return;
     const {
       data,
       error
-    } = await supabase.from('events').select('id, title, cover_url, scheduled_at, is_free, price, creator_id').eq('creator_id', user.id).gte('scheduled_at', new Date().toISOString()).order('scheduled_at', {
-      ascending: true
-    });
+    } = await supabase
+      .from('events')
+      .select('id, title, cover_url, scheduled_at, is_free, price, creator_id, is_live, live_ended_at')
+      .eq('creator_id', user.id)
+      .is('live_ended_at', null) // Not ended
+      .order('scheduled_at', { ascending: true });
+    
     if (!error && data) {
       setUpcomingEvents(data);
     }
