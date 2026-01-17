@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import PublicProfile from "./pages/PublicProfile";
 import LiveRoom from "./pages/LiveRoom";
 import ExploreStudios from "./pages/ExploreStudios";
+import AdminFeedback from "./pages/AdminFeedback";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/profile/:userId" element={<PublicProfile />} />
             <Route path="/live/:eventId" element={<LiveRoom />} />
             <Route path="/explore" element={<ExploreStudios />} />
+            <Route path="/admin/feedback" element={<AdminFeedback />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

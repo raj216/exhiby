@@ -21,6 +21,7 @@ import {
   ChatNotificationToast,
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
+import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
 
 interface EventData {
   id: string;
@@ -58,6 +59,11 @@ export default function LiveRoom() {
   const [showChat, setShowChat] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
+  
+  // Feedback modal state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackLeftEarly, setFeedbackLeftEarly] = useState(false);
+  const feedbackShownRef = useRef(false);
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
@@ -300,7 +306,7 @@ export default function LiveRoom() {
     }
   }, [reset]);
 
-  // Handle closing the live room (host = end stream, viewer = leave)
+  // Handle closing the live room (host = end stream, viewer = leave with feedback)
   const handleClose = useCallback(async () => {
     if (isEnding) return;
     setIsEnding(true);
@@ -331,23 +337,50 @@ export default function LiveRoom() {
         } else {
           toast.success("Stream ended");
         }
+        
+        // Creator goes home without feedback modal
+        await Promise.race([leavePromise, new Promise((r) => setTimeout(r, 1200))]);
+        navigate("/");
       } else {
+        // Viewer leaving - show feedback modal
         await leaveAsViewer();
+        await Promise.race([leavePromise, new Promise((r) => setTimeout(r, 1200))]);
+        
+        // Show feedback modal for viewers (session ended normally)
+        if (!feedbackShownRef.current && event) {
+          feedbackShownRef.current = true;
+          setFeedbackLeftEarly(false);
+          setShowFeedbackModal(true);
+        } else {
+          navigate("/");
+        }
       }
-
-      // Don't let slow leave() calls trap the user on the page
-      await Promise.race([leavePromise, new Promise((r) => setTimeout(r, 1200))]);
-    } finally {
+    } catch (err) {
+      console.error("[LiveRoom] Error in handleClose:", err);
       navigate("/");
     }
   }, [isEnding, isCreator, event, leaveAsViewer, leave, navigate]);
 
-  // Viewer leave handler
+  // Viewer leave handler (early leave)
   const handleLeave = useCallback(async () => {
     await leaveAsViewer();
     await leave();
+    
+    // Show feedback modal for viewers who left early
+    if (!feedbackShownRef.current && event && !isCreator) {
+      feedbackShownRef.current = true;
+      setFeedbackLeftEarly(true);
+      setShowFeedbackModal(true);
+    } else {
+      navigate("/");
+    }
+  }, [leaveAsViewer, leave, navigate, event, isCreator]);
+
+  // Handle feedback modal close
+  const handleFeedbackClose = useCallback(() => {
+    setShowFeedbackModal(false);
     navigate("/");
-  }, [leaveAsViewer, leave, navigate]);
+  }, [navigate]);
 
   // Chat handlers - use the hook's open/close methods for proper unread tracking
   const handleOpenChat = () => {
@@ -841,6 +874,19 @@ export default function LiveRoom() {
             </div>
           )}
       </div>
+      
+      {/* Session Feedback Modal */}
+      {event && (
+        <SessionFeedbackModal
+          isOpen={showFeedbackModal}
+          onClose={handleFeedbackClose}
+          eventId={event.id}
+          creatorId={event.creator_id}
+          creatorName={event.creator?.name || "the creator"}
+          sessionTitle={event.title}
+          leftEarly={feedbackLeftEarly}
+        />
+      )}
     </motion.div>
   );
 }
