@@ -80,14 +80,29 @@ export function usePublicCreatorStats(userId: string | undefined) {
         totalGuests = ticketsCount || 0;
       }
 
-      // Rating placeholder - would need a ratings table in future
-      // For now, show 0 which will display as "No ratings yet"
-      const averageRating = 0;
+      // Fetch real ratings from session_feedback table
+      let averageRating = 0;
+      let ratingBasedGuests = 0;
+      
+      const { data: ratingStats, error: ratingError } = await supabase.rpc(
+        "get_creator_rating_stats",
+        { target_creator_id: userId }
+      );
+
+      if (ratingError) {
+        console.error("Error fetching rating stats:", ratingError);
+      } else if (ratingStats && ratingStats.length > 0) {
+        averageRating = Number(ratingStats[0].average_rating) || 0;
+        ratingBasedGuests = ratingStats[0].total_guests || 0;
+      }
+
+      // Use the higher of ticket-based or feedback-based guest count
+      const finalGuestCount = Math.max(totalGuests, ratingBasedGuests);
 
       setStats({
         sessionsHosted: sessionsCount || 0,
         averageRating,
-        totalGuests,
+        totalGuests: finalGuestCount,
         isCreator: true,
       });
     } catch (err) {
