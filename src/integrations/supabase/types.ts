@@ -411,6 +411,56 @@ export type Database = {
           },
         ]
       }
+      session_feedback: {
+        Row: {
+          audience_user_id: string
+          created_at: string
+          creator_id: string
+          event_id: string
+          id: string
+          improvement_category: string | null
+          left_early: boolean | null
+          left_early_reason: string | null
+          private_feedback_text: string | null
+          public_tags: string[] | null
+          rating: number | null
+        }
+        Insert: {
+          audience_user_id: string
+          created_at?: string
+          creator_id: string
+          event_id: string
+          id?: string
+          improvement_category?: string | null
+          left_early?: boolean | null
+          left_early_reason?: string | null
+          private_feedback_text?: string | null
+          public_tags?: string[] | null
+          rating?: number | null
+        }
+        Update: {
+          audience_user_id?: string
+          created_at?: string
+          creator_id?: string
+          event_id?: string
+          id?: string
+          improvement_category?: string | null
+          left_early?: boolean | null
+          left_early_reason?: string | null
+          private_feedback_text?: string | null
+          public_tags?: string[] | null
+          rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_feedback_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           attended_at: string | null
@@ -496,6 +546,14 @@ export type Database = {
           updated_at: string
           user_id: string
           website: string
+        }[]
+      }
+      get_creator_rating_stats: {
+        Args: { target_creator_id: string }
+        Returns: {
+          average_rating: number
+          total_guests: number
+          total_ratings: number
         }[]
       }
       get_event_viewers: {
