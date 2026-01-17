@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import { ScheduleEventModal } from "./ScheduleEventModal";
@@ -300,13 +300,32 @@ export function StudioDashboard({
         </motion.p>
       </div>
 
-      {/* Open Studio Button - Primary CTA */}
-      <div className="px-4 mt-6">
-        <motion.button whileTap={{
-        scale: 0.98
-      }} onClick={handleScheduleClick} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl btn-electric">
-          
-          <span className="text-sm font-semibold text-white">Open the Studio</span>
+      {/* Studio Action Buttons - Split CTA */}
+      <div className="px-4 mt-6 flex gap-3">
+        {/* Open Studio - Immediate (60%) */}
+        <motion.button 
+          whileTap={{ scale: 0.98 }} 
+          onClick={() => {
+            triggerClickHaptic();
+            onGoLive();
+          }} 
+          className="flex-[3] flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-semibold shadow-electric"
+          style={{
+            background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
+          }}
+        >
+          <Zap className="w-5 h-5" />
+          <span className="text-sm">Open Studio</span>
+        </motion.button>
+        
+        {/* Schedule - Future (40%) */}
+        <motion.button 
+          whileTap={{ scale: 0.98 }} 
+          onClick={handleScheduleClick} 
+          className="flex-[2] flex items-center justify-center gap-2 py-4 rounded-2xl bg-obsidian border border-border/60 text-foreground font-semibold hover:bg-muted/50 transition-colors"
+        >
+          <Calendar className="w-5 h-5 text-muted-foreground" />
+          <span className="text-sm">Schedule</span>
         </motion.button>
       </div>
 
