@@ -251,21 +251,21 @@ export function PortfolioGrid({
         </>
       )}
 
-      {/* Lightbox Modal */}
+      {/* Artwork Detail Modal */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-carbon/95 backdrop-blur-xl flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-carbon/95 backdrop-blur-xl overflow-y-auto"
             onClick={handleCloseLightbox}
           >
             {/* Delete Button (for owner) - top left */}
             {canEdit && (
               <button
                 onClick={handleDeleteClick}
-                className="absolute top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-10"
+                className="fixed top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-10"
               >
                 <Trash2 className="w-5 h-5 text-destructive" />
               </button>
@@ -274,38 +274,55 @@ export function PortfolioGrid({
             {/* Close Button - top right */}
             <button
               onClick={handleCloseLightbox}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center z-10"
+              className="fixed top-4 right-4 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center z-10"
             >
               <X className="w-5 h-5 text-foreground" />
             </button>
 
-            {/* Image */}
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="max-w-full max-h-[85vh] rounded-2xl overflow-hidden"
+            {/* Content Container */}
+            <div 
+              className="min-h-full flex flex-col items-center justify-start pt-16 pb-8 px-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={selectedImage.image_url}
-                alt={selectedImage.title || "Portfolio artwork"}
-                className="max-w-full max-h-[85vh] object-contain"
-              />
-            </motion.div>
-
-            {/* Title */}
-            {selectedImage.title && (
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="absolute bottom-6 left-0 right-0 text-center text-foreground font-medium"
+              {/* Image */}
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="max-w-full lg:max-w-3xl rounded-2xl overflow-hidden"
               >
-                {selectedImage.title}
-              </motion.p>
-            )}
+                <img
+                  src={selectedImage.image_url}
+                  alt={selectedImage.title || "Portfolio artwork"}
+                  className="max-w-full max-h-[65vh] object-contain mx-auto"
+                />
+              </motion.div>
+
+              {/* Metadata: Title and Description */}
+              {(selectedImage.title || selectedImage.description) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="mt-6 max-w-lg w-full text-center space-y-2"
+                >
+                  {/* Title */}
+                  {selectedImage.title && (
+                    <h3 className="text-xl font-display text-foreground">
+                      {selectedImage.title}
+                    </h3>
+                  )}
+
+                  {/* Description */}
+                  {selectedImage.description && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
+                      {selectedImage.description}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
