@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.check-starting-soon]
 verify_jwt = false
+
+[functions.notify-reschedule]
+verify_jwt = false

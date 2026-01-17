@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, Loader2, Radio, Clock, Calendar, AlertCircle } from "lucide-react";
+import { Trash2, Loader2, Radio, Clock, Calendar, CalendarClock } from "lucide-react";
 import { format, isToday, isTomorrow, differenceInMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useAuth } from "@/contexts/AuthContext";
+import { DeleteEventModal } from "./DeleteEventModal";
+import { RescheduleEventModal } from "./RescheduleEventModal";
 
 interface Event {
   id: string;
@@ -31,8 +33,9 @@ export function UpcomingEventsList({
   events,
   onEventDeleted
 }: UpcomingEventsListProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [goingLiveId, setGoingLiveId] = useState<string | null>(null);
+  const [deleteModalEvent, setDeleteModalEvent] = useState<Event | null>(null);
+  const [rescheduleModalEvent, setRescheduleModalEvent] = useState<Event | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -118,28 +121,19 @@ export function UpcomingEventsList({
     }
   };
 
-  const handleDelete = async (eventId: string) => {
+  const handleDeleteClick = (event: Event) => {
     triggerClickHaptic();
-    setDeletingId(eventId);
-    try {
-      const { error } = await supabase.from('events').delete().eq('id', eventId);
+    setDeleteModalEvent(event);
+  };
 
-      if (error) throw error;
-      toast({ title: "Event deleted" });
-      onEventDeleted();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to delete event",
-        variant: "destructive"
-      });
-    } finally {
-      setDeletingId(null);
-    }
+  const handleRescheduleClick = (event: Event) => {
+    triggerClickHaptic();
+    setRescheduleModalEvent(event);
   };
 
   const renderEventCard = (event: Event) => {
     const status = getEventStatus(event);
+    const isCreator = user?.id === event.creator_id;
     
     return (
       <motion.div
@@ -210,18 +204,25 @@ export function UpcomingEventsList({
           </div>
         ) : null}
 
-        {/* Delete Button - only show for event creator */}
-        {user?.id === event.creator_id && (
+        {/* Reschedule Button - only show for event creator on upcoming events */}
+        {isCreator && status === "upcoming" && (
           <button
-            onClick={() => handleDelete(event.id)}
-            disabled={deletingId === event.id}
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-muted"
+            onClick={() => handleRescheduleClick(event)}
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-muted hover:bg-muted/80 transition-colors"
+            title="Reschedule"
           >
-            {deletingId === event.id ? (
-              <Loader2 className="w-4 h-4 text-destructive animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4 text-destructive" />
-            )}
+            <CalendarClock className="w-4 h-4 text-accent" />
+          </button>
+        )}
+
+        {/* Delete Button - only show for event creator */}
+        {isCreator && (
+          <button
+            onClick={() => handleDeleteClick(event)}
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-muted hover:bg-muted/80 transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
           </button>
         )}
       </motion.div>
@@ -229,13 +230,38 @@ export function UpcomingEventsList({
   };
 
   return (
-    <div className="px-4 mt-4">
-      <h3 className="text-sm font-medium text-muted-foreground mb-3">My Studio Schedule</h3>
-      <div className="space-y-2">
-        <AnimatePresence>
-          {filteredEvents.map(event => renderEventCard(event))}
-        </AnimatePresence>
+    <>
+      <div className="px-4 mt-4">
+        <h3 className="text-sm font-medium text-muted-foreground mb-3">My Studio Schedule</h3>
+        <div className="space-y-2">
+          <AnimatePresence>
+            {filteredEvents.map(event => renderEventCard(event))}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalEvent && (
+        <DeleteEventModal
+          isOpen={!!deleteModalEvent}
+          onClose={() => setDeleteModalEvent(null)}
+          eventId={deleteModalEvent.id}
+          eventTitle={deleteModalEvent.title}
+          onDeleted={onEventDeleted}
+        />
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleModalEvent && (
+        <RescheduleEventModal
+          isOpen={!!rescheduleModalEvent}
+          onClose={() => setRescheduleModalEvent(null)}
+          eventId={rescheduleModalEvent.id}
+          eventTitle={rescheduleModalEvent.title}
+          currentScheduledAt={rescheduleModalEvent.scheduled_at}
+          onRescheduled={onEventDeleted}
+        />
+      )}
+    </>
   );
 }
