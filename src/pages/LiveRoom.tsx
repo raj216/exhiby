@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2, MicOff, VideoOff } from "lucide-react";
+import { AlertCircle, Loader2, MicOff, VideoOff, Clock, Calendar, Radio } from "lucide-react";
+import { format, isPast } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -28,6 +29,9 @@ interface EventData {
   room_url: string | null;
   creator_id: string;
   is_live: boolean | null;
+  scheduled_at: string;
+  live_ended_at: string | null;
+  category: string | null;
   creator?: {
     name: string;
     avatar_url: string | null;
@@ -176,7 +180,7 @@ export default function LiveRoom() {
       try {
         const { data, error: fetchError } = await supabase
           .from("events")
-          .select("id, title, cover_url, room_url, creator_id, is_live")
+          .select("id, title, cover_url, room_url, creator_id, is_live, scheduled_at, live_ended_at, category")
           .eq("id", eventId)
           .maybeSingle();
 
@@ -204,7 +208,15 @@ export default function LiveRoom() {
         const creatorProfile = profiles?.find((p: any) => p.user_id === data.creator_id);
 
         setEvent({
-          ...data,
+          id: data.id,
+          title: data.title,
+          cover_url: data.cover_url,
+          room_url: data.room_url,
+          creator_id: data.creator_id,
+          is_live: data.is_live,
+          scheduled_at: data.scheduled_at,
+          live_ended_at: data.live_ended_at,
+          category: data.category,
           creator: creatorProfile
             ? { name: creatorProfile.name, avatar_url: creatorProfile.avatar_url }
             : { name: "Unknown Artist", avatar_url: null },
@@ -420,6 +432,19 @@ export default function LiveRoom() {
     );
   }
 
+  // Helper to check if event has truly ended
+  const isEventEnded = event?.live_ended_at != null;
+  
+  // Helper to check if event is scheduled but not started
+  const isScheduledNotStarted = event && !event.is_live && !event.live_ended_at && !event.room_url;
+  
+  // Helper to format scheduled time
+  const formatScheduledTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return format(date, "EEEE, MMMM d 'at' h:mm a");
+  };
+
+  // Show "Stream Unavailable" only for ended events or truly not found
   if (error || !event) {
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
@@ -447,7 +472,37 @@ export default function LiveRoom() {
     );
   }
 
+  // Show "Stream Ended" for ended events
+  if (isEventEnded) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="text-center max-w-md px-6">
+          {event.cover_url && (
+            <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 opacity-60">
+              <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-display text-foreground mb-2">Studio Session Ended</h2>
+          <p className="text-muted-foreground mb-2">{event.title}</p>
+          <p className="text-sm text-muted-foreground/70 mb-6">
+            This studio session has concluded.
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show waiting state for scheduled but not-yet-live events (for audience)
   if (!event.room_url) {
+    const scheduledPast = isPast(new Date(event.scheduled_at));
+    
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
         <DebugPanel
@@ -460,27 +515,92 @@ export default function LiveRoom() {
           onRecreateRoom={handleRecreateRoom}
         />
         <div className="text-center max-w-md px-6">
-          <AlertCircle className="w-12 h-12 text-electric mx-auto mb-4" />
-          <h2 className="text-xl font-display text-foreground mb-2">Room Not Ready</h2>
-          <p className="text-muted-foreground mb-6">
-            The live room hasn't been created yet.
-            {isCreator ? " Click below to create it." : " Please wait for the creator to start the stream."}
-          </p>
+          {/* Cover Image */}
+          {event.cover_url && (
+            <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg">
+              <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+          
           {isCreator ? (
-            <button
-              onClick={handleRecreateRoom}
-              disabled={isRecreatingRoom}
-              className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors disabled:opacity-50"
-            >
-              {isRecreatingRoom ? "Creating..." : "Create Room"}
-            </button>
+            // Creator view - Go Live CTA
+            <>
+              {scheduledPast ? (
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Clock className="w-5 h-5 text-destructive" />
+                  <span className="text-sm text-destructive font-medium">Ready to Go Live</span>
+                </div>
+              ) : (
+                <Calendar className="w-10 h-10 text-electric mx-auto mb-4" />
+              )}
+              <h2 className="text-xl font-display text-foreground mb-2">{event.title}</h2>
+              {event.category && (
+                <p className="text-sm text-muted-foreground mb-2">{event.category}</p>
+              )}
+              <p className="text-muted-foreground mb-2">
+                {scheduledPast 
+                  ? `Scheduled for ${formatScheduledTime(event.scheduled_at)}`
+                  : `Starts ${formatScheduledTime(event.scheduled_at)}`
+                }
+              </p>
+              <p className="text-sm text-muted-foreground/70 mb-6">
+                {scheduledPast 
+                  ? "Your audience is waiting! Click below to start the stream."
+                  : "Click below when you're ready to go live."
+                }
+              </p>
+              <button
+                onClick={handleRecreateRoom}
+                disabled={isRecreatingRoom}
+                className="px-6 py-3 rounded-xl bg-destructive text-white font-medium hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center gap-2 mx-auto"
+              >
+                {isRecreatingRoom ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Going Live...
+                  </>
+                ) : (
+                  <>
+                    <Radio className="w-4 h-4" />
+                    Go Live Now
+                  </>
+                )}
+              </button>
+            </>
           ) : (
-            <button
-              onClick={() => navigate("/")}
-              className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors"
-            >
-              Back to Home
-            </button>
+            // Audience view - Waiting state
+            <>
+              <Clock className="w-10 h-10 text-electric mx-auto mb-4" />
+              <h2 className="text-xl font-display text-foreground mb-2">{event.title}</h2>
+              {event.creator && (
+                <p className="text-sm text-muted-foreground mb-2">
+                  by {event.creator.name}
+                </p>
+              )}
+              {event.category && (
+                <p className="text-xs text-muted-foreground/70 mb-3">{event.category}</p>
+              )}
+              <div className="bg-muted/30 rounded-xl px-4 py-3 mb-6">
+                <p className="text-sm text-foreground">
+                  {scheduledPast 
+                    ? "This studio session hasn't started yet."
+                    : "This studio session is scheduled for:"
+                  }
+                </p>
+                <p className="text-sm text-electric font-medium mt-1">
+                  {formatScheduledTime(event.scheduled_at)}
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">
+                The creator will open the studio soon. Check back later or wait here.
+              </p>
+              <button
+                onClick={() => navigate("/")}
+                className="px-6 py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
+              >
+                Back to Home
+              </button>
+            </>
           )}
         </div>
       </div>
