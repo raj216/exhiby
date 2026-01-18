@@ -19,6 +19,7 @@ import {
   LiveRoomChat,
   LiveRoomMaterials,
   ChatNotificationToast,
+  StreamEndedScreen,
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
@@ -64,6 +65,9 @@ export default function LiveRoom() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackLeftEarly, setFeedbackLeftEarly] = useState(false);
   const feedbackShownRef = useRef(false);
+  
+  // Stream ended state (for viewers when creator ends)
+  const [streamEndedByHost, setStreamEndedByHost] = useState(false);
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
@@ -137,6 +141,19 @@ export default function LiveRoom() {
     onStatusChange: (newStatus) => {
       console.log("[LiveRoom] Daily status changed:", newStatus);
       setDailyStatus(newStatus);
+    },
+    // When host ends the stream, show end screen to viewers
+    onHostLeft: () => {
+      if (!isCreator) {
+        console.log("[LiveRoom] Host left - showing end screen for viewer");
+        setStreamEndedByHost(true);
+      }
+    },
+    onMeetingEnded: () => {
+      if (!isCreator) {
+        console.log("[LiveRoom] Meeting ended - showing end screen for viewer");
+        setStreamEndedByHost(true);
+      }
     },
   });
 
@@ -252,6 +269,40 @@ export default function LiveRoom() {
       }
     };
   }, [event, user, isCreator, isJoined, joinAsViewer, leaveAsViewer]);
+
+  // Realtime subscription to detect when stream ends (backup for Daily events)
+  useEffect(() => {
+    if (!eventId || isCreator) return;
+
+    const channel = supabase
+      .channel(`event-live-status-${eventId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "events",
+          filter: `id=eq.${eventId}`,
+        },
+        (payload) => {
+          console.log("[LiveRoom] Realtime event update:", payload);
+          const newData = payload.new as any;
+          
+          // If stream just ended (is_live changed to false or live_ended_at was set)
+          if (newData.is_live === false || newData.live_ended_at) {
+            console.log("[LiveRoom] Stream ended detected via realtime");
+            if (!streamEndedByHost && !feedbackShownRef.current) {
+              setStreamEndedByHost(true);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, isCreator, streamEndedByHost]);
 
   // Handle recreating the room
   const handleRecreateRoom = useCallback(async () => {
@@ -382,6 +433,43 @@ export default function LiveRoom() {
     navigate("/");
   }, [navigate]);
 
+  // Handle stream ended actions (for viewers)
+  const handleStreamEndedBackToCreator = useCallback(() => {
+    // First trigger feedback modal, then navigate to creator
+    if (!feedbackShownRef.current && event) {
+      feedbackShownRef.current = true;
+      setFeedbackLeftEarly(false);
+      setShowFeedbackModal(true);
+    }
+  }, [event]);
+
+  const handleStreamEndedExploreStudios = useCallback(() => {
+    // First trigger feedback modal, then navigate home
+    if (!feedbackShownRef.current && event) {
+      feedbackShownRef.current = true;
+      setFeedbackLeftEarly(false);
+      setShowFeedbackModal(true);
+    }
+  }, [event]);
+
+  // When stream ends by host, automatically trigger feedback modal after short delay
+  useEffect(() => {
+    if (streamEndedByHost && !isCreator && !feedbackShownRef.current && event) {
+      // Clean up viewer status
+      leaveAsViewer();
+      
+      // Small delay to let the end screen show first, then trigger feedback
+      const timer = setTimeout(() => {
+        if (!feedbackShownRef.current) {
+          feedbackShownRef.current = true;
+          setFeedbackLeftEarly(false);
+          setShowFeedbackModal(true);
+        }
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [streamEndedByHost, isCreator, event, leaveAsViewer]);
   // Chat handlers - use the hook's open/close methods for proper unread tracking
   const handleOpenChat = () => {
     openChat();
@@ -741,6 +829,32 @@ export default function LiveRoom() {
           <p className="text-xs text-muted-foreground/50 mt-2">Status: {status}</p>
         </div>
       </div>
+    );
+  }
+
+  // Stream ended by host - show end screen for viewers
+  if (streamEndedByHost && !isCreator && event) {
+    return (
+      <>
+        <StreamEndedScreen
+          creatorName={event.creator?.name || "the creator"}
+          creatorAvatar={event.creator?.avatar_url || null}
+          sessionTitle={event.title}
+          coverUrl={event.cover_url}
+          onBackToCreator={handleStreamEndedBackToCreator}
+          onExploreStudios={handleStreamEndedExploreStudios}
+        />
+        {/* Feedback Modal overlay */}
+        <SessionFeedbackModal
+          isOpen={showFeedbackModal}
+          onClose={handleFeedbackClose}
+          eventId={event.id}
+          creatorId={event.creator_id}
+          creatorName={event.creator?.name || "the creator"}
+          sessionTitle={event.title}
+          leftEarly={feedbackLeftEarly}
+        />
+      </>
     );
   }
 

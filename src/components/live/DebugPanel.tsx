@@ -44,6 +44,8 @@ export function DebugPanel({
     joined: "text-electric",
     error: "text-destructive",
     timeout: "text-destructive",
+    "host-left": "text-gold",
+    "meeting-ended": "text-gold",
   };
 
   return (
