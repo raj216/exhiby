@@ -548,6 +548,14 @@ export type Database = {
           website: string
         }[]
       }
+      get_creator_profiles: {
+        Args: { user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          name: string
+          user_id: string
+        }[]
+      }
       get_creator_rating_stats: {
         Args: { target_creator_id: string }
         Returns: {

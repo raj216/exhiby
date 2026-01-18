@@ -95,11 +95,9 @@ export function useTickets(userId: string | undefined) {
         // Get unique creator IDs
         const creatorIds = [...new Set(events?.map(e => e.creator_id) || [])];
         
-        // Fetch creator profiles
+        // Fetch creator profiles using secure RPC
         const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("user_id, name, avatar_url")
-          .in("user_id", creatorIds);
+          .rpc("get_creator_profiles", { user_ids: creatorIds });
 
         if (profilesError) {
           console.error("Error fetching profiles:", profilesError);
