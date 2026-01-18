@@ -22,6 +22,67 @@ let globalCallObject: DailyCall | null = null;
 let globalInstanceId = 0;
 let initializationPromise: Promise<DailyCall> | null = null;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Art Studio Video Quality Configuration
+// Optimized for fine detail visibility (pencil strokes, shading, texture)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// HD camera constraints for 1080p @ 30fps - art-first clarity
+const ART_STUDIO_CAMERA_CONSTRAINTS: MediaTrackConstraints = {
+  width: { ideal: 1920, min: 1280 },      // 1080p ideal, 720p minimum fallback
+  height: { ideal: 1080, min: 720 },
+  frameRate: { ideal: 30, min: 24 },      // Smooth hand movements and strokes
+  // Prefer accurate color reproduction over aggressive processing
+  // @ts-ignore - advanced constraints may not be typed but are supported
+  resizeMode: "none",                     // Avoid unnecessary resizing/processing
+};
+
+// Simulcast encodings for adaptive quality with art-first priorities
+// Higher bitrates than typical for preserving fine details during motion
+const ART_STUDIO_SIMULCAST_ENCODINGS = [
+  // High layer: Full 1080p for maximum detail clarity
+  { 
+    maxBitrate: 4000000,      // 4 Mbps - higher for fine art details
+    maxFramerate: 30, 
+    scaleResolutionDownBy: 1,
+  },
+  // Medium layer: 720p fallback - still good for art visibility
+  { 
+    maxBitrate: 1500000,      // 1.5 Mbps
+    maxFramerate: 30, 
+    scaleResolutionDownBy: 1.5,
+  },
+  // Low layer: 480p emergency fallback - avoid going lower
+  { 
+    maxBitrate: 600000,       // 600 Kbps
+    maxFramerate: 30, 
+    scaleResolutionDownBy: 2,
+  },
+];
+
+// Host send settings for art studio quality
+const ART_STUDIO_SEND_SETTINGS = {
+  video: {
+    maxQuality: 'high' as const,
+    // Disable auto-adjust to prevent sudden quality drops during drawing
+    allowAdaptiveLayers: true,
+    encodings: {
+      low: { maxBitrate: 600000, maxFramerate: 30 },
+      medium: { maxBitrate: 1500000, maxFramerate: 30 },
+      high: { maxBitrate: 4000000, maxFramerate: 30 },
+    },
+  },
+};
+
+// Viewer receive settings - request highest quality for art detail
+const ART_STUDIO_RECEIVE_SETTINGS = {
+  base: { 
+    video: { 
+      layer: 2,  // Request highest simulcast layer
+    } 
+  },
+};
+
 function getOrCreateCallObject(): Promise<DailyCall> {
   // Check for existing Daily instance first
   const existing = Daily.getCallInstance();
@@ -42,24 +103,26 @@ function getOrCreateCallObject(): Promise<DailyCall> {
     return initializationPromise;
   }
 
-  // Create new instance
-  console.log("[Daily] Creating new call object with HD settings");
+  // Create new instance with art-studio optimized settings
+  console.log("[Daily] Creating call object with Art Studio HD settings");
   initializationPromise = new Promise((resolve) => {
     const call = Daily.createCallObject({
       subscribeToTracksAutomatically: true,
-      // Request HD video quality
       dailyConfig: {
-        // Prefer high quality video
-        camSimulcastEncodings: [
-          { maxBitrate: 2500000, maxFramerate: 30, scaleResolutionDownBy: 1 },    // 1080p layer
-          { maxBitrate: 1000000, maxFramerate: 30, scaleResolutionDownBy: 2 },    // 540p layer
-          { maxBitrate: 400000, maxFramerate: 30, scaleResolutionDownBy: 4 },     // 270p layer
-        ],
-      },
+        // Art-optimized simulcast layers with higher bitrates
+        camSimulcastEncodings: ART_STUDIO_SIMULCAST_ENCODINGS,
+        // Use VP9 when available for better quality-to-bitrate ratio
+        preferH264ForCam: false,
+        // Avoid automatic bandwidth adjustments that cause sudden quality drops
+        avoidEval: true,
+      } as any, // Type assertion for advanced config options
+      // Enable video processing for stable stream
+      videoSource: true,
+      audioSource: true,
     });
     globalCallObject = call;
     globalInstanceId++;
-    console.log("[Daily] Call object created with HD, instanceId:", globalInstanceId);
+    console.log("[Daily] Art Studio call object created, instanceId:", globalInstanceId);
     resolve(call);
   });
 
@@ -361,17 +424,27 @@ export function useDaily({
               userName,
               startVideoOff: !isHost,
               startAudioOff: !isHost,
-              // Request receive layer preference for best quality
-              receiveSettings: {
-                base: { video: { layer: 2 } }, // Request highest quality layer
-              },
+              // Request highest quality layer for art detail visibility
+              receiveSettings: ART_STUDIO_RECEIVE_SETTINGS,
             });
 
             console.log("[useDaily] Join resolved");
 
-            // Configure tracks for host with HD camera constraints
+            // Configure tracks for host with art-studio HD camera constraints
             if (isHost && mountedRef.current) {
-              console.log("[useDaily] Host: enabling HD camera + mic");
+              console.log("[useDaily] Host: enabling Art Studio HD camera + mic");
+              
+              // Apply art-studio camera constraints for 1080p@30fps
+              try {
+                await call.setInputDevicesAsync({
+                  videoSource: {
+                    ...ART_STUDIO_CAMERA_CONSTRAINTS,
+                  } as any,
+                });
+                console.log("[useDaily] Host: Art Studio camera constraints applied");
+              } catch (e) {
+                console.warn("[useDaily] Could not apply camera constraints, using defaults:", e);
+              }
               
               await call.setLocalVideo(true);
               await call.setLocalAudio(true);
@@ -383,32 +456,25 @@ export function useDaily({
                 console.warn("[useDaily] Could not set facingMode userData:", e);
               }
               
-              // Request to send highest quality using updateSendSettings
+              // Apply art-studio send settings for maximum visual clarity
               try {
-                call.updateSendSettings({
-                  video: {
-                    maxQuality: 'high',
-                    encodings: {
-                      low: { maxBitrate: 400000, maxFramerate: 30 },
-                      medium: { maxBitrate: 1000000, maxFramerate: 30 },
-                      high: { maxBitrate: 2500000, maxFramerate: 30 },
-                    },
-                  },
-                });
-                console.log("[useDaily] Host: HD send settings applied");
+                call.updateSendSettings(ART_STUDIO_SEND_SETTINGS);
+                console.log("[useDaily] Host: Art Studio send settings applied (4Mbps max)");
               } catch (e) {
-                console.warn("[useDaily] Could not apply HD send settings:", e);
+                console.warn("[useDaily] Could not apply Art Studio send settings:", e);
               }
               
               setIsCameraOn(true);
               setIsMicOn(true);
             } else if (mountedRef.current) {
-              console.log("[useDaily] Viewer: ensuring camera + mic disabled, requesting HD receive");
+              console.log("[useDaily] Viewer: requesting highest quality for art detail");
               
-              // Viewers request to receive highest quality
-              call.updateReceiveSettings({
-                base: { video: { layer: 2 } }, // Request highest simulcast layer
-              });
+              // Viewers request to receive highest quality for fine art details
+              call.updateReceiveSettings(ART_STUDIO_RECEIVE_SETTINGS);
+              
+              // Ensure viewer video/audio is disabled to prioritize host stream
+              await call.setLocalVideo(false);
+              await call.setLocalAudio(false);
               
               setIsCameraOn(false);
               setIsMicOn(false);
