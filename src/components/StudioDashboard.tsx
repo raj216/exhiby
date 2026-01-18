@@ -140,6 +140,8 @@ export function StudioDashboard({
     setShowShareModal(true);
   };
   return <div className="min-h-screen bg-carbon">
+      {/* Main Container - matches Audience profile layout */}
+      <div className="max-w-screen-xl mx-auto lg:px-8">
       {/* Cover Photo - Full Width (NOT clickable - edit through Edit Profile) */}
       <div className="relative h-48 sm:h-56 w-full overflow-hidden">
         {displayCover ? <img src={displayCover} alt="Cover" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />}
@@ -415,5 +417,6 @@ export function StudioDashboard({
         breakdowns={analytics.sessionBreakdowns}
         showValues={showEarnings}
       />
+      </div>
     </div>;
 }
