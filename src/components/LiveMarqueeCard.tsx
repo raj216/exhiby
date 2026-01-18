@@ -69,7 +69,7 @@ export function LiveMarqueeCard({
   return (
     <motion.div
       layoutId={layoutId || `room-card-${id}`}
-      className={`w-full flex-shrink-0 snap-center flex flex-col ${isEnded ? 'opacity-75' : 'cursor-pointer'}`}
+      className={`w-full flex-shrink-0 snap-center flex flex-col ${isEnded ? '' : 'cursor-pointer'}`}
       whileHover={isEnded ? undefined : { scale: 1.02 }}
       whileTap={isEnded ? undefined : { scale: 0.98 }}
       onClick={handleCardTap}
@@ -94,11 +94,12 @@ export function LiveMarqueeCard({
 
       {/* Image Container with LIVE badge */}
       <div className={`poster-card relative w-full rounded-xl overflow-hidden ${desktopSize ? 'aspect-[4/5]' : ''}`} style={{ minHeight: desktopSize ? undefined : '200px' }}>
-        {/* Cover Image - always full color, never grayscale */}
+        {/* Cover Image - full color always, slight brightness reduction when ended */}
         <img
           src={coverImage}
           alt={title}
           className="w-full h-full object-cover"
+          style={isEnded ? { filter: 'brightness(0.8)' } : undefined}
         />
 
         {/* LIVE Badge - Top Left */}
@@ -107,11 +108,33 @@ export function LiveMarqueeCard({
         </div>
 
         {/* Bottom Buttons - inside image */}
-        <div className={`absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-carbon via-carbon/80 to-transparent ${isEnded ? 'opacity-70' : ''}`}>
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-carbon via-carbon/80 to-transparent">
           <div className="flex flex-col gap-2">
-            <SmartBadge price={price} />
+            {/* Frosted glass SmartBadge for ended streams */}
             {isEnded ? (
-              <div className="w-full py-2 text-sm font-medium text-center text-muted-foreground/80 bg-muted/30 border border-border/30 rounded-lg">
+              <div 
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md"
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                <span className="text-xs sm:text-sm font-medium whitespace-nowrap" style={{ color: '#E5E5E5' }}>
+                  {price === 0 ? 'Free Entry' : `🎓 Masterclass • $${price}`}
+                </span>
+              </div>
+            ) : (
+              <SmartBadge price={price} />
+            )}
+            {isEnded ? (
+              <div 
+                className="w-full py-2 text-sm font-medium text-center rounded-lg backdrop-blur-md"
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#E5E5E5'
+                }}
+              >
                 Studio Closed · {endedLabel.replace('Ended ', '')}
               </div>
             ) : (
