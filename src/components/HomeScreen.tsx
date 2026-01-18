@@ -15,6 +15,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLiveEvents, LiveEvent } from "@/hooks/useLiveEvents";
 import { getCategoryId } from "@/lib/categories";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEventTicket } from "@/hooks/useEventTicket";
 interface HomeScreenProps {
   onGoLive: () => void;
   onViewCreatorProfile?: () => void;
@@ -66,6 +68,7 @@ export function HomeScreen({
   onLogout
 }: HomeScreenProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     mode
   } = useUserMode();
@@ -76,6 +79,12 @@ export function HomeScreen({
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+
+  // Ticket check for paid events - prevents double charging
+  const { hasValidTicket, isLoading: ticketLoading, purchaseTicket } = useEventTicket(
+    portalEvent?.id || null,
+    user?.id
+  );
 
   // Fetch real live events from database
   const {
@@ -169,7 +178,7 @@ export function HomeScreen({
       behavior: 'smooth'
     });
   };
-  const handleLiveCardTap = (event: ContentItem) => {
+  const handleLiveCardTap = async (event: ContentItem) => {
     // Don't allow joining ended streams
     if (event.endedAt) {
       toast({
@@ -181,16 +190,50 @@ export function HomeScreen({
 
     // Navigate directly to the live room page
     console.log("[HomeScreen] Navigating to live room:", event.id);
+    
     if (event.price > 0) {
+      // Set portal event first to trigger ticket check
       setPortalEvent(event);
+      
+      // Check if user already has a ticket for this event
+      if (user?.id) {
+        const { data: existingTicket } = await supabase
+          .from("tickets")
+          .select("id")
+          .eq("event_id", event.id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        if (existingTicket) {
+          // User already paid - go directly to live room
+          console.log("[HomeScreen] User has valid ticket, skipping payment");
+          navigate(`/live/${event.id}`);
+          return;
+        }
+      }
+      
+      // No valid ticket - show payment drawer
       setShowPaymentDrawer(true);
     } else {
       navigate(`/live/${event.id}`);
     }
   };
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     setShowPaymentDrawer(false);
-    if (portalEvent) {
+    if (portalEvent && user?.id) {
+      // Create ticket record before navigating
+      const success = await purchaseTicket();
+      if (success) {
+        console.log("[HomeScreen] Ticket created, navigating to live room");
+        navigate(`/live/${portalEvent.id}`);
+      } else {
+        toast({
+          title: "Payment Error",
+          description: "Failed to record your ticket. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } else if (portalEvent) {
       navigate(`/live/${portalEvent.id}`);
     }
   };

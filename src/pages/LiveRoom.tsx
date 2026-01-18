@@ -10,6 +10,7 @@ import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { useMaterials } from "@/hooks/useMaterials";
 import { useDaily, DailyJoinStatus } from "@/hooks/useDaily";
 import { useLiveChat } from "@/hooks/useLiveChat";
+import { useEventTicket } from "@/hooks/useEventTicket";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
+import { PaymentDrawer } from "@/components/PaymentDrawer";
 
 interface EventData {
   id: string;
@@ -34,6 +36,8 @@ interface EventData {
   scheduled_at: string;
   live_ended_at: string | null;
   category: string | null;
+  price: number;
+  is_free: boolean;
   creator?: {
     name: string;
     avatar_url: string | null;
@@ -69,6 +73,9 @@ export default function LiveRoom() {
   // Stream ended state (for viewers when creator ends)
   const [streamEndedByHost, setStreamEndedByHost] = useState(false);
   
+  // Payment state for paid events
+  const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
+  
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
   
@@ -77,6 +84,17 @@ export default function LiveRoom() {
   const { viewerCount, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId || null);
   
   const isCreator = user?.id === event?.creator_id;
+  
+  // Ticket check for paid events - prevents double charging on rejoin
+  const { 
+    hasValidTicket, 
+    isLoading: ticketLoading, 
+    purchaseTicket,
+    markAttended 
+  } = useEventTicket(eventId || null, user?.id);
+  
+  // Check if event requires payment and user doesn't have ticket
+  const requiresPayment = event && !event.is_free && event.price > 0 && !isCreator && !hasValidTicket;
 
   // Live chat from database with realtime
   const {
@@ -203,7 +221,7 @@ export default function LiveRoom() {
       try {
         const { data, error: fetchError } = await supabase
           .from("events")
-          .select("id, title, cover_url, room_url, creator_id, is_live, scheduled_at, live_ended_at, category")
+          .select("id, title, cover_url, room_url, creator_id, is_live, scheduled_at, live_ended_at, category, price, is_free")
           .eq("id", eventId)
           .maybeSingle();
 
@@ -240,6 +258,8 @@ export default function LiveRoom() {
           scheduled_at: data.scheduled_at,
           live_ended_at: data.live_ended_at,
           category: data.category,
+          price: data.price ?? 0,
+          is_free: data.is_free,
           creator: creatorProfile
             ? { name: creatorProfile.name, avatar_url: creatorProfile.avatar_url }
             : { name: "Unknown Artist", avatar_url: null },
@@ -260,6 +280,12 @@ export default function LiveRoom() {
     if (event && user && !isCreator && isJoined) {
       console.log("[LiveRoom] Joining as viewer...");
       joinAsViewer();
+      
+      // Mark ticket as attended for paid events
+      if (hasValidTicket) {
+        console.log("[LiveRoom] Marking ticket as attended");
+        markAttended();
+      }
     }
 
     return () => {
@@ -268,7 +294,7 @@ export default function LiveRoom() {
         leaveAsViewer();
       }
     };
-  }, [event, user, isCreator, isJoined, joinAsViewer, leaveAsViewer]);
+  }, [event, user, isCreator, isJoined, joinAsViewer, leaveAsViewer, hasValidTicket, markAttended]);
 
   // Realtime subscription to detect when stream ends (backup for Daily events)
   useEffect(() => {
@@ -533,7 +559,7 @@ export default function LiveRoom() {
     creator_id: event.creator_id,
   } : null;
 
-  if (loading) {
+  if (loading || ticketLoading) {
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
         <DebugPanel
@@ -549,6 +575,67 @@ export default function LiveRoom() {
           <Loader2 className="w-8 h-8 animate-spin text-electric mx-auto mb-4" />
           <p className="text-muted-foreground">Loading live room...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Handle payment success for paid events
+  const handlePaymentSuccess = async () => {
+    console.log("[LiveRoom] Payment success - creating ticket");
+    const success = await purchaseTicket();
+    if (success) {
+      setShowPaymentDrawer(false);
+      // Ticket is now valid, component will re-render and allow access
+      toast.success("Access granted! Joining stream...");
+    } else {
+      toast.error("Failed to record your ticket. Please try again.");
+    }
+  };
+
+  // Show paywall for paid events if user doesn't have ticket (and event hasn't ended)
+  if (requiresPayment && event && !event.live_ended_at) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="text-center max-w-md px-6">
+          {event.cover_url && (
+            <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg">
+              <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <h2 className="text-xl font-display text-foreground mb-2">{event.title}</h2>
+          {event.creator && (
+            <p className="text-sm text-muted-foreground mb-4">
+              by {event.creator.name}
+            </p>
+          )}
+          <div className="bg-muted/30 rounded-xl px-4 py-3 mb-6">
+            <p className="text-sm text-foreground">This is a paid session</p>
+            <p className="text-lg font-bold text-primary mt-1">${event.price.toFixed(2)}</p>
+          </div>
+          <button
+            onClick={() => setShowPaymentDrawer(true)}
+            className="w-full px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors mb-3"
+          >
+            Pay to Enter
+          </button>
+          <button
+            onClick={() => navigate("/")}
+            className="px-6 py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
+          >
+            Back to Home
+          </button>
+        </div>
+        
+        {/* Payment Drawer */}
+        <PaymentDrawer
+          isOpen={showPaymentDrawer}
+          onClose={() => setShowPaymentDrawer(false)}
+          onPaymentSuccess={handlePaymentSuccess}
+          price={event.price}
+          eventTitle={event.title}
+          artistName={event.creator?.name || "Unknown Artist"}
+          coverImage={event.cover_url || "/placeholder.svg"}
+        />
       </div>
     );
   }
