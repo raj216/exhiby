@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Bell, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,26 +12,30 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NotificationsDrawerProps {
   open: boolean;
   onClose: () => void;
 }
 
-// Notification item component
+// Swipe threshold for dismissing notification
+const SWIPE_THRESHOLD = 100;
+
+// Notification item component with swipe and dismiss support
 function NotificationItem({
   notification,
   onNavigate,
+  onDismiss,
+  isMobile,
 }: {
   notification: Notification;
   onNavigate: (link: string | null, id: string) => void;
+  onDismiss: (id: string) => void;
+  isMobile: boolean;
 }) {
+  const [isDismissing, setIsDismissing] = useState(false);
+  
   const timeAgo = formatDistanceToNow(new Date(notification.created_at), {
     addSuffix: false,
   });
@@ -88,10 +92,84 @@ function NotificationItem({
     return msg;
   };
 
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > SWIPE_THRESHOLD) {
+      setIsDismissing(true);
+      // Wait for exit animation then dismiss
+      setTimeout(() => onDismiss(notification.id), 200);
+    }
+  };
+
+  const handleDismissClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDismissing(true);
+    setTimeout(() => onDismiss(notification.id), 200);
+  };
+
+  // Mobile: swipeable notification
+  if (isMobile) {
+    return (
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.5}
+        onDragEnd={handleDragEnd}
+        animate={isDismissing ? { x: 300, opacity: 0 } : { x: 0, opacity: 1 }}
+        exit={{ x: 300, opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="relative"
+      >
+        <button
+          onClick={() => onNavigate(notification.link, notification.id)}
+          className="w-full text-left p-4 hover:bg-muted/30 transition-colors duration-200 border-b border-border/10 last:border-b-0 group"
+        >
+          <div className="flex items-start gap-3">
+            {/* Unread indicator */}
+            <div className="pt-1.5 w-2 flex-shrink-0">
+              {!notification.is_read && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-2 h-2 rounded-full bg-crimson"
+                />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              {/* Title - Creator name + action */}
+              <p
+                className={`text-sm leading-relaxed ${
+                  notification.is_read
+                    ? "text-muted-foreground"
+                    : "text-foreground font-medium"
+                }`}
+              >
+                {notification.title}
+              </p>
+
+              {/* Message if present */}
+              {notification.message && (
+                <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-2">
+                  {formatMessage(notification.message)}
+                </p>
+              )}
+
+              {/* Timestamp */}
+              <p className="text-xs text-muted-foreground/50 mt-1.5">
+                {formatTime(timeAgo)} ago
+              </p>
+            </div>
+          </div>
+        </button>
+      </motion.div>
+    );
+  }
+
+  // Desktop: hover-reveal dismiss button
   return (
     <button
       onClick={() => onNavigate(notification.link, notification.id)}
-      className="w-full text-left p-4 hover:bg-muted/30 transition-colors duration-200 border-b border-border/10 last:border-b-0 group"
+      className="w-full text-left p-4 hover:bg-muted/30 transition-colors duration-200 border-b border-border/10 last:border-b-0 group relative"
     >
       <div className="flex items-start gap-3">
         {/* Unread indicator */}
@@ -129,6 +207,15 @@ function NotificationItem({
             {formatTime(timeAgo)} ago
           </p>
         </div>
+
+        {/* Desktop dismiss button - visible on hover */}
+        <button
+          onClick={handleDismissClick}
+          className="opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity duration-200 p-1.5 rounded-full hover:bg-muted/50 flex-shrink-0"
+          aria-label="Dismiss notification"
+        >
+          <X className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
       </div>
     </button>
   );
@@ -154,10 +241,14 @@ function NotificationListContent({
   notifications,
   loading,
   onNavigate,
+  onDismiss,
+  isMobile,
 }: {
   notifications: Notification[];
   loading: boolean;
   onNavigate: (link: string | null, id: string) => void;
+  onDismiss: (id: string) => void;
+  isMobile: boolean;
 }) {
   if (loading) {
     return (
@@ -174,13 +265,17 @@ function NotificationListContent({
   return (
     <ScrollArea className="flex-1">
       <div className="divide-y divide-border/10">
-        {notifications.map((notification) => (
-          <NotificationItem
-            key={notification.id}
-            notification={notification}
-            onNavigate={onNavigate}
-          />
-        ))}
+        <AnimatePresence mode="popLayout">
+          {notifications.map((notification) => (
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+              onNavigate={onNavigate}
+              onDismiss={onDismiss}
+              isMobile={isMobile}
+            />
+          ))}
+        </AnimatePresence>
       </div>
     </ScrollArea>
   );
@@ -190,11 +285,17 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { notifications, loading, markAsRead, markAllAsRead, refetch } = useNotifications();
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  // Filter out dismissed notifications
+  const visibleNotifications = notifications.filter(n => !dismissedIds.has(n.id));
 
   // Refetch notifications when drawer opens to ensure we have the latest
   useEffect(() => {
     if (open) {
       refetch();
+      // Reset dismissed IDs when opening
+      setDismissedIds(new Set());
     }
   }, [open, refetch]);
 
@@ -217,13 +318,35 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
     }
   };
 
-  // Mobile: Full-screen sheet sliding from left
+  const handleDismiss = async (notificationId: string) => {
+    // Optimistically remove from UI
+    setDismissedIds(prev => new Set([...prev, notificationId]));
+    
+    // Delete from database
+    try {
+      await supabase
+        .from("notifications")
+        .delete()
+        .eq("id", notificationId);
+    } catch (err) {
+      console.error("Error dismissing notification:", err);
+      // Revert on error
+      setDismissedIds(prev => {
+        const next = new Set(prev);
+        next.delete(notificationId);
+        return next;
+      });
+    }
+  };
+
+  // Mobile: Full-screen sheet sliding from left with single close button
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
         <SheetContent
           side="left"
           className="w-full sm:max-w-full bg-carbon border-r border-border/20 p-0"
+          hideCloseButton // Hide default close button on mobile
         >
           <SheetHeader className="px-5 py-4 border-b border-border/10">
             <div className="flex items-center justify-between">
@@ -242,9 +365,11 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
           </SheetHeader>
           <div className="flex-1 h-[calc(100vh-80px)] overflow-hidden">
             <NotificationListContent
-              notifications={notifications}
+              notifications={visibleNotifications}
               loading={loading}
               onNavigate={handleNavigate}
+              onDismiss={handleDismiss}
+              isMobile={isMobile}
             />
           </div>
         </SheetContent>
@@ -252,7 +377,7 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
     );
   }
 
-  // Desktop: Right-side sheet
+  // Desktop: Right-side sheet with default close button
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent
@@ -269,9 +394,11 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
         </SheetHeader>
         <div className="flex-1 h-[calc(100vh-80px)] overflow-hidden">
           <NotificationListContent
-            notifications={notifications}
+            notifications={visibleNotifications}
             loading={loading}
             onNavigate={handleNavigate}
+            onDismiss={handleDismiss}
+            isMobile={isMobile}
           />
         </div>
       </SheetContent>
