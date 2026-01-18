@@ -12,7 +12,9 @@ export type DailyJoinStatus =
   | "joining"
   | "joined"
   | "error"
-  | "timeout";
+  | "timeout"
+  | "host-left"
+  | "meeting-ended";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Module-level singleton to prevent "Duplicate DailyIframe instances" error
@@ -186,6 +188,8 @@ interface UseDailyOptions {
   onLeft?: () => void;
   onError?: (error: string) => void;
   onStatusChange?: (status: DailyJoinStatus) => void;
+  onHostLeft?: () => void;
+  onMeetingEnded?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -200,6 +204,8 @@ export function useDaily({
   onLeft,
   onError,
   onStatusChange,
+  onHostLeft,
+  onMeetingEnded,
 }: UseDailyOptions) {
   // Refs for preventing duplicate operations
   const callRef = useRef<DailyCall | null>(null);
@@ -221,8 +227,11 @@ export function useDaily({
   const [status, setStatus] = useState<DailyJoinStatus>("idle");
 
   // Callbacks stored in refs to avoid effect re-runs
-  const callbacksRef = useRef({ onJoined, onLeft, onError, onStatusChange });
-  callbacksRef.current = { onJoined, onLeft, onError, onStatusChange };
+  const callbacksRef = useRef({ onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded });
+  callbacksRef.current = { onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded };
+
+  // Track if we already detected host leaving to avoid duplicate callbacks
+  const hostLeftTriggeredRef = useRef(false);
 
   // Helper to update status
   const updateStatus = useCallback((newStatus: DailyJoinStatus) => {
@@ -356,8 +365,27 @@ export function useDaily({
         };
 
         const handleParticipantLeft = (event: DailyEventObjectParticipantLeft | undefined) => {
-          console.log("[useDaily] Event: participant-left:", event?.participant?.user_name);
+          console.log("[useDaily] Event: participant-left:", event?.participant?.user_name, "owner:", event?.participant?.owner);
           updateParticipants(call);
+          
+          // Detect when host/owner leaves - this means stream ended for viewers
+          if (event?.participant?.owner && !event?.participant?.local && !hostLeftTriggeredRef.current) {
+            console.log("[useDaily] Host/owner has left the meeting");
+            hostLeftTriggeredRef.current = true;
+            updateStatus("host-left");
+            callbacksRef.current.onHostLeft?.();
+          }
+        };
+
+        // Handle meeting ended event (room closed by host)
+        const handleMeetingEnded = () => {
+          if (!mountedRef.current) return;
+          console.log("[useDaily] Event: meeting-ended");
+          if (!hostLeftTriggeredRef.current) {
+            hostLeftTriggeredRef.current = true;
+            updateStatus("meeting-ended");
+            callbacksRef.current.onMeetingEnded?.();
+          }
         };
 
         const handleParticipantUpdated = () => updateParticipants(call);
@@ -395,6 +423,8 @@ export function useDaily({
         call.on("track-stopped", handleTrackStopped);
         call.on("error", handleError);
         call.on("camera-error", handleCameraError);
+        // @ts-ignore - Daily.co does have this event even if not typed
+        call.on("meeting-ended", handleMeetingEnded);
 
         updateStatus("ready");
 
