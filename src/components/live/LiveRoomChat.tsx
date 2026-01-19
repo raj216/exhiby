@@ -1,28 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, Wifi, WifiOff, Loader2 } from "lucide-react";
+import { Send, X, Wifi, WifiOff, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import type { LiveMessage } from "@/hooks/useLiveChat";
-
-// Legacy type for backwards compatibility
-export interface ChatMessage {
-  id: string;
-  userId: string;
-  username: string;
-  message: string;
-  timestamp: Date;
-  isHost: boolean;
-}
 
 interface LiveRoomChatProps {
   isOpen: boolean;
   onClose: () => void;
-  // New realtime chat props
   messages?: LiveMessage[];
   status?: "disconnected" | "connecting" | "connected";
   messageCount?: number;
-  onSendMessage: (message: string) => void | Promise<boolean>;
+  onSendMessage: (message: string) => Promise<boolean>;
+  onRetryMessage?: (clientId: string) => Promise<boolean>;
+  onRemoveFailedMessage?: (clientId: string) => void;
+  onReload?: () => void;
   isAuthenticated?: boolean;
+  isSending?: boolean;
 }
 
 export function LiveRoomChat({
@@ -32,20 +25,27 @@ export function LiveRoomChat({
   status = "disconnected",
   messageCount = 0,
   onSendMessage,
+  onRetryMessage,
+  onRemoveFailedMessage,
+  onReload,
   isAuthenticated = true,
+  isSending = false,
 }: LiveRoomChatProps) {
   const [inputValue, setInputValue] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [localSending, setLocalSending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isNearBottom, setIsNearBottom] = useState(true);
 
+  // Combined sending state
+  const isCurrentlySending = isSending || localSending;
+
   // Check if user is near bottom of chat
   const checkIfNearBottom = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return true;
-    const threshold = 100; // pixels from bottom
+    const threshold = 100;
     return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
   }, []);
 
@@ -69,14 +69,20 @@ export function LiveRoomChat({
   }, [isOpen]);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isSending) return;
+    if (!inputValue.trim() || isCurrentlySending) return;
 
-    setIsSending(true);
-    const result = await onSendMessage(inputValue.trim());
-    setIsSending(false);
-
-    if (result !== false) {
-      setInputValue("");
+    const messageToSend = inputValue.trim();
+    setInputValue(""); // Clear immediately for better UX
+    setLocalSending(true);
+    
+    try {
+      const result = await onSendMessage(messageToSend);
+      if (result === false) {
+        // Restore input if send failed
+        setInputValue(messageToSend);
+      }
+    } finally {
+      setLocalSending(false);
     }
   };
 
@@ -84,6 +90,18 @@ export function LiveRoomChat({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleRetry = async (clientId: string) => {
+    if (onRetryMessage) {
+      await onRetryMessage(clientId);
+    }
+  };
+
+  const handleRemove = (clientId: string) => {
+    if (onRemoveFailedMessage) {
+      onRemoveFailedMessage(clientId);
     }
   };
 
@@ -110,8 +128,53 @@ export function LiveRoomChat({
       <div className="flex items-center gap-1.5 text-red-400">
         <WifiOff className="w-3 h-3" />
         <span className="text-[10px] uppercase tracking-wider">Disconnected</span>
+        {onReload && (
+          <button
+            onClick={onReload}
+            className="ml-1 p-1 rounded hover:bg-white/10 transition-colors"
+            title="Reconnect"
+          >
+            <RefreshCw className="w-3 h-3" />
+          </button>
+        )}
       </div>
     );
+  };
+
+  // Message status indicator
+  const MessageStatus = ({ message }: { message: LiveMessage }) => {
+    if (message._status === "sending") {
+      return (
+        <span className="text-white/30 text-[10px] ml-1">
+          <Loader2 className="w-2.5 h-2.5 animate-spin inline" />
+        </span>
+      );
+    }
+    if (message._status === "failed") {
+      return (
+        <span className="text-red-400 text-[10px] ml-1 flex items-center gap-1">
+          <AlertCircle className="w-2.5 h-2.5" />
+          Failed
+          {message._clientId && (
+            <>
+              <button
+                onClick={() => handleRetry(message._clientId!)}
+                className="underline hover:text-red-300"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => handleRemove(message._clientId!)}
+                className="underline hover:text-red-300"
+              >
+                Remove
+              </button>
+            </>
+          )}
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
@@ -160,11 +223,16 @@ export function LiveRoomChat({
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    animate={{ 
+                      opacity: msg._status === "sending" ? 0.7 : 1, 
+                      y: 0 
+                    }}
                     exit={{ opacity: 0 }}
-                    className="flex flex-col gap-0.5"
+                    className={`flex flex-col gap-0.5 ${
+                      msg._status === "failed" ? "opacity-60" : ""
+                    }`}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-electric font-medium text-sm shrink-0">
                         {msg.display_name || "Viewer"}
                       </span>
@@ -176,6 +244,7 @@ export function LiveRoomChat({
                       <span className="text-white/30 text-[10px] ml-auto">
                         {format(new Date(msg.created_at), "HH:mm")}
                       </span>
+                      <MessageStatus message={msg} />
                     </div>
                     <span className="text-white/90 text-sm break-words">{msg.message}</span>
                   </motion.div>
@@ -195,16 +264,16 @@ export function LiveRoomChat({
                 onChange={(e) => setInputValue(e.target.value.slice(0, 200))}
                 onKeyPress={handleKeyPress}
                 placeholder={isAuthenticated ? "Say something…" : "Sign in to chat"}
-                disabled={!isAuthenticated || isSending}
+                disabled={!isAuthenticated || isCurrentlySending}
                 maxLength={200}
                 className="flex-1 h-10 px-4 rounded-full bg-white/10 border border-white/10 text-white placeholder:text-white/50 text-sm focus:outline-none focus:border-electric/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSend}
-                disabled={!inputValue.trim() || isSending || !isAuthenticated}
+                disabled={!inputValue.trim() || isCurrentlySending || !isAuthenticated}
                 className="w-10 h-10 rounded-full bg-electric flex items-center justify-center text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-electric/90 transition-colors"
               >
-                {isSending ? (
+                {isCurrentlySending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Send className="w-4 h-4" />

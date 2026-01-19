@@ -1,94 +1,66 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ChevronDown } from "lucide-react";
+import { Send, ChevronDown, Loader2, AlertCircle, Wifi, WifiOff } from "lucide-react";
+import { format } from "date-fns";
 import { triggerHaptic } from "@/lib/haptics";
-
-interface ChatMessage {
-  id: string;
-  username: string;
-  message: string;
-  timestamp: number;
-}
+import { useLiveChat, type LiveMessage } from "@/hooks/useLiveChat";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StudioChatProps {
-  roomId: string;
+  eventId: string;
+  creatorId: string;
   onClose: () => void;
 }
 
-// Mock messages for demo
-const mockMessages: ChatMessage[] = [
-  { id: "1", username: "ArtLover99", message: "Love the technique!", timestamp: Date.now() - 8000 },
-  { id: "2", username: "SketchMaster", message: "What pencil grade is that?", timestamp: Date.now() - 5000 },
-  { id: "3", username: "CreativeJen", message: "So calming to watch ✨", timestamp: Date.now() - 2000 },
-];
-
-export function StudioChat({ roomId, onClose }: StudioChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
+export function StudioChat({ eventId, creatorId, onClose }: StudioChatProps) {
+  const { user } = useAuth();
+  const {
+    messages,
+    status,
+    isSending,
+    sendMessage,
+    retryMessage,
+    removeFailedMessage,
+    openChat,
+    closeChat,
+  } = useLiveChat({ eventId, creatorId });
+  
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
-  // Simulate incoming messages
+  // Mark chat as open when component mounts
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newMessages = [
-        { username: "Watcher42", message: "Amazing work!" },
-        { username: "ArtStudent", message: "Taking notes 📝" },
-        { username: "PencilPro", message: "Beautiful shading" },
-        { username: "CreativeFlow", message: "Inspiring session" },
-      ];
-      
-      const randomMsg = newMessages[Math.floor(Math.random() * newMessages.length)];
-      
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `msg-${Date.now()}`,
-          username: randomMsg.username,
-          message: randomMsg.message,
-          timestamp: Date.now(),
-        }
-      ]);
-    }, 4000);
+    openChat();
+    return () => closeChat();
+  }, [openChat, closeChat]);
 
-    return () => clearInterval(interval);
-  }, []);
-
-  // Remove old messages (ephemeral feel)
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    const cleanup = setInterval(() => {
-      const fiveSecondsAgo = Date.now() - 5000;
-      setMessages(prev => prev.filter(msg => msg.timestamp > fiveSecondsAgo));
-    }, 1000);
-
-    return () => clearInterval(cleanup);
-  }, []);
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isNearBottom]);
 
   const handleClose = () => {
     triggerHaptic("light");
-    inputRef.current?.blur(); // Dismiss keyboard
+    inputRef.current?.blur();
     onClose();
   };
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || isSending) return;
     
     triggerHaptic("light");
+    const messageToSend = inputValue.trim();
+    setInputValue(""); // Clear immediately for snappy UX
     
-    setMessages(prev => [
-      ...prev,
-      {
-        id: `msg-${Date.now()}`,
-        username: "You",
-        message: inputValue,
-        timestamp: Date.now(),
-      }
-    ]);
-    
-    setInputValue("");
-    
-    // Dismiss keyboard and close chat after sending
-    inputRef.current?.blur();
-    onClose();
+    const success = await sendMessage(messageToSend);
+    if (!success) {
+      // Restore input if send failed
+      setInputValue(messageToSend);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -98,17 +70,49 @@ export function StudioChat({ roomId, onClose }: StudioChatProps) {
     }
   };
 
+  const handleRetry = async (clientId: string) => {
+    triggerHaptic("light");
+    await retryMessage(clientId);
+  };
+
+  const handleRemove = (clientId: string) => {
+    triggerHaptic("light");
+    removeFailedMessage(clientId);
+  };
+
   // Handle background tap to dismiss
   const handleBackgroundTap = (e: React.MouseEvent) => {
-    // Only close if tapping the background layer, not the chat content
     if (e.target === e.currentTarget) {
       handleClose();
     }
   };
 
+  // Connection status indicator
+  const ConnectionIndicator = () => {
+    if (status === "connected") {
+      return (
+        <div className="flex items-center gap-1 text-emerald-400/80">
+          <Wifi className="w-3 h-3" />
+        </div>
+      );
+    }
+    if (status === "connecting") {
+      return (
+        <div className="flex items-center gap-1 text-amber-400/80">
+          <Loader2 className="w-3 h-3 animate-spin" />
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-1 text-red-400/80">
+        <WifiOff className="w-3 h-3" />
+      </div>
+    );
+  };
+
   return (
     <>
-      {/* Transparent background tap layer - covers entire screen */}
+      {/* Transparent background tap layer */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -130,28 +134,73 @@ export function StudioChat({ roomId, onClose }: StudioChatProps) {
 
         {/* Chat messages container */}
         <div className="relative h-full flex flex-col justify-end p-4 pb-24">
-          <div className="space-y-2 max-h-[60vh] overflow-hidden">
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto scrollbar-hide">
             <AnimatePresence mode="popLayout">
-              {messages.map((msg) => (
+              {messages.length === 0 ? (
                 <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, x: -10, y: 10 }}
-                  animate={{ opacity: 1, x: 0, y: 0 }}
-                  exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
-                  layout
-                  className="pointer-events-auto"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-white/40 text-sm text-center py-4 pointer-events-auto"
                 >
-                  <div className="inline-flex items-baseline gap-2 max-w-[90%]">
-                    <span className="text-xs font-semibold text-white/90">
-                      {msg.username}
-                    </span>
-                    <span className="text-sm text-white/80">
-                      {msg.message}
-                    </span>
-                  </div>
+                  No messages yet
                 </motion.div>
-              ))}
+              ) : (
+                messages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, x: -10, y: 10 }}
+                    animate={{ 
+                      opacity: msg._status === "sending" ? 0.6 : 1, 
+                      x: 0, 
+                      y: 0 
+                    }}
+                    exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
+                    layout
+                    className="pointer-events-auto"
+                  >
+                    <div className={`inline-flex flex-col max-w-[90%] ${
+                      msg._status === "failed" ? "opacity-60" : ""
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-semibold ${
+                          msg.role === "creator" ? "text-gold" : "text-white/90"
+                        }`}>
+                          {msg.display_name || "Viewer"}
+                          {msg.role === "creator" && " ★"}
+                        </span>
+                        <span className="text-[10px] text-white/30">
+                          {format(new Date(msg.created_at), "HH:mm")}
+                        </span>
+                        {msg._status === "sending" && (
+                          <Loader2 className="w-2.5 h-2.5 text-white/40 animate-spin" />
+                        )}
+                        {msg._status === "failed" && (
+                          <div className="flex items-center gap-1 text-red-400 text-[10px]">
+                            <AlertCircle className="w-2.5 h-2.5" />
+                            <button
+                              onClick={() => msg._clientId && handleRetry(msg._clientId)}
+                              className="underline hover:text-red-300"
+                            >
+                              Retry
+                            </button>
+                            <button
+                              onClick={() => msg._clientId && handleRemove(msg._clientId)}
+                              className="underline hover:text-red-300"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-sm text-white/80">
+                        {msg.message}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </AnimatePresence>
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
@@ -167,24 +216,37 @@ export function StudioChat({ roomId, onClose }: StudioChatProps) {
               <ChevronDown className="w-4 h-4" />
             </button>
             
+            <ConnectionIndicator />
+            
             <input
               ref={inputRef}
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => setInputValue(e.target.value.slice(0, 200))}
               onKeyDown={handleKeyPress}
-              placeholder="Say something..."
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none"
+              placeholder={user ? "Say something..." : "Sign in to chat"}
+              disabled={!user || isSending}
+              maxLength={200}
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none disabled:opacity-50"
               autoFocus
             />
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() || isSending || !user}
               className="p-1.5 rounded-full text-white/70 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              <Send className="w-4 h-4" />
+              {isSending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
             </button>
           </div>
+          {inputValue.length > 150 && (
+            <div className="text-right text-[10px] text-white/40 mt-1 pr-2">
+              {inputValue.length}/200
+            </div>
+          )}
         </div>
       </motion.div>
     </>
