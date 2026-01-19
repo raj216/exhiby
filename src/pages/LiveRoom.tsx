@@ -21,6 +21,7 @@ import {
   LiveRoomMaterials,
   ChatNotificationToast,
   StreamEndedScreen,
+  ReconnectingBanner,
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
@@ -78,6 +79,11 @@ export default function LiveRoom() {
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
+  
+  // UX Polish: Track join timing for "still connecting" message
+  const [joinStartTime, setJoinStartTime] = useState<number | null>(null);
+  const [isSlowConnection, setIsSlowConnection] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
@@ -159,6 +165,17 @@ export default function LiveRoom() {
     onStatusChange: (newStatus) => {
       console.log("[LiveRoom] Daily status changed:", newStatus);
       setDailyStatus(newStatus);
+      
+      // Track joining timing for slow connection UX
+      if (newStatus === "joining") {
+        setJoinStartTime(Date.now());
+        setIsSlowConnection(false);
+        setIsReconnecting(false);
+      } else if (newStatus === "joined") {
+        setJoinStartTime(null);
+        setIsSlowConnection(false);
+        setIsReconnecting(false);
+      }
     },
     // When host ends the stream, show end screen to viewers
     onHostLeft: () => {
@@ -171,6 +188,13 @@ export default function LiveRoom() {
       if (!isCreator) {
         console.log("[LiveRoom] Meeting ended - showing end screen for viewer");
         setStreamEndedByHost(true);
+      }
+    },
+    onNetworkQualityChange: (quality) => {
+      if (quality === 'low' || quality === 'very-low') {
+        setIsReconnecting(true);
+      } else if (quality === 'good') {
+        setIsReconnecting(false);
       }
     },
   });
@@ -453,10 +477,10 @@ export default function LiveRoom() {
     }
   }, [leaveAsViewer, leave, navigate, event, isCreator]);
 
-  // Handle feedback modal close
+  // Handle feedback modal close - use replace to prevent back button reopening ended stream
   const handleFeedbackClose = useCallback(() => {
     setShowFeedbackModal(false);
-    navigate("/");
+    navigate("/", { replace: true });
   }, [navigate]);
 
   // Handle stream ended actions (for viewers)
@@ -856,10 +880,14 @@ export default function LiveRoom() {
     );
   }
 
-  // Error or timeout state from Daily
+  // Error or timeout state from Daily - Enhanced Exhiby-style error card
   if (dailyStatus === "error" || dailyStatus === "timeout") {
     return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 bg-background flex items-center justify-center z-50"
+      >
         <DebugPanel
           eventId={eventId}
           eventData={debugEventData}
@@ -869,38 +897,79 @@ export default function LiveRoom() {
           isRecreatingRoom={isRecreatingRoom}
           onRecreateRoom={handleRecreateRoom}
         />
-        <div className="text-center max-w-md px-6">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="text-center max-w-md px-6"
+        >
+          {/* Error icon with subtle animation */}
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 15 }}
+          >
+            <AlertCircle className="w-14 h-14 text-destructive/80 mx-auto mb-5" />
+          </motion.div>
+          
           <h2 className="text-xl font-display text-foreground mb-2">
-            {dailyStatus === "timeout" ? "Connection Timeout" : "Connection Error"}
+            Couldn't Connect
           </h2>
-          <p className="text-muted-foreground mb-6">
-            {dailyError || "Could not connect to the stream. Please try again."}
+          <p className="text-muted-foreground mb-6 text-sm">
+            {dailyStatus === "timeout" 
+              ? "The connection took too long. Check your internet and try again."
+              : dailyError || "Something went wrong. Please try again."
+            }
           </p>
-          <div className="flex gap-3 justify-center">
+          
+          <div className="flex flex-col gap-3">
             <button
               onClick={handleRetryDaily}
               disabled={isJoining || isRetryingDaily}
-              className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors disabled:opacity-50"
+              className="w-full px-6 py-3.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isJoining || isRetryingDaily ? "Retrying..." : "Retry"}
+              {isJoining || isRetryingDaily ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Retrying…
+                </>
+              ) : (
+                "Retry"
+              )}
             </button>
             <button
               onClick={() => navigate("/")}
-              className="px-6 py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
+              className="w-full px-6 py-3.5 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
             >
-              Go Back
+              Back
             </button>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   }
 
-  // Connecting state
+  // UX: Check for slow connection (> 3 seconds)
+  useEffect(() => {
+    if (!joinStartTime) return;
+    
+    const timer = setTimeout(() => {
+      if (joinStartTime && (isJoining || status === "joining")) {
+        setIsSlowConnection(true);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [joinStartTime, isJoining, status]);
+
+  // Connecting state - Enhanced "Entering the Studio" experience
   if (isJoining || status === "joining" || status === "creating") {
     return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 bg-background flex items-center justify-center z-50"
+      >
         <DebugPanel
           eventId={eventId}
           eventData={debugEventData}
@@ -910,12 +979,80 @@ export default function LiveRoom() {
           isRecreatingRoom={isRecreatingRoom}
           onRecreateRoom={handleRecreateRoom}
         />
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-electric mx-auto mb-4" />
-          <p className="text-muted-foreground">Connecting to stream...</p>
-          <p className="text-xs text-muted-foreground/50 mt-2">Status: {status}</p>
+        
+        {/* Background with subtle artwork */}
+        {event?.cover_url && (
+          <div className="absolute inset-0 overflow-hidden">
+            <img
+              src={event.cover_url}
+              alt=""
+              className="w-full h-full object-cover opacity-5 blur-2xl scale-110"
+            />
+          </div>
+        )}
+        
+        <div className="relative z-10 text-center max-w-md px-6">
+          {/* Creator Avatar */}
+          {event?.creator?.avatar_url && (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="mb-6"
+            >
+              <img
+                src={event.creator.avatar_url}
+                alt={event.creator.name}
+                className="w-16 h-16 rounded-full mx-auto border-2 border-border/50 shadow-lg"
+              />
+            </motion.div>
+          )}
+          
+          {/* Spinner */}
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="mb-4"
+          >
+            <div className="w-10 h-10 mx-auto border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </motion.div>
+          
+          {/* Title */}
+          <motion.h2
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+            className="text-xl font-display text-foreground mb-2"
+          >
+            Entering the Studio…
+          </motion.h2>
+          
+          {/* Dynamic subtext */}
+          <motion.p
+            key={isSlowConnection ? "slow" : "normal"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-sm text-muted-foreground"
+          >
+            {isSlowConnection 
+              ? "Still connecting… hang tight"
+              : "Setting up your stream"
+            }
+          </motion.p>
+          
+          {/* Event info */}
+          {event && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-xs text-muted-foreground/60 mt-4"
+            >
+              {event.title}
+            </motion.p>
+          )}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -995,6 +1132,9 @@ export default function LiveRoom() {
               )}
             </div>
           )}
+
+          {/* Reconnecting Banner */}
+          <ReconnectingBanner isVisible={isReconnecting} />
 
           {/* Header Overlay */}
           <LiveRoomHeader
