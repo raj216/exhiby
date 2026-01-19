@@ -525,6 +525,20 @@ export default function LiveRoom() {
       return () => clearTimeout(timer);
     }
   }, [streamEndedByHost, isCreator, event, leaveAsViewer]);
+
+  // UX: Check for slow connection (> 3 seconds)
+  useEffect(() => {
+    if (!joinStartTime) return;
+    
+    const timer = setTimeout(() => {
+      if (joinStartTime && (isJoining || status === "joining")) {
+        setIsSlowConnection(true);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [joinStartTime, isJoining, status]);
+
   // Chat handlers - use the hook's open/close methods for proper unread tracking
   const handleOpenChat = () => {
     openChat();
@@ -1047,18 +1061,7 @@ export default function LiveRoom() {
     );
   }
 
-  // UX: Check for slow connection (> 3 seconds)
-  useEffect(() => {
-    if (!joinStartTime) return;
-    
-    const timer = setTimeout(() => {
-      if (joinStartTime && (isJoining || status === "joining")) {
-        setIsSlowConnection(true);
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [joinStartTime, isJoining, status]);
+  // NOTE: Slow connection effect was moved to the hooks section above
 
   // Connecting state - Enhanced "Entering the Studio" experience
   if (isJoining || status === "joining" || status === "creating") {
