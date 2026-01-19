@@ -94,7 +94,7 @@ serve(async (req) => {
     // Verify user is the event creator
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .select("creator_id, room_url")
+      .select("creator_id")
       .eq("id", event_id)
       .single();
 
@@ -114,10 +114,16 @@ serve(async (req) => {
       });
     }
 
-    // If room already exists, return it
-    if (event.room_url) {
-      console.log("[create-live-room] Room already exists:", event.room_url);
-      return new Response(JSON.stringify({ room_url: event.room_url, event_id }), {
+    // Check if room already exists in event_rooms table
+    const { data: existingRoom } = await supabase
+      .from("event_rooms")
+      .select("room_url")
+      .eq("event_id", event_id)
+      .maybeSingle();
+
+    if (existingRoom?.room_url) {
+      console.log("[create-live-room] Room already exists:", existingRoom.room_url);
+      return new Response(JSON.stringify({ room_url: existingRoom.room_url, event_id }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -168,11 +174,27 @@ serve(async (req) => {
     const roomUrl = dailyRoom.url;
     console.log("[create-live-room] Daily room created:", roomUrl);
 
-    // Update event with room_url and set live
+    // Insert room_url into protected event_rooms table
+    const { error: roomInsertError } = await supabase
+      .from("event_rooms")
+      .upsert({
+        event_id: event_id,
+        room_url: roomUrl,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "event_id" });
+
+    if (roomInsertError) {
+      console.error("[create-live-room] Room insert error:", roomInsertError);
+      return new Response(JSON.stringify({ error: "Failed to store room URL" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Update event to set live status (room_url no longer stored here)
     const { error: updateError } = await supabase
       .from("events")
       .update({
-        room_url: roomUrl,
         is_live: true,
         live_started_at: new Date().toISOString(),
         viewer_count: 0,

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_rooms: {
+        Row: {
+          created_at: string
+          event_id: string
+          room_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          room_url: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          room_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rooms_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_rooms_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           category: string | null
@@ -29,7 +65,6 @@ export type Database = {
           live_ended_at: string | null
           live_started_at: string | null
           price: number | null
-          room_url: string | null
           scheduled_at: string
           title: string
           updated_at: string
@@ -49,7 +84,6 @@ export type Database = {
           live_ended_at?: string | null
           live_started_at?: string | null
           price?: number | null
-          room_url?: string | null
           scheduled_at: string
           title: string
           updated_at?: string
@@ -69,7 +103,6 @@ export type Database = {
           live_ended_at?: string | null
           live_started_at?: string | null
           price?: number | null
-          room_url?: string | null
           scheduled_at?: string
           title?: string
           updated_at?: string
