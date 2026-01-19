@@ -230,6 +230,7 @@ interface UseDailyOptions {
   onStatusChange?: (status: DailyJoinStatus) => void;
   onHostLeft?: () => void;
   onMeetingEnded?: () => void;
+  onNetworkQualityChange?: (quality: 'good' | 'low' | 'very-low') => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -246,6 +247,7 @@ export function useDaily({
   onStatusChange,
   onHostLeft,
   onMeetingEnded,
+  onNetworkQualityChange,
 }: UseDailyOptions) {
   // Refs for preventing duplicate operations
   const callRef = useRef<DailyCall | null>(null);
@@ -268,8 +270,8 @@ export function useDaily({
   const [audioError, setAudioError] = useState<string | null>(null);
 
   // Callbacks stored in refs to avoid effect re-runs
-  const callbacksRef = useRef({ onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded });
-  callbacksRef.current = { onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded };
+  const callbacksRef = useRef({ onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded, onNetworkQualityChange });
+  callbacksRef.current = { onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded, onNetworkQualityChange };
 
   // Track if we already detected host leaving to avoid duplicate callbacks
   const hostLeftTriggeredRef = useRef(false);
@@ -463,10 +465,17 @@ export function useDaily({
           console.warn("[useDaily] Audio error (non-blocking):", errorMessage);
         };
 
-        // Network quality handler - prioritize audio stability
+        // Network quality handler - prioritize audio stability and notify UI
         const handleNetworkQualityChange = (event: any) => {
           const { threshold, quality } = event || {};
           console.log("[useDaily] Network quality:", quality, "threshold:", threshold);
+          
+          // Notify UI about network quality changes for reconnection banner
+          if (quality === 'low' || quality === 'very-low') {
+            callbacksRef.current.onNetworkQualityChange?.(quality);
+          } else if (quality === 'good') {
+            callbacksRef.current.onNetworkQualityChange?.('good');
+          }
           
           // On poor network, reduce video quality but maintain audio
           if (quality === 'low' || quality === 'very-low') {

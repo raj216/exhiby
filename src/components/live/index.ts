@@ -6,3 +6,4 @@ export { LiveRoomChat } from './LiveRoomChat';
 export { LiveRoomMaterials, type Material } from './LiveRoomMaterials';
 export { DebugPanel } from './DebugPanel';
 export { ChatNotificationToast } from './ChatNotificationToast';
+export { ReconnectingBanner } from './ReconnectingBanner';
