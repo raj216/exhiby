@@ -270,7 +270,8 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
       <AnimatePresence>
         {showChat && (
           <StudioChat 
-            roomId={room.id}
+            eventId={room.id}
+            creatorId={room.id} // TODO: Pass actual creator ID when available
             onClose={() => setShowChat(false)}
           />
         )}
