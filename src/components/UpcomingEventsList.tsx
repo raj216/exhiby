@@ -143,7 +143,7 @@ export function UpcomingEventsList({
         exit={{ opacity: 0, x: -100 }}
         className={`flex items-center gap-3 rounded-xl p-3 border ${
           status === "ready_to_go_live" 
-            ? "bg-destructive/10 border-destructive/30" 
+            ? "bg-surface border-destructive/30" 
             : "bg-obsidian border-border/30"
         }`}
       >
