@@ -25,8 +25,9 @@ let globalInstanceId = 0;
 let initializationPromise: Promise<DailyCall> | null = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Art Studio Video Quality Configuration
+// Art Studio Video & Audio Quality Configuration
 // Optimized for fine detail visibility (pencil strokes, shading, texture)
+// and crystal-clear voice for teaching/learning
 // ─────────────────────────────────────────────────────────────────────────────
 
 // HD camera constraints for 1080p @ 30fps - art-first clarity
@@ -37,6 +38,24 @@ const ART_STUDIO_CAMERA_CONSTRAINTS: MediaTrackConstraints = {
   // Prefer accurate color reproduction over aggressive processing
   // @ts-ignore - advanced constraints may not be typed but are supported
   resizeMode: "none",                     // Avoid unnecessary resizing/processing
+};
+
+// Studio-grade audio constraints for crisp voice quality
+// Optimized for teaching/learning with voice clarity as priority
+const ART_STUDIO_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
+  // Echo cancellation - essential for speaker/mic setups
+  echoCancellation: { ideal: true },
+  // Noise suppression - reduces background noise (fans, AC, traffic)
+  noiseSuppression: { ideal: true },
+  // Auto gain control - maintains consistent volume levels
+  autoGainControl: { ideal: true },
+  // Higher sample rate for voice clarity (48kHz is CD quality)
+  sampleRate: { ideal: 48000, min: 44100 },
+  // Mono is sufficient and more stable for voice
+  channelCount: { ideal: 1 },
+  // Latency - prefer low latency for real-time interaction
+  // @ts-ignore - advanced constraint
+  latency: { ideal: 0.01, max: 0.05 },
 };
 
 // Simulcast encodings for adaptive quality with art-first priorities
@@ -62,17 +81,23 @@ const ART_STUDIO_SIMULCAST_ENCODINGS = [
   },
 ];
 
-// Host send settings for art studio quality
+// Host send settings for art studio quality - audio prioritized
 const ART_STUDIO_SEND_SETTINGS = {
   video: {
     maxQuality: 'high' as const,
-    // Disable auto-adjust to prevent sudden quality drops during drawing
+    // Allow adaptive layers so video can degrade before audio
     allowAdaptiveLayers: true,
     encodings: {
       low: { maxBitrate: 600000, maxFramerate: 30 },
       medium: { maxBitrate: 1500000, maxFramerate: 30 },
       high: { maxBitrate: 4000000, maxFramerate: 30 },
     },
+  },
+  audio: {
+    // Prioritize audio quality - voice should always be clear
+    maxQuality: 'high' as const,
+    // Higher bitrate for voice clarity (Opus typically uses 32-128kbps)
+    maxBitrate: 128000,  // 128 kbps for studio-quality voice
   },
 };
 
@@ -106,7 +131,7 @@ function getOrCreateCallObject(): Promise<DailyCall> {
   }
 
   // Create new instance with art-studio optimized settings
-  console.log("[Daily] Creating call object with Art Studio HD settings");
+  console.log("[Daily] Creating call object with Art Studio HD video + studio-grade audio");
   initializationPromise = new Promise((resolve) => {
     const call = Daily.createCallObject({
       subscribeToTracksAutomatically: true,
@@ -117,14 +142,29 @@ function getOrCreateCallObject(): Promise<DailyCall> {
         preferH264ForCam: false,
         // Avoid automatic bandwidth adjustments that cause sudden quality drops
         avoidEval: true,
+        // Audio optimization flags
+        // @ts-ignore - experimental audio settings
+        experimentalGetUserMediaConstraintsModify: (constraints: any) => {
+          // Inject studio-grade audio constraints
+          if (constraints.audio && typeof constraints.audio === 'object') {
+            constraints.audio = {
+              ...constraints.audio,
+              ...ART_STUDIO_AUDIO_CONSTRAINTS,
+            };
+          } else if (constraints.audio === true) {
+            constraints.audio = { ...ART_STUDIO_AUDIO_CONSTRAINTS };
+          }
+          console.log("[Daily] Applied studio audio constraints:", constraints.audio);
+          return constraints;
+        },
       } as any, // Type assertion for advanced config options
-      // Enable video processing for stable stream
+      // Enable video and audio processing for stable stream
       videoSource: true,
       audioSource: true,
     });
     globalCallObject = call;
     globalInstanceId++;
-    console.log("[Daily] Art Studio call object created, instanceId:", globalInstanceId);
+    console.log("[Daily] Art Studio call object created with enhanced audio, instanceId:", globalInstanceId);
     resolve(call);
   });
 
@@ -225,6 +265,7 @@ export function useDaily({
   const [error, setError] = useState<string | null>(null);
   const [errorStack, setErrorStack] = useState<string | null>(null);
   const [status, setStatus] = useState<DailyJoinStatus>("idle");
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   // Callbacks stored in refs to avoid effect re-runs
   const callbacksRef = useRef({ onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded });
@@ -413,6 +454,84 @@ export function useDaily({
           callbacksRef.current.onError?.(errorMessage);
         };
 
+        // Audio error handler - separate from camera for clear user feedback
+        const handleAudioError = (event: any) => {
+          console.error("[useDaily] Event: audio-error:", event);
+          const errorMessage = event?.error?.message || event?.errorMsg || "Microphone access denied or not found";
+          setAudioError(errorMessage);
+          // Don't set main error - audio issues shouldn't block video viewing
+          console.warn("[useDaily] Audio error (non-blocking):", errorMessage);
+        };
+
+        // Network quality handler - prioritize audio stability
+        const handleNetworkQualityChange = (event: any) => {
+          const { threshold, quality } = event || {};
+          console.log("[useDaily] Network quality:", quality, "threshold:", threshold);
+          
+          // On poor network, reduce video quality but maintain audio
+          if (quality === 'low' || quality === 'very-low') {
+            console.log("[useDaily] Poor network detected - prioritizing audio stability");
+            try {
+              // Request lower video layer to save bandwidth for audio
+              call.updateReceiveSettings({
+                base: { video: { layer: 0 } } // Request lowest video layer
+              });
+              // Update send settings to reduce video bitrate but maintain audio
+              if (isHost) {
+                call.updateSendSettings({
+                  video: {
+                    maxQuality: 'low' as const,
+                    allowAdaptiveLayers: true,
+                  },
+                  // Audio settings are kept at high quality via the initial config
+                } as any);
+              }
+            } catch (e) {
+              console.warn("[useDaily] Could not adjust for poor network:", e);
+            }
+          } else if (quality === 'good') {
+            // Restore high quality when network improves
+            console.log("[useDaily] Good network - restoring high quality");
+            try {
+              call.updateReceiveSettings(ART_STUDIO_RECEIVE_SETTINGS);
+              if (isHost) {
+                call.updateSendSettings(ART_STUDIO_SEND_SETTINGS);
+              }
+            } catch (e) {
+              console.warn("[useDaily] Could not restore quality settings:", e);
+            }
+          }
+        };
+
+        // Device change handler - reinitialize audio on device changes
+        const handleAvailableDevicesUpdated = async (event: any) => {
+          console.log("[useDaily] Available devices updated:", event);
+          if (!isHost || !mountedRef.current) return;
+          
+          // Re-apply audio constraints when devices change
+          try {
+            const devices = await call.enumerateDevices();
+            const audioInputs = devices?.devices?.filter((d: any) => d.kind === 'audioinput') || [];
+            
+            if (audioInputs.length > 0) {
+              console.log("[useDaily] Re-applying audio settings after device change");
+              // Re-enable audio to pick up the new/changed device
+              await call.setLocalAudio(false);
+              await new Promise(r => setTimeout(r, 100));
+              await call.setLocalAudio(true);
+              setAudioError(null); // Clear any previous audio error
+            }
+          } catch (e) {
+            console.warn("[useDaily] Could not handle device change:", e);
+          }
+        };
+
+        // App state handler (for tab visibility / app backgrounding)
+        const handleAppMessage = (event: any) => {
+          // Handle custom app messages if needed
+          console.log("[useDaily] App message:", event);
+        };
+
         // Attach listeners
         call.on("joined-meeting", handleJoinedMeeting);
         call.on("left-meeting", handleLeftMeeting);
@@ -423,6 +542,14 @@ export function useDaily({
         call.on("track-stopped", handleTrackStopped);
         call.on("error", handleError);
         call.on("camera-error", handleCameraError);
+        // @ts-ignore - Daily.co events that may not be fully typed
+        call.on("nonfatal-error", handleAudioError);
+        // @ts-ignore
+        call.on("network-quality-change", handleNetworkQualityChange);
+        // @ts-ignore
+        call.on("available-devices-updated", handleAvailableDevicesUpdated);
+        // @ts-ignore
+        call.on("app-message", handleAppMessage);
         // @ts-ignore - Daily.co does have this event even if not typed
         call.on("meeting-ended", handleMeetingEnded);
 
@@ -460,9 +587,9 @@ export function useDaily({
 
             console.log("[useDaily] Join resolved");
 
-            // Configure tracks for host with art-studio HD camera constraints
+            // Configure tracks for host with art-studio HD camera + studio audio
             if (isHost && mountedRef.current) {
-              console.log("[useDaily] Host: enabling Art Studio HD camera + mic");
+              console.log("[useDaily] Host: enabling Art Studio HD camera + studio-grade audio");
               
               // Apply art-studio camera constraints for 1080p@30fps
               try {
@@ -470,10 +597,29 @@ export function useDaily({
                   videoSource: {
                     ...ART_STUDIO_CAMERA_CONSTRAINTS,
                   } as any,
+                  audioSource: {
+                    ...ART_STUDIO_AUDIO_CONSTRAINTS,
+                  } as any,
                 });
-                console.log("[useDaily] Host: Art Studio camera constraints applied");
+                console.log("[useDaily] Host: Art Studio camera + audio constraints applied");
               } catch (e) {
-                console.warn("[useDaily] Could not apply camera constraints, using defaults:", e);
+                console.warn("[useDaily] Could not apply input device constraints, using defaults:", e);
+              }
+              
+              // Verify microphone is available before enabling
+              try {
+                const devices = await call.enumerateDevices();
+                const audioInputs = devices?.devices?.filter((d: any) => d.kind === 'audioinput') || [];
+                
+                if (audioInputs.length === 0) {
+                  console.error("[useDaily] No microphone found!");
+                  setAudioError("No microphone found. Please connect a microphone and try again.");
+                } else {
+                  console.log("[useDaily] Found", audioInputs.length, "audio input device(s)");
+                  setAudioError(null);
+                }
+              } catch (e) {
+                console.warn("[useDaily] Could not enumerate audio devices:", e);
               }
               
               await call.setLocalVideo(true);
@@ -486,10 +632,10 @@ export function useDaily({
                 console.warn("[useDaily] Could not set facingMode userData:", e);
               }
               
-              // Apply art-studio send settings for maximum visual clarity
+              // Apply art-studio send settings for maximum visual clarity + audio priority
               try {
                 call.updateSendSettings(ART_STUDIO_SEND_SETTINGS);
-                console.log("[useDaily] Host: Art Studio send settings applied (4Mbps max)");
+                console.log("[useDaily] Host: Art Studio send settings applied (video 4Mbps, audio 128kbps)");
               } catch (e) {
                 console.warn("[useDaily] Could not apply Art Studio send settings:", e);
               }
@@ -746,6 +892,59 @@ export function useDaily({
     }
   }, [isMicOn]);
 
+  // Retry audio - attempts to reinitialize audio after permission/device issues
+  const retryAudio = useCallback(async () => {
+    if (!isHostRef.current) {
+      console.warn("[useDaily] Viewer cannot retry audio");
+      return;
+    }
+    const call = callRef.current || globalCallObject;
+    if (!call) return;
+    
+    console.log("[useDaily] Retrying audio initialization...");
+    setAudioError(null);
+    
+    try {
+      // Request microphone permission explicitly
+      await navigator.mediaDevices.getUserMedia({ 
+        audio: ART_STUDIO_AUDIO_CONSTRAINTS 
+      });
+      
+      // Re-enumerate devices
+      const devices = await call.enumerateDevices();
+      const audioInputs = devices?.devices?.filter((d: any) => d.kind === 'audioinput') || [];
+      
+      if (audioInputs.length === 0) {
+        setAudioError("No microphone found. Please connect a microphone.");
+        return;
+      }
+      
+      // Re-apply audio constraints
+      await call.setInputDevicesAsync({
+        audioSource: {
+          ...ART_STUDIO_AUDIO_CONSTRAINTS,
+        } as any,
+      });
+      
+      // Enable audio
+      await call.setLocalAudio(true);
+      setIsMicOn(true);
+      
+      console.log("[useDaily] Audio retry successful");
+    } catch (e: any) {
+      console.error("[useDaily] Audio retry failed:", e);
+      const errorMessage = e?.message || "Failed to access microphone";
+      
+      if (errorMessage.includes('Permission denied') || errorMessage.includes('NotAllowedError')) {
+        setAudioError("Microphone permission denied. Please allow microphone access in your browser settings.");
+      } else if (errorMessage.includes('NotFoundError')) {
+        setAudioError("No microphone found. Please connect a microphone and try again.");
+      } else {
+        setAudioError(errorMessage);
+      }
+    }
+  }, []);
+
   // Derived state
   const localParticipant = participants.find((p) => p.isLocal) || null;
   const remoteParticipants = participants.filter((p) => !p.isLocal);
@@ -761,6 +960,7 @@ export function useDaily({
     isMicOn,
     error,
     errorStack,
+    audioError,
     status,
     join: () => {}, // Auto-join is handled internally
     leave,
@@ -768,5 +968,6 @@ export function useDaily({
     toggleCamera,
     switchCamera,
     toggleMic,
+    retryAudio,
   };
 }
