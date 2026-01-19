@@ -16,7 +16,6 @@ export interface LiveEvent {
   creator_id: string;
   live_started_at: string | null;
   live_ended_at: string | null;
-  room_url: string | null;
   creator?: {
     name: string;
     avatar_url: string | null;
@@ -35,7 +34,7 @@ export function useLiveEvents() {
       const now = new Date();
       const gracePeriodCutoff = new Date(now.getTime() - ENDED_GRACE_PERIOD_MINUTES * 60 * 1000);
       
-      // Fetch active live events
+      // Fetch active live events (room_url now in event_rooms table, RLS policy checks existence)
       const { data: activeData, error: activeError } = await supabase
         .from("events")
         .select(`
@@ -47,12 +46,10 @@ export function useLiveEvents() {
           creator_id,
           live_started_at,
           live_ended_at,
-          room_url,
           description,
           category
         `)
         .eq("is_live", true)
-        .not("room_url", "is", null)
         .is("live_ended_at", null)
         .or(`end_time.is.null,end_time.gt.${now.toISOString()}`)
         .order("live_started_at", { ascending: false });
@@ -69,11 +66,9 @@ export function useLiveEvents() {
           creator_id,
           live_started_at,
           live_ended_at,
-          room_url,
           description,
           category
         `)
-        .not("room_url", "is", null)
         .not("live_ended_at", "is", null)
         .gte("live_ended_at", gracePeriodCutoff.toISOString())
         .order("live_ended_at", { ascending: false });

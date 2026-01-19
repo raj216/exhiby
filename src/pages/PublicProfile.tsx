@@ -97,12 +97,12 @@ export default function PublicProfile() {
     let isCancelled = false;
 
     const fetchLiveEvent = async (creatorUserId: string) => {
+      // RLS policy checks event_rooms existence for live events
       const { data, error } = await supabase
         .from("events")
         .select("id, title, cover_url, live_started_at")
         .eq("creator_id", creatorUserId)
         .eq("is_live", true)
-        .not("room_url", "is", null)
         .is("live_ended_at", null)
         .maybeSingle();
 

@@ -33,7 +33,7 @@ interface EventData {
   id: string;
   title: string;
   cover_url: string | null;
-  room_url: string | null;
+  room_url: string | null; // Fetched via secure RPC, not from events table
   creator_id: string;
   is_live: boolean | null;
   scheduled_at: string;
@@ -248,9 +248,10 @@ export default function LiveRoom() {
       console.log("[LiveRoom] Fetching event:", eventId);
 
       try {
+        // Fetch event metadata (room_url is now in separate protected table)
         const { data, error: fetchError } = await supabase
           .from("events")
-          .select("id, title, cover_url, room_url, creator_id, is_live, scheduled_at, live_ended_at, category, price, is_free")
+          .select("id, title, cover_url, creator_id, is_live, scheduled_at, live_ended_at, category, price, is_free")
           .eq("id", eventId)
           .maybeSingle();
 
@@ -269,9 +270,14 @@ export default function LiveRoom() {
         }
 
         console.log("[LiveRoom] Event data:", JSON.stringify(data, null, 2));
-        console.log("[LiveRoom] room_url:", data.room_url);
         console.log("[LiveRoom] is_live:", data.is_live);
         console.log("[LiveRoom] creator_id:", data.creator_id);
+
+        // Securely fetch room_url via RPC (checks creator/ticket/free access)
+        const { data: roomUrl } = await supabase.rpc("get_event_room_url", {
+          event_id: eventId,
+        });
+        console.log("[LiveRoom] room_url (via RPC):", roomUrl);
 
         // Fetch creator profile
         const { data: profiles } = await supabase.rpc("get_all_public_profiles");
@@ -281,7 +287,7 @@ export default function LiveRoom() {
           id: data.id,
           title: data.title,
           cover_url: data.cover_url,
-          room_url: data.room_url,
+          room_url: roomUrl || null,
           creator_id: data.creator_id,
           is_live: data.is_live,
           scheduled_at: data.scheduled_at,

@@ -40,12 +40,11 @@ export default function ExploreStudios() {
       const creatorUserIds = new Set((creatorRoles || []).map((r) => r.user_id));
       console.log(`[ExploreStudios] Found ${creatorUserIds.size} verified creators`);
 
-      // Fetch live events (currently streaming)
+      // Fetch live events (currently streaming - RLS policy checks event_rooms existence)
       const { data: liveEvents } = await supabase
         .from("events")
         .select("id, creator_id, category, title, live_started_at")
         .eq("is_live", true)
-        .not("room_url", "is", null)
         .is("live_ended_at", null)
         .order("live_started_at", { ascending: false });
 
