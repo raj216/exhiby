@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { LiveBadge, useEndedLabel } from "./EventStatusBadge";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LiveMarqueeCardProps {
   id: string;
@@ -11,6 +13,7 @@ interface LiveMarqueeCardProps {
   viewers: number;
   artistName: string;
   artistAvatar?: string;
+  creatorId?: string;
   category?: string;
   endedAt?: string | null;
   onClick?: () => void;
@@ -44,12 +47,15 @@ export function LiveMarqueeCard({
   viewers,
   artistName,
   artistAvatar,
+  creatorId,
   category,
   endedAt,
   onClick,
   layoutId,
   desktopSize = false,
 }: LiveMarqueeCardProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const isEnded = !!endedAt;
   const endedLabel = useEndedLabel(endedAt);
 
@@ -66,6 +72,16 @@ export function LiveMarqueeCard({
     onClick?.();
   };
 
+  const handleCreatorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerClickHaptic();
+    
+    if (!creatorId) return;
+    
+    // Navigate to the creator's profile
+    navigate(`/profile/${creatorId}`);
+  };
+
   return (
     <motion.div
       layoutId={layoutId || `room-card-${id}`}
@@ -75,7 +91,10 @@ export function LiveMarqueeCard({
       onClick={handleCardTap}
     >
       {/* Artist Header - Above Image */}
-      <div className="flex items-center gap-2 mb-2 px-1">
+      <div 
+        className="flex items-center gap-2 mb-2 px-1 cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={handleCreatorClick}
+      >
         {artistAvatar ? (
           <img 
             src={artistAvatar} 

@@ -1,8 +1,12 @@
 import { motion } from "framer-motion";
-import { Bell, BellRing, Calendar } from "lucide-react";
-import { useState } from "react";
+import { Bell, BellRing, Calendar, Check, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { format } from "date-fns";
+import { useSavedSessions } from "@/hooks/useSavedSessions";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface UpcomingEventCardProps {
   id: string;
@@ -14,6 +18,7 @@ interface UpcomingEventCardProps {
   category?: string;
   artistName?: string;
   artistAvatar?: string;
+  creatorId?: string;
   onClick?: () => void;
   onRemind?: () => void;
   desktopSize?: boolean;
@@ -29,22 +34,95 @@ export function UpcomingEventCard({
   category,
   artistName,
   artistAvatar,
+  creatorId,
   onClick,
   onRemind,
   desktopSize = false,
 }: UpcomingEventCardProps) {
-  const [reminded, setReminded] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { isEventSaved, saveSession, removeSession } = useSavedSessions();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Check if this event is already saved
+  const isSaved = isEventSaved(id);
 
-  const handleRemind = (e: React.MouseEvent) => {
+  const handleRemind = async (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerClickHaptic();
-    setReminded(!reminded);
-    onRemind?.();
+    
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to set reminders",
+      });
+      return;
+    }
+    
+    if (!creatorId) {
+      // Fallback to old behavior if no creatorId
+      onRemind?.();
+      return;
+    }
+    
+    // Prevent saving own events
+    if (user.id === creatorId) {
+      toast({
+        title: "Can't remind yourself",
+        description: "This is your own studio session",
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      if (isSaved) {
+        const success = await removeSession(id);
+        if (success) {
+          toast({ title: "Reminder removed" });
+        }
+      } else {
+        const success = await saveSession(id, creatorId);
+        if (success) {
+          toast({
+            title: "Reminder set!",
+            description: "We'll notify you when this studio starts",
+          });
+          onRemind?.();
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling reminder:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update reminder",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCardTap = () => {
     triggerClickHaptic();
     onClick?.();
+  };
+
+  const handleCreatorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerClickHaptic();
+    
+    if (!creatorId) return;
+    
+    // Navigate to the creator's profile
+    // If it's the current user, they'll be redirected to their own profile view
+    if (user?.id === creatorId) {
+      // Navigate to own profile (handled by routing logic)
+      navigate(`/profile/${creatorId}`);
+    } else {
+      navigate(`/profile/${creatorId}`);
+    }
   };
 
   // Format the scheduled date
@@ -62,7 +140,10 @@ export function UpcomingEventCard({
     >
       {/* Artist Header - Above Image (if available) */}
       {artistName && (
-        <div className="flex items-center gap-2 mb-2 px-1">
+        <div 
+          className="flex items-center gap-2 mb-2 px-1 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleCreatorClick}
+        >
           {artistAvatar ? (
             <img 
               src={artistAvatar} 
@@ -121,15 +202,18 @@ export function UpcomingEventCard({
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-carbon via-carbon/80 to-transparent">
           <button 
             onClick={handleRemind}
-            className={`w-full py-2 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-luxury ease-luxury ${
-              reminded 
+            disabled={isLoading}
+            className={`w-full py-2 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-luxury ease-luxury disabled:opacity-50 ${
+              isSaved 
                 ? 'bg-electric/10 text-electric border border-electric/50' 
                 : 'bg-transparent border border-electric/60 text-electric/90 hover:bg-electric/10 hover:text-electric'
             }`}
           >
-            {reminded ? (
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isSaved ? (
               <>
-                <BellRing className="w-4 h-4" />
+                <Check className="w-4 h-4" />
                 Reminder Set
               </>
             ) : (

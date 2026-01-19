@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface EmailRequest {
   event_id: string;
-  email_type: "studio_scheduled" | "studio_live" | "studio_starting_soon";
+  email_type: "studio_scheduled" | "studio_live" | "studio_starting_soon" | "studio_starting_now";
 }
 
 interface FollowerWithPrefs {
@@ -206,6 +206,13 @@ const handler = async (req: Request): Promise<Response> => {
         bodyText = `Reminder — ${event.title} starts in 15 minutes.`;
         ctaText = "Enter Studio";
         ctaColor = "#f59e0b";
+        break;
+
+      case "studio_starting_now":
+        subject = `${creatorName}'s Studio is starting now!`;
+        bodyText = `${event.title} is starting — join now to catch it from the beginning!`;
+        ctaText = "Join Now";
+        ctaColor = "#dc2626";
         break;
     }
 
