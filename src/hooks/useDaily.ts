@@ -143,20 +143,9 @@ function getOrCreateCallObject(): Promise<DailyCall> {
         // Avoid automatic bandwidth adjustments that cause sudden quality drops
         avoidEval: true,
         // Audio optimization flags
-        // @ts-ignore - experimental audio settings
-        experimentalGetUserMediaConstraintsModify: (constraints: any) => {
-          // Inject studio-grade audio constraints
-          if (constraints.audio && typeof constraints.audio === 'object') {
-            constraints.audio = {
-              ...constraints.audio,
-              ...ART_STUDIO_AUDIO_CONSTRAINTS,
-            };
-          } else if (constraints.audio === true) {
-            constraints.audio = { ...ART_STUDIO_AUDIO_CONSTRAINTS };
-          }
-          console.log("[Daily] Applied studio audio constraints:", constraints.audio);
-          return constraints;
-        },
+        // NOTE: Do not pass functions inside Daily config. Daily posts this config to an iframe
+        // via postMessage and functions are not structured-cloneable (causes runtime crash).
+        // We apply studio-grade audio constraints after join via setInputDevicesAsync instead.
       } as any, // Type assertion for advanced config options
       // Enable video and audio processing for stable stream
       videoSource: true,
