@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { AlertCircle, Loader2, MicOff, VideoOff, Clock, Calendar, Radio } from "lucide-react";
-import { format, isPast } from "date-fns";
+import { AlertCircle, Loader2, MicOff, VideoOff, Clock, Calendar, Radio, Bell, BellRing, Users, Palette } from "lucide-react";
+import { format, isPast, formatDistanceToNowStrict } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -11,8 +11,10 @@ import { useMaterials } from "@/hooks/useMaterials";
 import { useDaily, DailyJoinStatus } from "@/hooks/useDaily";
 import { useLiveChat } from "@/hooks/useLiveChat";
 import { useEventTicket } from "@/hooks/useEventTicket";
+import { useSavedSessions } from "@/hooks/useSavedSessions";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { triggerClickHaptic } from "@/lib/haptics";
 import {
   DailyVideoTile,
   LiveRoomControls,
@@ -88,6 +90,9 @@ export default function LiveRoom() {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const { viewerCount, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId || null);
+  
+  // Saved sessions for "Notify Me" button
+  const { isEventSaved, saveSession, removeSession: removeSavedSession } = useSavedSessions();
   
   const isCreator = user?.id === event?.creator_id;
   
@@ -734,6 +739,41 @@ export default function LiveRoom() {
   // Show waiting state for scheduled but not-yet-live events (for audience)
   if (!event.room_url) {
     const scheduledPast = isPast(new Date(event.scheduled_at));
+    const scheduledDate = new Date(event.scheduled_at);
+    const now = new Date();
+    const msUntilStart = scheduledDate.getTime() - now.getTime();
+    const minutesUntilStart = msUntilStart / (1000 * 60);
+    const isStartingSoon = minutesUntilStart <= 15 && minutesUntilStart > 0;
+    const isWaitingForCreator = scheduledPast && minutesUntilStart <= 0;
+    
+    // Format countdown
+    const countdownText = msUntilStart > 0 
+      ? formatDistanceToNowStrict(scheduledDate, { addSuffix: true })
+      : "Starting soon...";
+    
+    const isSessionSaved = eventId ? isEventSaved(eventId) : false;
+    
+    const handleNotifyMe = async () => {
+      if (!user) {
+        toast.error("Please sign in to get reminders");
+        return;
+      }
+      if (!eventId || !event.creator_id) return;
+      
+      triggerClickHaptic();
+      
+      if (isSessionSaved) {
+        const success = await removeSavedSession(eventId);
+        if (success) {
+          toast.success("Removed from My Sessions");
+        }
+      } else {
+        const success = await saveSession(eventId, event.creator_id);
+        if (success) {
+          toast.success("You'll be notified when this session starts!");
+        }
+      }
+    };
     
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
@@ -748,9 +788,13 @@ export default function LiveRoom() {
         />
         <div className="text-center max-w-md px-6">
           {/* Cover Image */}
-          {event.cover_url && (
+          {event.cover_url ? (
             <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg">
               <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-20 h-20 rounded-2xl bg-electric/10 flex items-center justify-center mx-auto mb-6">
+              <Palette className="w-10 h-10 text-electric" />
             </div>
           )}
           
@@ -800,32 +844,86 @@ export default function LiveRoom() {
               </button>
             </>
           ) : (
-            // Audience view - Waiting state
+            // Audience view - Enhanced "Starting Soon" screen
             <>
-              <Clock className="w-10 h-10 text-electric mx-auto mb-4" />
-              <h2 className="text-xl font-display text-foreground mb-2">{event.title}</h2>
+              {/* Header badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-electric/15 border border-electric/30 mb-4">
+                {isStartingSoon ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-electric animate-pulse" />
+                    <span className="text-xs font-medium text-electric">Starting soon</span>
+                  </>
+                ) : isWaitingForCreator ? (
+                  <>
+                    <Clock className="w-3 h-3 text-gold" />
+                    <span className="text-xs font-medium text-gold">Waiting for creator</span>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-3 h-3 text-electric" />
+                    <span className="text-xs font-medium text-electric">Scheduled</span>
+                  </>
+                )}
+              </div>
+              
+              <h2 className="text-xl font-display text-foreground mb-2">Studio Opens Soon</h2>
+              <h3 className="text-lg text-foreground/80 font-medium mb-1">{event.title}</h3>
+              
               {event.creator && (
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className="text-sm text-muted-foreground mb-4">
                   by {event.creator.name}
                 </p>
               )}
-              {event.category && (
-                <p className="text-xs text-muted-foreground/70 mb-3">{event.category}</p>
-              )}
-              <div className="bg-muted/30 rounded-xl px-4 py-3 mb-6">
-                <p className="text-sm text-foreground">
-                  {scheduledPast 
-                    ? "This studio session hasn't started yet."
-                    : "This studio session is scheduled for:"
-                  }
-                </p>
-                <p className="text-sm text-electric font-medium mt-1">
-                  {formatScheduledTime(event.scheduled_at)}
-                </p>
+              
+              {/* Time card */}
+              <div className="bg-muted/30 rounded-xl px-4 py-4 mb-5">
+                {isWaitingForCreator ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      The creator hasn't started yet
+                    </p>
+                    <p className="text-lg text-foreground font-semibold mt-1">
+                      Waiting for {event.creator?.name || "creator"}...
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {isStartingSoon ? "Starts" : "Scheduled for"}
+                    </p>
+                    <p className="text-lg text-electric font-semibold mt-1">
+                      {countdownText}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      {formatScheduledTime(event.scheduled_at)}
+                    </p>
+                  </>
+                )}
               </div>
-              <p className="text-sm text-muted-foreground mb-6">
-                The creator will open the studio soon. Check back later or wait here.
-              </p>
+              
+              {/* Notify Me button */}
+              {user && !isSessionSaved && (
+                <motion.button
+                  onClick={handleNotifyMe}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors flex items-center justify-center gap-2 mb-3"
+                >
+                  <Bell className="w-4 h-4" />
+                  Notify Me
+                </motion.button>
+              )}
+              
+              {user && isSessionSaved && (
+                <motion.button
+                  onClick={handleNotifyMe}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full px-6 py-3 rounded-xl bg-electric/15 text-electric border border-electric/40 font-medium hover:bg-electric/25 transition-colors flex items-center justify-center gap-2 mb-3"
+                >
+                  <BellRing className="w-4 h-4" />
+                  Notification Set ✓
+                </motion.button>
+              )}
+              
               <button
                 onClick={() => navigate("/")}
                 className="px-6 py-3 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"

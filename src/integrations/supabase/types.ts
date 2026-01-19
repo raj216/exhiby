@@ -379,6 +379,44 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_sessions: {
+        Row: {
+          created_at: string
+          creator_id: string
+          event_id: string
+          id: string
+          reminder_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          event_id: string
+          id?: string
+          reminder_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          event_id?: string
+          id?: string
+          reminder_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sent_emails: {
         Row: {
           email_type: string
