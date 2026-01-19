@@ -109,7 +109,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: preferences } = await supabase
       .from("notification_preferences")
       .select("user_id, inapp_scheduled, email_scheduled")
-      .in("user_id", followerIds);
+      .in("user_id", audienceIds);
 
     const prefsMap = new Map<string, any>();
     (preferences || []).forEach((p) => prefsMap.set(p.user_id, p));
@@ -127,12 +127,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Create in-app notifications for eligible followers
     let createdCount = 0;
-    for (const followerId of followerIds) {
-      const prefs = prefsMap.get(followerId) || { inapp_scheduled: true };
+    for (const audienceId of audienceIds) {
+      const prefs = prefsMap.get(audienceId) || { inapp_scheduled: true };
 
       if (prefs.inapp_scheduled) {
         const { error: notifError } = await supabase.rpc("create_notification", {
-          p_user_id: followerId,
+          p_user_id: audienceId,
           p_type: "studio_rescheduled",
           p_title: `Schedule updated: ${creatorName}`,
           p_message: `"${event.title}" has been rescheduled`,
@@ -140,7 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         if (notifError) {
-          console.error(`Failed to create notification for ${followerId}:`, notifError);
+          console.error(`Failed to create notification for ${audienceId}:`, notifError);
         } else {
           createdCount++;
         }
@@ -168,7 +168,7 @@ const handler = async (req: Request): Promise<Response> => {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, name")
-          .in("user_id", followerIds);
+          .in("user_id", audienceIds);
 
         const profileMap = new Map<string, string>();
         (profiles || []).forEach((p) => profileMap.set(p.user_id, p.name));
@@ -259,14 +259,14 @@ const handler = async (req: Request): Promise<Response> => {
 </html>
         `;
 
-        for (const followerId of followerIds) {
-          const email = userEmailMap.get(followerId);
+        for (const audienceId of audienceIds) {
+          const email = userEmailMap.get(audienceId);
           if (!email) continue;
 
-          const prefs = prefsMap.get(followerId) || { email_scheduled: true };
+          const prefs = prefsMap.get(audienceId) || { email_scheduled: true };
           if (!prefs.email_scheduled) continue;
 
-          if (alreadySentSet.has(followerId)) continue;
+          if (alreadySentSet.has(audienceId)) continue;
 
           try {
             const response = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -278,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
               },
               body: JSON.stringify({
                 sender: { name: "Exhiby Studio", email: "studio@joinexhiby.com" },
-                to: [{ email, name: profileMap.get(followerId) || "there" }],
+                to: [{ email, name: profileMap.get(audienceId) || "there" }],
                 subject,
                 htmlContent,
               }),
@@ -287,7 +287,7 @@ const handler = async (req: Request): Promise<Response> => {
             if (response.ok) {
               await supabase.from("sent_emails").insert({
                 event_id,
-                user_id: followerId,
+                user_id: audienceId,
                 email_type: emailType,
               });
               sentCount++;
