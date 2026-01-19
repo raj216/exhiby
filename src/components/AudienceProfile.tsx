@@ -11,7 +11,10 @@ import {
   Share2,
   Pencil,
   Calendar,
-  Clock
+  Clock,
+  Radio,
+  Hourglass,
+  XCircle
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
@@ -22,6 +25,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAudienceStats } from "@/hooks/useAudienceStats";
 import { useFollowStats } from "@/hooks/useFollowStats";
 import { useTickets, UpcomingSession, PastSession } from "@/hooks/useTickets";
+import { useUpcomingSessions, SavedUpcomingSession } from "@/hooks/useUpcomingSessions";
+import { useSavedSessions } from "@/hooks/useSavedSessions";
 
 interface UserProfile {
   name: string;
@@ -64,7 +69,9 @@ export function AudienceProfile({
   const { user } = useAuth();
   const { stats } = useAudienceStats(user?.id);
   const { stats: followStats } = useFollowStats(user?.id);
-  const { upcomingSessions, pastSessions, isLoading: ticketsLoading } = useTickets(user?.id);
+  const { upcomingSessions: ticketSessions, pastSessions, isLoading: ticketsLoading } = useTickets(user?.id);
+  const { sessions: savedSessions, isLoading: savedLoading } = useUpcomingSessions(user?.id);
+  const { removeSession } = useSavedSessions();
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
@@ -342,24 +349,31 @@ export function AudienceProfile({
                 exit={{ opacity: 0, y: -10 }}
                 className="p-4"
               >
-                {/* Upcoming Sessions */}
+                {/* Upcoming Sessions - Combined from tickets AND saved sessions */}
                 <h3 className="font-display text-lg text-foreground mb-4">Upcoming Sessions</h3>
-                {ticketsLoading ? (
+                {(ticketsLoading || savedLoading) ? (
                   <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
                     <div className="w-8 h-8 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
                   </div>
-                ) : upcomingSessions.length > 0 ? (
+                ) : (ticketSessions.length > 0 || savedSessions.length > 0) ? (
                   <div className="space-y-3">
-                    {upcomingSessions.map((session) => (
+                    {/* Saved Sessions (from "Add to My Sessions") */}
+                    {savedSessions.map((session) => (
                       <motion.div
-                        key={session.id}
+                        key={`saved-${session.id}`}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         onClick={() => {
                           triggerClickHaptic();
                           navigate(`/live/${session.eventId}`);
                         }}
-                        className="bg-obsidian rounded-xl border border-border/30 p-4 cursor-pointer hover:border-border/50 transition-colors"
+                        className={`bg-obsidian rounded-xl border p-4 cursor-pointer transition-colors ${
+                          session.status === "live" 
+                            ? "border-destructive/50 bg-destructive/5" 
+                            : session.status === "missed"
+                            ? "border-muted-foreground/30 opacity-60"
+                            : "border-border/30 hover:border-border/50"
+                        }`}
                       >
                         <div className="flex items-start gap-3">
                           {session.artistAvatar ? (
@@ -387,6 +401,75 @@ export function AudienceProfile({
                               </span>
                             </div>
                           </div>
+                          {/* Status Badge */}
+                          {session.status === "live" ? (
+                            <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-medium flex items-center gap-1">
+                              <Radio className="w-3 h-3" />
+                              LIVE
+                            </span>
+                          ) : session.status === "starting_soon" ? (
+                            <span className="px-2 py-0.5 rounded-full bg-electric/15 text-electric text-xs font-medium flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Soon
+                            </span>
+                          ) : session.status === "waiting" ? (
+                            <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold text-xs font-medium flex items-center gap-1">
+                              <Hourglass className="w-3 h-3" />
+                              Waiting
+                            </span>
+                          ) : session.status === "missed" ? (
+                            <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium flex items-center gap-1">
+                              <XCircle className="w-3 h-3" />
+                              Missed
+                            </span>
+                          ) : null}
+                        </div>
+                      </motion.div>
+                    ))}
+                    
+                    {/* Ticket Sessions (purchased) */}
+                    {ticketSessions.map((session) => (
+                      <motion.div
+                        key={`ticket-${session.id}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        onClick={() => {
+                          triggerClickHaptic();
+                          navigate(`/live/${session.eventId}`);
+                        }}
+                        className="bg-obsidian rounded-xl border border-border/30 p-4 cursor-pointer hover:border-border/50 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          {session.artistAvatar ? (
+                            <img
+                              src={session.artistAvatar}
+                              alt={session.artistName}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                              {session.artistName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
+                              <span className="px-1.5 py-0.5 rounded bg-gold/15 text-gold text-[10px] font-medium">
+                                TICKET
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{session.artistName}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {session.scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {session.scheduledAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                              </span>
+                            </div>
+                          </div>
                           {session.isLive && (
                             <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-medium">
                               LIVE
@@ -399,7 +482,12 @@ export function AudienceProfile({
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
                     <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground">No tickets yet</p>
+                    <p className="text-muted-foreground text-center">
+                      No upcoming sessions
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1 text-center">
+                      Add sessions from creator profiles to get reminders
+                    </p>
                   </div>
                 )}
 

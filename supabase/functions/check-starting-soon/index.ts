@@ -187,20 +187,32 @@ const handler = async (req: Request): Promise<Response> => {
             p_link: `/live/${event.id}`,
           });
 
+          // Get saved sessions (audiences who added this event)
+          const { data: savedSessions } = await supabase
+            .from("saved_sessions")
+            .select("user_id, reminder_enabled")
+            .eq("event_id", event.id)
+            .eq("reminder_enabled", true);
+
           // Get followers
           const { data: followers } = await supabase
             .from("follows")
             .select("follower_id")
             .eq("following_id", event.creator_id);
 
-          if (followers && followers.length > 0) {
-            const followerIds = followers.map((f) => f.follower_id);
+          // Combine saved session users + followers (unique)
+          const allAudienceIds = new Set<string>();
+          (savedSessions || []).forEach((s) => allAudienceIds.add(s.user_id));
+          (followers || []).forEach((f) => allAudienceIds.add(f.follower_id));
+          
+          const audienceIds = Array.from(allAudienceIds);
 
+          if (audienceIds.length > 0) {
             // Get notification preferences
             const { data: preferences } = await supabase
               .from("notification_preferences")
               .select("user_id, inapp_scheduled")
-              .in("user_id", followerIds);
+              .in("user_id", audienceIds);
 
             const prefsMap = new Map<string, any>();
             (preferences || []).forEach((p) => prefsMap.set(p.user_id, p));
@@ -208,20 +220,20 @@ const handler = async (req: Request): Promise<Response> => {
             const title = `${creatorName}'s studio starts in 15 minutes`;
             const link = `/live/${event.id}`;
 
-            for (const followerId of followerIds) {
-              const prefs = prefsMap.get(followerId) || { inapp_scheduled: true };
+            for (const audienceId of audienceIds) {
+              const prefs = prefsMap.get(audienceId) || { inapp_scheduled: true };
               if (prefs.inapp_scheduled) {
                 await supabase.rpc("create_notification", {
-                  p_user_id: followerId,
+                  p_user_id: audienceId,
                   p_type: "studio_starting_soon",
                   p_title: title,
-                  p_message: "Get ready to enter",
+                  p_message: `"${event.title}" is about to start`,
                   p_link: link,
                 });
               }
             }
 
-            // Trigger email sending to followers
+            // Trigger email sending to audiences
             const functionUrl = `${supabaseUrl}/functions/v1/send-notification-email`;
             await fetch(functionUrl, {
               method: "POST",

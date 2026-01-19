@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Palette, Calendar, Clock, Users } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { AddToSessionsButton } from "./AddToSessionsButton";
+import { triggerClickHaptic } from "@/lib/haptics";
 
 interface UpcomingSession {
   id: string;
@@ -12,6 +16,8 @@ interface UpcomingSession {
   is_free: boolean;
   cover_url: string | null;
   ticketCount: number;
+  savedCount: number;
+  creator_id: string;
 }
 
 interface UpcomingSessionsPreviewProps {
@@ -19,8 +25,13 @@ interface UpcomingSessionsPreviewProps {
 }
 
 export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPreviewProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<UpcomingSession[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Check if viewing own profile
+  const isOwnProfile = user?.id === creatorUserId;
 
   useEffect(() => {
     const fetchUpcomingSessions = async () => {
@@ -30,7 +41,7 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
         // This includes future events AND past-scheduled events that haven't started
         const { data: events, error: eventsError } = await supabase
           .from("events")
-          .select("id, title, scheduled_at, price, is_free, cover_url, is_live")
+          .select("id, title, scheduled_at, price, is_free, cover_url, is_live, creator_id")
           .eq("creator_id", creatorUserId)
           .is("live_ended_at", null)
           .or("is_live.is.null,is_live.eq.false") // Not currently live
@@ -49,17 +60,25 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
           return;
         }
 
-        // Get ticket counts for each event
+        // Get ticket counts and saved counts for each event
         const sessionsWithCounts: UpcomingSession[] = await Promise.all(
           events.map(async (event) => {
-            const { count } = await supabase
-              .from("tickets")
-              .select("*", { count: "exact", head: true })
-              .eq("event_id", event.id);
+            const [ticketResult, savedResult] = await Promise.all([
+              supabase
+                .from("tickets")
+                .select("*", { count: "exact", head: true })
+                .eq("event_id", event.id),
+              supabase
+                .from("saved_sessions")
+                .select("*", { count: "exact", head: true })
+                .eq("event_id", event.id),
+            ]);
 
             return {
               ...event,
-              ticketCount: count || 0,
+              ticketCount: ticketResult.count || 0,
+              savedCount: savedResult.count || 0,
+              creator_id: event.creator_id,
             };
           })
         );
@@ -74,6 +93,11 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
 
     fetchUpcomingSessions();
   }, [creatorUserId]);
+
+  const handleSessionClick = (eventId: string) => {
+    triggerClickHaptic();
+    navigate(`/live/${eventId}`);
+  };
 
   if (loading) {
     return (
@@ -109,6 +133,7 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
           const dateStr = format(scheduledDate, "EEE, MMM d");
           const timeStr = format(scheduledDate, "h:mm a");
           const priceStr = session.is_free ? "Free" : `$${session.price}`;
+          const totalInterested = session.ticketCount + session.savedCount;
 
           return (
             <motion.div
@@ -116,7 +141,8 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 + index * 0.1 }}
-              className="flex items-start gap-3 p-3 rounded-xl bg-obsidian/50 border border-border/30"
+              onClick={() => handleSessionClick(session.id)}
+              className="flex items-start gap-3 p-3 rounded-xl bg-obsidian/50 border border-border/30 cursor-pointer hover:bg-obsidian/70 transition-colors"
             >
               <div className="w-10 h-10 rounded-lg bg-electric/10 flex items-center justify-center shrink-0">
                 <Palette className="w-5 h-5 text-electric" />
@@ -139,13 +165,22 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
                   <span>•</span>
                   <span className="text-gold font-medium">{priceStr}</span>
                 </div>
-                {session.ticketCount > 0 && (
+                {totalInterested > 0 && (
                   <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground/70">
                     <Users className="w-3 h-3" />
-                    {session.ticketCount} attending
+                    {totalInterested} interested
                   </div>
                 )}
               </div>
+
+              {/* Add to My Sessions button - only show for non-owners */}
+              {!isOwnProfile && user && (
+                <AddToSessionsButton
+                  eventId={session.id}
+                  creatorId={session.creator_id}
+                  variant="compact"
+                />
+              )}
             </motion.div>
           );
         })}
