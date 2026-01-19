@@ -130,30 +130,25 @@ function getOrCreateCallObject(): Promise<DailyCall> {
     return initializationPromise;
   }
 
-  // Create new instance with art-studio optimized settings
-  console.log("[Daily] Creating call object with Art Studio HD video + studio-grade audio");
+  // Create new instance with simplified settings for maximum compatibility
+  // NOTE: Daily posts dailyConfig to an iframe via postMessage.
+  // Complex objects/functions in dailyConfig can cause "object can not be cloned" errors.
+  // We apply art-studio settings AFTER join via updateSendSettings/setInputDevicesAsync instead.
+  console.log("[Daily] Creating call object (simplified config for compatibility)");
   initializationPromise = new Promise((resolve) => {
     const call = Daily.createCallObject({
       subscribeToTracksAutomatically: true,
+      // Minimal dailyConfig to avoid postMessage cloning issues
       dailyConfig: {
-        // Art-optimized simulcast layers with higher bitrates
-        camSimulcastEncodings: ART_STUDIO_SIMULCAST_ENCODINGS,
-        // Use VP9 when available for better quality-to-bitrate ratio
-        preferH264ForCam: false,
-        // Avoid automatic bandwidth adjustments that cause sudden quality drops
         avoidEval: true,
-        // Audio optimization flags
-        // NOTE: Do not pass functions inside Daily config. Daily posts this config to an iframe
-        // via postMessage and functions are not structured-cloneable (causes runtime crash).
-        // We apply studio-grade audio constraints after join via setInputDevicesAsync instead.
-      } as any, // Type assertion for advanced config options
-      // Enable video and audio processing for stable stream
+      },
+      // Let Daily handle video/audio sources with defaults
       videoSource: true,
       audioSource: true,
     });
     globalCallObject = call;
     globalInstanceId++;
-    console.log("[Daily] Art Studio call object created with enhanced audio, instanceId:", globalInstanceId);
+    console.log("[Daily] Call object created, instanceId:", globalInstanceId);
     resolve(call);
   });
 
