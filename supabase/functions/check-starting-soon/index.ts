@@ -259,6 +259,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // ========================================
     // 2. Check for sessions at start_time (0-2 min window) - send "Go Live Now" email to creator
+    //    AND send "Starting Now" notifications to saved sessions users
     // ========================================
     const twoMinsFromNow = new Date(now.getTime() + 2 * 60 * 1000);
 
@@ -338,6 +339,71 @@ const handler = async (req: Request): Promise<Response> => {
             user_id: event.creator_id,
             email_type: "creator_go_live_now",
           });
+
+          // ========================================
+          // ALSO: Send "Starting Now" notifications to saved sessions users
+          // ========================================
+          const { data: savedSessions } = await supabase
+            .from("saved_sessions")
+            .select("user_id, reminder_enabled")
+            .eq("event_id", event.id)
+            .eq("reminder_enabled", true);
+
+          // Get followers too
+          const { data: followers } = await supabase
+            .from("follows")
+            .select("follower_id")
+            .eq("following_id", event.creator_id);
+
+          // Combine saved session users + followers (unique)
+          const allAudienceIds = new Set<string>();
+          (savedSessions || []).forEach((s) => allAudienceIds.add(s.user_id));
+          (followers || []).forEach((f) => allAudienceIds.add(f.follower_id));
+          
+          const audienceIds = Array.from(allAudienceIds);
+
+          if (audienceIds.length > 0) {
+            // Get notification preferences
+            const { data: preferences } = await supabase
+              .from("notification_preferences")
+              .select("user_id, inapp_scheduled")
+              .in("user_id", audienceIds);
+
+            const prefsMap = new Map<string, any>();
+            (preferences || []).forEach((p) => prefsMap.set(p.user_id, p));
+
+            const title = `${creatorName}'s studio is starting now`;
+            const link = `/live/${event.id}`;
+
+            for (const audienceId of audienceIds) {
+              const prefs = prefsMap.get(audienceId) || { inapp_scheduled: true };
+              if (prefs.inapp_scheduled) {
+                await supabase.rpc("create_notification", {
+                  p_user_id: audienceId,
+                  p_type: "studio_starting_now",
+                  p_title: title,
+                  p_message: `"${event.title}" is starting — join now!`,
+                  p_link: link,
+                });
+              }
+            }
+
+            // Trigger email sending to audiences for "starting now"
+            const functionUrl = `${supabaseUrl}/functions/v1/send-notification-email`;
+            await fetch(functionUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify({
+                event_id: event.id,
+                email_type: "studio_starting_now",
+              }),
+            });
+
+            console.log(`Sent starting_now notifications to ${audienceIds.length} audience members`);
+          }
 
           results.atStartTime++;
           console.log(`Processed start_time_creator for event: ${event.id}`);

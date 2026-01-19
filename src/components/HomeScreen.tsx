@@ -37,6 +37,7 @@ interface ContentItem {
   viewers: number;
   artistName: string;
   artistAvatar?: string;
+  creatorId?: string;
   materials?: string[];
   category: "Pencil Art" | "Watercolor" | "Oil Painting" | "Acrylic" | "Handmade Art" | "Pottery" | "Jewelry";
   isLive: boolean;
@@ -105,6 +106,7 @@ export function HomeScreen({
       // Real-time viewer count from database
       artistName: event.creator?.name || "Unknown Artist",
       artistAvatar: event.creator?.avatar_url || undefined,
+      creatorId: event.creator_id,
       materials: [],
       category: event.category as ContentItem["category"] || "Handmade Art",
       isLive: !event.live_ended_at,
@@ -314,7 +316,7 @@ export function HomeScreen({
                       }} className="snap-start flex-shrink-0" style={{
                         width: 'min(65vw, 280px)'
                       }}>
-                              <LiveMarqueeCard id={event.id} coverImage={event.coverImage} title={event.title} description={event.description} price={event.price} viewers={event.viewers} artistName={event.artistName} artistAvatar={event.artistAvatar} category={event.category} endedAt={event.endedAt} onClick={() => handleLiveCardTap(event)} layoutId={`room-card-${event.id}`} />
+                              <LiveMarqueeCard id={event.id} coverImage={event.coverImage} title={event.title} description={event.description} price={event.price} viewers={event.viewers} artistName={event.artistName} artistAvatar={event.artistAvatar} creatorId={event.creatorId} category={event.category} endedAt={event.endedAt} onClick={() => handleLiveCardTap(event)} layoutId={`room-card-${event.id}`} />
                             </motion.div>)}
                         </div>
                       </div>
@@ -331,7 +333,7 @@ export function HomeScreen({
                       }} transition={{
                         delay: index * 0.03
                       }}>
-                              <LiveMarqueeCard id={event.id} coverImage={event.coverImage} title={event.title} description={event.description} price={event.price} viewers={event.viewers} artistName={event.artistName} artistAvatar={event.artistAvatar} category={event.category} endedAt={event.endedAt} onClick={() => handleLiveCardTap(event)} layoutId={`room-card-${event.id}`} desktopSize />
+                              <LiveMarqueeCard id={event.id} coverImage={event.coverImage} title={event.title} description={event.description} price={event.price} viewers={event.viewers} artistName={event.artistName} artistAvatar={event.artistAvatar} creatorId={event.creatorId} category={event.category} endedAt={event.endedAt} onClick={() => handleLiveCardTap(event)} layoutId={`room-card-${event.id}`} desktopSize />
                             </motion.div>)}
                         </div>
                       </div>
@@ -394,7 +396,7 @@ export function HomeScreen({
                       }} className="snap-start flex-shrink-0" style={{
                         width: 'min(65vw, 280px)'
                       }}>
-                              <UpcomingEventCard id={event.id} coverImage={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"} title={event.title} scheduledAt={event.scheduled_at} price={event.price || 0} isFree={event.is_free} category={event.category || undefined} artistName={event.creator?.name} artistAvatar={event.creator?.avatar_url || undefined} onClick={() => handleUpcomingEventClick(event.id)} onRemind={() => handleRemind(event.id)} />
+                              <UpcomingEventCard id={event.id} coverImage={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"} title={event.title} scheduledAt={event.scheduled_at} price={event.price || 0} isFree={event.is_free} category={event.category || undefined} artistName={event.creator?.name} artistAvatar={event.creator?.avatar_url || undefined} creatorId={event.creator_id} onClick={() => handleUpcomingEventClick(event.id)} onRemind={() => handleRemind(event.id)} />
                             </motion.div>)}
                         </div>
                       </div>
@@ -411,7 +413,7 @@ export function HomeScreen({
                       }} transition={{
                         delay: index * 0.03
                       }}>
-                              <UpcomingEventCard id={event.id} coverImage={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"} title={event.title} scheduledAt={event.scheduled_at} price={event.price || 0} isFree={event.is_free} category={event.category || undefined} artistName={event.creator?.name} artistAvatar={event.creator?.avatar_url || undefined} onClick={() => handleUpcomingEventClick(event.id)} onRemind={() => handleRemind(event.id)} desktopSize />
+                              <UpcomingEventCard id={event.id} coverImage={event.cover_url || "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop"} title={event.title} scheduledAt={event.scheduled_at} price={event.price || 0} isFree={event.is_free} category={event.category || undefined} artistName={event.creator?.name} artistAvatar={event.creator?.avatar_url || undefined} creatorId={event.creator_id} onClick={() => handleUpcomingEventClick(event.id)} onRemind={() => handleRemind(event.id)} desktopSize />
                             </motion.div>)}
                         </div>
                       </div>

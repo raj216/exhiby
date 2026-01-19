@@ -84,15 +84,26 @@ const handler = async (req: Request): Promise<Response> => {
       .select("follower_id")
       .eq("following_id", event.creator_id);
 
-    if (followersError || !followers || followers.length === 0) {
-      console.log("No followers to notify");
-      return new Response(JSON.stringify({ created: 0, sent: 0, message: "No followers" }), {
+    // Get saved sessions users (audiences who set reminders)
+    const { data: savedSessions } = await supabase
+      .from("saved_sessions")
+      .select("user_id")
+      .eq("event_id", event_id);
+
+    // Combine followers + saved sessions (unique)
+    const allAudienceIds = new Set<string>();
+    (followers || []).forEach((f) => allAudienceIds.add(f.follower_id));
+    (savedSessions || []).forEach((s) => allAudienceIds.add(s.user_id));
+
+    const audienceIds = Array.from(allAudienceIds);
+
+    if (audienceIds.length === 0) {
+      console.log("No audiences to notify");
+      return new Response(JSON.stringify({ created: 0, sent: 0, message: "No audiences" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const followerIds = followers.map((f) => f.follower_id);
 
     // Get notification preferences
     const { data: preferences } = await supabase
