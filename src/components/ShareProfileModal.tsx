@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Copy, Share2, Check, ExternalLink, MessageCircle, Mail } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface ShareProfileModalProps {
   isOpen: boolean;
@@ -14,6 +15,9 @@ interface ShareProfileModalProps {
 export function ShareProfileModal({ isOpen, onClose, handle, userId }: ShareProfileModalProps) {
   const [copied, setCopied] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
+
+  // Lock background scroll when modal is open
+  useScrollLock(isOpen);
 
   // Generate profile URL - use handle if available, otherwise fallback to userId
   const getProfileUrl = () => {
@@ -113,25 +117,24 @@ export function ShareProfileModal({ isOpen, onClose, handle, userId }: ShareProf
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Full-viewport overlay with centering */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm"
+            style={{ height: "100dvh" }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-          />
-
-          {/* Centered Modal Container */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+          >
+            {/* Modal Container - stops click propagation */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-[360px] md:max-w-[400px] pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+              className="w-[min(92vw,520px)] max-h-[85dvh] overflow-auto bg-obsidian border border-border/40 rounded-2xl shadow-2xl"
             >
-            <div className="bg-obsidian border border-border/40 rounded-2xl overflow-hidden shadow-2xl">
               {/* Header */}
               <div className="flex items-center justify-between p-5 pb-3">
                 <div>
@@ -284,9 +287,8 @@ export function ShareProfileModal({ isOpen, onClose, handle, userId }: ShareProf
                   )}
                 </AnimatePresence>
               </div>
-            </div>
             </motion.div>
-          </div>
+          </motion.div>
         </>
       )}
     </AnimatePresence>
