@@ -8,6 +8,7 @@ import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { BottomNavigation } from "@/components/BottomNavigation";
 import { PassportStamp, LogoutOverlay, PassportModal } from "@/components/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
@@ -272,7 +273,7 @@ function IndexContent() {
   const isModalOpen = showWizard || showScheduleModal || showLiveSession;
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background">
       <Toaster position="top-center" />
       
       {/* App content with scale effect when modals open */}
@@ -289,6 +290,24 @@ function IndexContent() {
           {renderScreen()}
         </AnimatePresence>
       </motion.div>
+
+      {/* Fixed Bottom Navigation - Always visible on mobile/tablet */}
+      <BottomNavigation
+        mode={mode}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onOpenSearch={() => setShowSearch(true)}
+        onViewProfile={() => {
+          navigateToScreen("profile");
+          setActiveTab(mode === "audience" ? "passport" : "profile");
+        }}
+        onOpenStudio={() => {
+          navigateToScreen("profile");
+          setActiveTab("profile");
+        }}
+        onGoLive={() => setShowWizard(true)}
+        onLogout={handleLogout}
+      />
 
       {/* Cinematic Logout Overlay */}
       <LogoutOverlay 
