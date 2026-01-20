@@ -5,6 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -286,6 +287,9 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
   const isMobile = useIsMobile();
   const { notifications, loading, markAsRead, markAllAsRead, refetch } = useNotifications();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  
+  // Lock body scroll when drawer is open
+  useScrollLock(open);
 
   // Filter out dismissed notifications
   const visibleNotifications = notifications.filter(n => !dismissedIds.has(n.id));
