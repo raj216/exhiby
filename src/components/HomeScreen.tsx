@@ -8,7 +8,7 @@ import { PaymentDrawer } from "./PaymentDrawer";
 import { DesktopHeader } from "./DesktopHeader";
 import { MobileHeader } from "./MobileHeader";
 import { LeftSidebar } from "./LeftSidebar";
-import { BottomNavigation } from "./BottomNavigation";
+
 import { useUserMode } from "@/contexts/UserModeContext";
 import { ChevronRight, Clock, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -490,13 +490,6 @@ export function HomeScreen({
           </div>
         </div>
 
-        {/* Bottom Navigation - Mobile only */}
-        <BottomNavigation mode={mode} activeTab={activeTab} onTabChange={tab => {
-        setActiveTab(tab);
-        if (tab === "passport") {
-          onViewAudienceProfile?.();
-        }
-      }} onOpenSearch={onOpenSearch} onViewProfile={onViewAudienceProfile} onOpenStudio={onOpenStudio} onGoLive={onGoLive} onLogout={onLogout} />
       </div>
 
       {portalEvent && <PaymentDrawer isOpen={showPaymentDrawer} onClose={() => {
