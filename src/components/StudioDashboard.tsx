@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
-import { ScheduleEventModal } from "./ScheduleEventModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
 import { PortfolioGrid } from "./PortfolioGrid";
 import { FollowListModal } from "./FollowListModal";
@@ -39,6 +38,8 @@ interface StudioDashboardProps {
   onBack: () => void;
   onSwitchMode: () => void;
   onGoLive: () => void;
+  onSchedule: () => void;
+  refreshScheduleKey?: number;
   profile?: UserProfile | null;
 }
 
@@ -52,6 +53,8 @@ export function StudioDashboard({
   onBack,
   onSwitchMode,
   onGoLive,
+  onSchedule,
+  refreshScheduleKey,
   profile
 }: StudioDashboardProps) {
   const {
@@ -65,7 +68,6 @@ export function StudioDashboard({
   } = useFollowStats(user?.id);
   const [showEarnings, setShowEarnings] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState<"earnings" | "tickets" | null>(null);
@@ -90,10 +92,10 @@ export function StudioDashboard({
     }
   }, [user]);
 
-  // Fetch events on mount
+  // Fetch events on mount and when refreshScheduleKey changes
   useEffect(() => {
     fetchUpcomingEvents();
-  }, [fetchUpcomingEvents]);
+  }, [fetchUpcomingEvents, refreshScheduleKey]);
   useEffect(() => {
     setLocalProfile(profile);
   }, [profile]);
@@ -133,7 +135,7 @@ export function StudioDashboard({
   const displayBio = localProfile?.bio;
   const handleScheduleClick = () => {
     triggerClickHaptic();
-    setShowScheduleModal(true);
+    onSchedule();
   };
   const handleShare = () => {
     triggerClickHaptic();
@@ -393,12 +395,6 @@ export function StudioDashboard({
       {/* Edit Profile Modal */}
       <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={refreshProfile} />
 
-      {/* Schedule Event Modal */}
-      <AnimatePresence>
-        {showScheduleModal && (
-          <ScheduleEventModal isOpen={showScheduleModal} onClose={() => setShowScheduleModal(false)} onEventCreated={fetchUpcomingEvents} />
-        )}
-      </AnimatePresence>
 
       {/* Follow List Modal */}
       {user && <FollowListModal isOpen={showFollowList !== null} onClose={() => setShowFollowList(null)} userId={user.id} type={showFollowList || "followers"} />}

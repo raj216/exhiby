@@ -10,9 +10,11 @@ import { useProfile } from "@/hooks/useProfile";
 interface ProfileScreenProps {
   onBack: () => void;
   onGoLive: () => void;
+  onSchedule: () => void;
+  refreshScheduleKey?: number;
 }
 
-export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
+export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey }: ProfileScreenProps) {
   const { mode, isVerifiedCreator, activateCreatorRole, toggleMode, setMode } = useUserMode();
   const [showVerification, setShowVerification] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -86,6 +88,8 @@ export function ProfileScreen({ onBack, onGoLive }: ProfileScreenProps) {
               onBack={onBack}
               onSwitchMode={handleSwitchMode}
               onGoLive={onGoLive}
+              onSchedule={onSchedule}
+              refreshScheduleKey={refreshScheduleKey}
               profile={profile}
             />
           )}
