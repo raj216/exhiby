@@ -25,7 +25,7 @@ interface BottomNavigationProps {
 
 const audienceTabs: { id: AudienceTab; label: string; icon: typeof Home }[] = [
   { id: "home", label: "Home", icon: Home },
-  { id: "search", label: "Search", icon: Search },
+  { id: "search", label: "Categories", icon: Search },
   { id: "passport", label: "Passport", icon: Compass },
   { id: "profile", label: "Profile", icon: User },
 ];
@@ -33,7 +33,7 @@ const audienceTabs: { id: AudienceTab; label: string; icon: typeof Home }[] = [
 // Creator tabs: Home, Search on left side | FAB center | Profile on right side
 const creatorTabsLeft: { id: CreatorTab; label: string; icon: typeof Home }[] = [
   { id: "home", label: "Home", icon: Home },
-  { id: "search", label: "Search", icon: Search },
+  { id: "search", label: "Categories", icon: Search },
 ];
 
 const creatorTabsRight: { id: CreatorTab; label: string; icon: typeof User }[] = [
@@ -266,7 +266,7 @@ export function BottomNavigation({
                       activeTab === "search" ? "text-electric" : "text-muted-foreground"
                     }`}
                   >
-                    Search
+                    Categories
                   </span>
                   {activeTab === "search" && (
                     <motion.div
