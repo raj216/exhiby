@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
 import { GoLiveWizard } from "@/components/GoLiveWizard";
 import { LiveSession } from "@/components/LiveSession";
@@ -263,13 +263,27 @@ function IndexContent() {
     }
   };
 
+  // Premium easing curve for app scale effect
+  const isModalOpen = showWizard || showLiveSession;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-hidden">
       <Toaster position="top-center" />
       
-      <AnimatePresence mode="wait">
-        {renderScreen()}
-      </AnimatePresence>
+      {/* App content with scale effect when modals open */}
+      <motion.div
+        animate={{
+          scale: isModalOpen ? 0.95 : 1,
+          filter: isModalOpen ? "brightness(0.7)" : "brightness(1)",
+        }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] as const }}
+        style={{ willChange: "transform, filter", transformOrigin: "center center" }}
+        className="min-h-screen"
+      >
+        <AnimatePresence mode="popLayout">
+          {renderScreen()}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Cinematic Logout Overlay */}
       <LogoutOverlay 

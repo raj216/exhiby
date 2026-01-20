@@ -245,23 +245,34 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
     }
   };
 
+  // Premium spring physics for modal: high stiffness (300) + damping (30) = solid snap-to-place
+  const modalSpring = {
+    type: "spring" as const,
+    stiffness: 300,
+    damping: 30,
+    mass: 1,
+  };
+
   return (
     <>
+      {/* Backdrop with premium easing */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
         onClick={handleClose}
         className="fixed inset-0 bg-carbon/80 backdrop-blur-sm z-50"
       />
 
+      {/* Modal with spring physics - slides up from bottom */}
       <motion.div
         initial={{ y: "100%", x: "-50%" }}
         animate={{ y: 0, x: "-50%" }}
         exit={{ y: "100%", x: "-50%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        transition={modalSpring}
         className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[92vh] lg:my-[4vh]"
-        style={{ transform: "translateX(-50%)" }}
+        style={{ transform: "translateX(-50%)", willChange: "transform" }}
       >
         {/* Handle - Mobile only */}
         <div className="flex justify-center pt-3 pb-2 lg:hidden flex-shrink-0">
