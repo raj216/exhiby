@@ -22,7 +22,7 @@ interface ScheduleEventModalProps {
 }
 
 const MAX_TITLE_LENGTH = 50;
-const MAX_DESCRIPTION_LENGTH = 300;
+const MAX_DESCRIPTION_LENGTH = 140;
 
 export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: ScheduleEventModalProps) {
   const { user } = useAuth();
@@ -290,7 +290,7 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
 
             {/* Header - Sticky */}
             <div className="flex items-center justify-between px-5 pb-4 pt-2 lg:pt-5 border-b border-border/30 bg-obsidian sticky top-0 z-10 flex-shrink-0 lg:rounded-t-3xl">
-              <h2 className="font-display text-xl text-foreground">Open the Studio</h2>
+              <h2 className="font-display text-xl text-foreground">Open Studio</h2>
               <button
                 onClick={handleClose}
                 disabled={isSubmitting}
