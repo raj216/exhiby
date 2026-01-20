@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -7,12 +8,15 @@ import { NotificationsDrawer } from "./NotificationsDrawer";
 interface MobileHeaderProps {
   className?: string;
   onOpenSearch?: () => void;
+  onGoHome?: () => void;
 }
 
 export function MobileHeader({
   className = "",
   onOpenSearch,
+  onGoHome,
 }: MobileHeaderProps) {
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
 
@@ -21,12 +25,21 @@ export function MobileHeader({
       <header
         className={`sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-carbon/95 backdrop-blur-xl border-b border-border/20 lg:hidden ${className}`}
       >
-        {/* Logo */}
-        <div className="shrink-0 whitespace-nowrap">
-          <span className="font-display text-xl font-bold text-white">
+        {/* Logo - Clickable to go home */}
+        <button 
+          onClick={() => {
+            if (onGoHome) {
+              onGoHome();
+            } else {
+              navigate("/");
+            }
+          }}
+          className="shrink-0 whitespace-nowrap"
+        >
+          <span className="font-display text-xl font-bold text-primary">
             Exhiby
           </span>
-        </div>
+        </button>
 
         {/* Search */}
         <div className="flex-1 min-w-0">

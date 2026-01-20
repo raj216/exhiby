@@ -265,6 +265,11 @@ function IndexContent() {
               }}
               onOpenSearch={() => setShowSearch(true)}
               onLogout={handleLogout}
+              onGoHome={() => {
+                setTransitionDirection("backward");
+                goHome();
+                setActiveTab(mode === "audience" ? "home" : "studio");
+              }}
             />
           </PageTransition>
         );
