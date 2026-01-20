@@ -4,6 +4,7 @@ import { X, Copy, Share2, QrCode, Check, ExternalLink, MessageCircle, Mail } fro
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface ShareStudioModalProps {
   isOpen: boolean;
@@ -19,6 +20,9 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
   const [copied, setCopied] = useState(false);
   const [studioUrl, setStudioUrl] = useState<string | null>(null);
   const [urlError, setUrlError] = useState(false);
+
+  // Lock background scroll when modal is open
+  useScrollLock(isOpen);
 
   const shareTitle = `Exhiby Studio — ${creatorName || handle || "Artist"}`;
   const shareText = "Step into my studio on Exhiby. Live sessions + scheduled drops.";
@@ -177,23 +181,23 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Full-viewport overlay with centering */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 grid place-items-center bg-black/80 backdrop-blur-sm"
+            style={{ height: "100dvh" }}
             onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
-          />
-
-          {/* Centered Modal Container */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+          >
+            {/* Modal Container - stops click propagation */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-[360px] md:max-w-[400px] bg-obsidian border border-border/30 rounded-2xl pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+              className="w-[min(92vw,520px)] max-h-[85dvh] overflow-auto bg-obsidian border border-border/30 rounded-2xl shadow-2xl"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-5 pb-3">
@@ -423,7 +427,7 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
                 )}
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         </>
       )}
     </AnimatePresence>
