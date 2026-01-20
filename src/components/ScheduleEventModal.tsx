@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { X, ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,9 @@ const MAX_DESCRIPTION_LENGTH = 300;
 export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: ScheduleEventModalProps) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Lock body scroll when modal is open
+  useScrollLock(isOpen);
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -273,8 +277,11 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
             animate={{ y: 0, x: "-50%" }}
             exit={{ y: "100%", x: "-50%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[85vh] lg:my-[7.5vh]"
-            style={{ transform: "translateX(-50%)" }}
+            className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90dvh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[85dvh] lg:my-[7.5vh]"
+            style={{ 
+              transform: "translateX(-50%)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+            }}
           >
             {/* Handle - Mobile only */}
             <div className="flex justify-center pt-3 pb-2 lg:hidden flex-shrink-0">

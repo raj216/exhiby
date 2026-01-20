@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface DeleteEventModalProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ export function DeleteEventModal({
   onDeleted,
 }: DeleteEventModalProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Lock body scroll when modal is open
+  useScrollLock(isOpen);
 
   const handleDelete = async () => {
     triggerClickHaptic();

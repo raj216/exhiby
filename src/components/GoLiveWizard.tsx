@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,9 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  
+  // Lock body scroll when wizard is open
+  useScrollLock(true);
 
   // Validation - all fields required
   const isCoverUploaded = coverPreview !== null;
@@ -271,8 +275,12 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         animate={{ y: 0, x: "-50%" }}
         exit={{ y: "100%", x: "-50%" }}
         transition={modalSpring}
-        className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90vh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[92vh] lg:my-[4vh]"
-        style={{ transform: "translateX(-50%)", willChange: "transform" }}
+        className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90dvh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[92dvh] lg:my-[4vh]"
+        style={{ 
+          transform: "translateX(-50%)", 
+          willChange: "transform",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
       >
         {/* Handle - Mobile only */}
         <div className="flex justify-center pt-3 pb-2 lg:hidden flex-shrink-0">

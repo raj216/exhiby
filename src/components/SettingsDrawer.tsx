@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { 
   ArrowLeft, 
   CreditCard,
@@ -36,6 +37,9 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
   const [settingsView, setSettingsView] = useState<SettingsView>("main");
   const { isVerifiedCreator } = useUserMode();
   const { preferences, loading: prefsLoading, saving, updatePreferences } = useNotificationPreferences();
+  
+  // Lock body scroll when drawer is open
+  useScrollLock(isOpen);
 
   const handleToggle = async (key: keyof typeof preferences) => {
     triggerClickHaptic();
@@ -73,9 +77,10 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
               stiffness: 350,
               mass: 0.8 
             }}
-            className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-3xl z-50 max-h-[85vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-obsidian rounded-t-3xl z-50 max-h-[85dvh] flex flex-col"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           >
-            <div className="p-6 flex flex-col min-h-[60vh]">
+            <div className="p-6 flex flex-col flex-1 overflow-y-auto min-h-0">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 {settingsView !== "main" ? (

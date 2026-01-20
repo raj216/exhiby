@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { SlideToAction } from "./SlideToAction";
 import { triggerSuccessHaptic } from "@/lib/haptics";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface PaymentDrawerProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ export function PaymentDrawer({
   artistName,
   coverImage,
 }: PaymentDrawerProps) {
+  // Lock body scroll when drawer is open
+  useScrollLock(isOpen);
+  
   const handlePaymentComplete = () => {
     triggerSuccessHaptic();
     onPaymentSuccess();

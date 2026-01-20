@@ -6,6 +6,7 @@ import { triggerHaptic } from "@/lib/haptics";
 import { useProfileSearch, SearchResult } from "@/hooks/useProfileSearch";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useAuth } from "@/contexts/AuthContext";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface Category {
   id: string;
@@ -39,6 +40,9 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
   const { results: profileResults, isSearching, searchProfiles, clearResults } = useProfileSearch();
   const { recentSearches, addSearch } = useRecentSearches();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Lock body scroll when overlay is open
+  useScrollLock(isOpen);
 
   // Auto-focus when opened
   useEffect(() => {
