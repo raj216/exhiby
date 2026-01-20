@@ -17,6 +17,7 @@ interface BottomNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onOpenSearch?: () => void;
+  onOpenCategories?: () => void;
   onViewProfile?: () => void;
   onOpenStudio?: () => void;
   onGoLive?: () => void;
@@ -45,6 +46,7 @@ export function BottomNavigation({
   activeTab, 
   onTabChange, 
   onOpenSearch,
+  onOpenCategories,
   onViewProfile,
   onOpenStudio,
   onGoLive,
@@ -77,8 +79,8 @@ export function BottomNavigation({
     triggerClickHaptic();
     
     if (tabId === "search") {
-      // Open search overlay
-      onOpenSearch?.();
+      // Open categories overlay (bottom nav "Categories" tab)
+      onOpenCategories?.();
       return;
     }
     
