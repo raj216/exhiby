@@ -8,6 +8,7 @@ import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { CategoriesOverlay } from "@/components/CategoriesOverlay";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { PassportStamp, LogoutOverlay, PassportModal } from "@/components/auth";
 import { PageTransition } from "@/components/PageTransition";
@@ -40,6 +41,7 @@ function IndexContent() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showLiveSession, setShowLiveSession] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
   const [eventData, setEventData] = useState<EventData | null>(null);
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
   const [showWelcomeStamp, setShowWelcomeStamp] = useState(false);
@@ -297,6 +299,7 @@ function IndexContent() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onOpenSearch={() => setShowSearch(true)}
+        onOpenCategories={() => setShowCategories(true)}
         onViewProfile={() => {
           navigateToScreen("profile");
           setActiveTab(mode === "audience" ? "passport" : "profile");
@@ -315,7 +318,7 @@ function IndexContent() {
         onComplete={handleLogoutComplete} 
       />
 
-      {/* Search Overlay */}
+      {/* Search Overlay - Top header search (keyword/profile search only) */}
       <SearchOverlay
         isOpen={showSearch}
         onClose={() => setShowSearch(false)}
@@ -334,6 +337,16 @@ function IndexContent() {
           setShowSearch(false);
           navigateToScreen("profile");
           setActiveTab(mode === "audience" ? "passport" : "profile");
+        }}
+      />
+
+      {/* Categories Overlay - Bottom nav "Categories" tab */}
+      <CategoriesOverlay
+        isOpen={showCategories}
+        onClose={() => setShowCategories(false)}
+        onSelectCategory={(tag) => {
+          setShowCategories(false);
+          toast.info(`Filtering by ${tag}`);
         }}
       />
 
