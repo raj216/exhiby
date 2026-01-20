@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
@@ -394,7 +394,11 @@ export function StudioDashboard({
       <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={refreshProfile} />
 
       {/* Schedule Event Modal */}
-      <ScheduleEventModal isOpen={showScheduleModal} onClose={() => setShowScheduleModal(false)} onEventCreated={fetchUpcomingEvents} />
+      <AnimatePresence>
+        {showScheduleModal && (
+          <ScheduleEventModal isOpen={showScheduleModal} onClose={() => setShowScheduleModal(false)} onEventCreated={fetchUpcomingEvents} />
+        )}
+      </AnimatePresence>
 
       {/* Follow List Modal */}
       {user && <FollowListModal isOpen={showFollowList !== null} onClose={() => setShowFollowList(null)} userId={user.id} type={showFollowList || "followers"} />}
