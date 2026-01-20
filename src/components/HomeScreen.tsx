@@ -265,7 +265,7 @@ export function HomeScreen({
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header - visible on mobile/tablet only */}
-        <MobileHeader />
+        <MobileHeader onOpenSearch={onOpenSearch} />
 
         {/* Desktop Header - hidden on mobile */}
         <div className="hidden lg:block">
