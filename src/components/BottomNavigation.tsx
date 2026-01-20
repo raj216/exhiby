@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Search, User, Compass, BarChart3, Menu, Palette, Settings, LogOut, LayoutDashboard, Video } from "lucide-react";
+import { Home, Search, User, Compass, Video } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -8,7 +8,7 @@ import { SettingsDrawer } from "./SettingsDrawer";
 import { CreatorActivationModal } from "./CreatorActivationModal";
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
-
+import { ProfileDrawer } from "./ProfileDrawer";
 type AudienceTab = "home" | "search" | "passport" | "profile";
 type CreatorTab = "home" | "search" | "profile";
 
@@ -132,115 +132,24 @@ export function BottomNavigation({
 
   return (
     <>
-      {/* Backdrop for profile menu */}
-      <AnimatePresence>
-        {showProfileMenu && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed inset-0 z-30 lg:hidden"
-            onClick={() => setShowProfileMenu(false)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Profile Drawer - Premium Slide-Over */}
+      <ProfileDrawer
+        isOpen={showProfileMenu}
+        onClose={() => setShowProfileMenu(false)}
+        profile={profile}
+        mode={mode}
+        isVerifiedCreator={isVerifiedCreator}
+        onViewProfile={handleViewProfile}
+        onOpenStudio={handleOpenStudio}
+        onSettings={handleSettings}
+        onLogout={handleLogout}
+      />
 
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         className="fixed bottom-0 left-0 right-0 z-40 lg:hidden"
       >
-        {/* Upward Profile Menu */}
-        <AnimatePresence>
-          {showProfileMenu && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 400, 
-                damping: 28,
-                mass: 0.7
-              }}
-              className="absolute bottom-full right-4 mb-2 w-56 bg-obsidian border border-border/30 rounded-xl shadow-2xl overflow-hidden"
-            >
-              {/* User Info Header */}
-              <div className="p-4 border-b border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-electric to-crimson p-0.5">
-                    <div className="w-full h-full rounded-full bg-obsidian flex items-center justify-center overflow-hidden">
-                      {profile?.avatarUrl ? (
-                        <img 
-                          src={profile.avatarUrl} 
-                          alt={displayName} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-foreground font-semibold text-sm">{initials}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
-                    {profile?.handle && (
-                      <p className="text-xs text-muted-foreground truncate">@{profile.handle}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground capitalize">{mode} mode</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Menu Items */}
-              <div className="py-2">
-                <button
-                  onClick={handleViewProfile}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span>View Profile</span>
-                </button>
-
-                {isVerifiedCreator ? (
-                  <button
-                    onClick={handleOpenStudio}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
-                    <span>Studio Dashboard</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleOpenStudio}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground bg-gradient-to-r from-crimson/20 to-crimson/10 hover:from-crimson/30 hover:to-crimson/20 transition-colors"
-                  >
-                    <Palette className="w-4 h-4 text-crimson" />
-                    <span className="font-medium">Open Your Studio</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={handleSettings}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  <Settings className="w-4 h-4 text-muted-foreground" />
-                  <span>Settings</span>
-                </button>
-
-                <div className="my-2 mx-4 border-t border-border/30" />
-
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-crimson hover:bg-crimson/10 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Log out</span>
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Bottom Navigation Bar */}
         <div className="bg-carbon/95 backdrop-blur-xl border-t border-border/30 pb-6 pt-2 max-w-lg mx-auto">
