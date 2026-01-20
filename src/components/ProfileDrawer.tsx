@@ -73,7 +73,7 @@ export function ProfileDrawer({
               damping: 30,
               mass: 0.8
             }}
-            className="fixed top-0 right-0 z-50 h-full w-full sm:w-[400px] flex flex-col"
+            className="fixed top-0 right-0 z-50 h-full w-full sm:w-[400px] flex flex-col overflow-y-auto"
             style={{
               background: "#0A0A0A",
               borderLeft: "1px solid #333",
