@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { format } from "date-fns";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface RescheduleEventModalProps {
   isOpen: boolean;
@@ -34,6 +35,9 @@ export function RescheduleEventModal({
   const [scheduledDate, setScheduledDate] = useState(defaultDate);
   const [scheduledTime, setScheduledTime] = useState(defaultTime);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Lock body scroll when modal is open
+  useScrollLock(isOpen);
 
   // Get today's date for min attribute
   const today = new Date().toISOString().split("T")[0];
@@ -117,107 +121,121 @@ export function RescheduleEventModal({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
-            className="fixed inset-0 bg-carbon/80 backdrop-blur-sm z-[60]"
-          />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-obsidian rounded-2xl z-[60] p-5"
-          >
-            {/* Close button */}
-            <button
+          {/* Full-viewport container for centering */}
+          <div className="fixed inset-0 z-[60] grid place-items-center" style={{ height: "100dvh" }}>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={handleClose}
-              disabled={isSubmitting}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center hover:bg-surface transition-colors"
+              className="absolute inset-0 bg-carbon/80 backdrop-blur-sm"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-[min(92vw,400px)] max-h-[85dvh] bg-obsidian rounded-2xl flex flex-col overflow-hidden"
+              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
+              {/* Header - fixed at top */}
+              <div className="flex-shrink-0 p-5 pb-0">
+                {/* Close button */}
+                <button
+                  onClick={handleClose}
+                  disabled={isSubmitting}
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-surface-elevated flex items-center justify-center hover:bg-surface transition-colors z-10"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
 
-            {/* Icon */}
-            <div className="flex justify-center mb-4">
-              <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center">
-                <Calendar className="w-7 h-7 text-accent" />
+                {/* Icon */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center">
+                    <Calendar className="w-7 h-7 text-accent" />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Content */}
-            <div className="text-center mb-5">
-              <h3 className="text-lg font-semibold text-foreground mb-1">
-                Reschedule Studio
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                "{eventTitle}"
-              </p>
-            </div>
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto px-5">
+                {/* Title */}
+                <div className="text-center mb-5">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
+                    Reschedule Studio
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    "{eventTitle}"
+                  </p>
+                </div>
 
-            {/* Date & Time pickers */}
-            <div className="space-y-4 mb-6">
-              <div>
-                <Label htmlFor="reschedule-date" className="text-sm text-muted-foreground mb-2 block">
-                  New Date
-                </Label>
-                <Input
-                  id="reschedule-date"
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  min={today}
-                  className="bg-surface border-border/30"
-                />
+                {/* Date & Time pickers */}
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <Label htmlFor="reschedule-date" className="text-sm text-muted-foreground mb-2 block">
+                      New Date
+                    </Label>
+                    <Input
+                      id="reschedule-date"
+                      type="date"
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      min={today}
+                      className="bg-surface border-border/30"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="reschedule-time" className="text-sm text-muted-foreground mb-2 block">
+                      New Time
+                    </Label>
+                    <Input
+                      id="reschedule-time"
+                      type="time"
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="bg-surface border-border/30"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="reschedule-time" className="text-sm text-muted-foreground mb-2 block">
-                  New Time
-                </Label>
-                <Input
-                  id="reschedule-time"
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  className="bg-surface border-border/30"
-                />
-              </div>
-            </div>
 
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleReschedule}
-                disabled={isSubmitting}
-                className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Schedule"
-                )}
-              </Button>
-            </div>
-          </motion.div>
+              {/* Action buttons - sticky at bottom */}
+              <div className="flex-shrink-0 p-5 pt-4">
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={handleClose}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleReschedule}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Schedule"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
