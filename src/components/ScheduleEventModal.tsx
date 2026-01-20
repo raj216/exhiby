@@ -258,31 +258,41 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
   // Get today's date for min attribute
   const today = new Date().toISOString().split('T')[0];
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
-            className="fixed inset-0 bg-carbon/80 backdrop-blur-sm z-50"
-          />
+  // Premium spring physics for modal - matching GoLiveWizard
+  const modalSpring = {
+    type: "spring" as const,
+    stiffness: 300,
+    damping: 30,
+    mass: 1,
+  };
 
-          {/* Modal */}
-          <motion.div
-            initial={{ y: "100%", x: "-50%" }}
-            animate={{ y: 0, x: "-50%" }}
-            exit={{ y: "100%", x: "-50%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90dvh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[85dvh] lg:my-[7.5vh]"
-            style={{ 
-              transform: "translateX(-50%)",
-              paddingBottom: "env(safe-area-inset-bottom)",
-            }}
-          >
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop with premium easing */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        onClick={handleClose}
+        className="fixed inset-0 bg-carbon/80 backdrop-blur-sm z-50"
+      />
+
+      {/* Modal with spring physics - slides up from bottom */}
+      <motion.div
+        initial={{ y: "100%", x: "-50%" }}
+        animate={{ y: 0, x: "-50%" }}
+        exit={{ y: "100%", x: "-50%" }}
+        transition={modalSpring}
+        className="fixed bottom-0 left-1/2 w-full bg-obsidian rounded-t-3xl z-50 max-h-[90dvh] max-w-lg flex flex-col lg:bottom-auto lg:top-0 lg:rounded-3xl lg:max-h-[92dvh] lg:my-[4vh]"
+        style={{ 
+          transform: "translateX(-50%)",
+          willChange: "transform",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
             {/* Handle - Mobile only */}
             <div className="flex justify-center pt-3 pb-2 lg:hidden flex-shrink-0">
               <div className="w-10 h-1 bg-border/50 rounded-full" />
@@ -553,21 +563,19 @@ export function ScheduleEventModal({ isOpen, onClose, onEventCreated }: Schedule
               <div className="h-4" />
             </div>
             </div>
-          </motion.div>
+      </motion.div>
 
-          {/* Image Cropper Modal */}
-          <AnimatePresence>
-            {showCropper && rawImageSrc && (
-              <ImageCropper
-                imageSrc={rawImageSrc}
-                mode="poster"
-                onCropComplete={handleCropComplete}
-                onCancel={handleCropCancel}
-              />
-            )}
-          </AnimatePresence>
-        </>
-      )}
-    </AnimatePresence>
+      {/* Image Cropper Modal */}
+      <AnimatePresence>
+        {showCropper && rawImageSrc && (
+          <ImageCropper
+            imageSrc={rawImageSrc}
+            mode="poster"
+            onCropComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
