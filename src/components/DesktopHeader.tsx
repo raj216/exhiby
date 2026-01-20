@@ -23,6 +23,7 @@ interface DesktopHeaderProps {
   onOpenSearch?: () => void;
   onViewProfile?: () => void;
   onGoLive?: () => void;
+  onGoHome?: () => void;
   hideLogo?: boolean;
   onOpenStudio?: () => void;
   onLogout?: () => void;
@@ -32,6 +33,7 @@ export function DesktopHeader({
   onOpenSearch,
   onViewProfile,
   onGoLive,
+  onGoHome,
   hideLogo = false,
   onOpenStudio,
   onLogout,
@@ -75,13 +77,13 @@ export function DesktopHeader({
   return (
     <>
       <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-3 bg-carbon/95 backdrop-blur-xl border-b border-border/20">
-        {/* Left: Logo (optional) */}
+        {/* Left: Logo (optional) - Clickable to go home */}
         {!hideLogo && (
-          <div className="flex items-center">
-            <span className="font-display text-xl font-bold text-foreground">
+          <button onClick={onGoHome} className="flex items-center">
+            <span className="font-display text-xl font-bold text-primary">
               Exhiby
             </span>
-          </div>
+          </button>
         )}
 
         {/* Center: Search */}

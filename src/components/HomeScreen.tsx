@@ -25,6 +25,7 @@ interface HomeScreenProps {
   onOpenSearch?: () => void;
   onOpenStudio?: () => void;
   onLogout?: () => void;
+  onGoHome?: () => void;
 }
 
 // Content item with category (Live streams only)
@@ -66,7 +67,8 @@ export function HomeScreen({
   onEnterLiveRoom,
   onOpenSearch,
   onOpenStudio,
-  onLogout
+  onLogout,
+  onGoHome
 }: HomeScreenProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -265,11 +267,11 @@ export function HomeScreen({
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header - visible on mobile/tablet only */}
-        <MobileHeader onOpenSearch={onOpenSearch} />
+        <MobileHeader onOpenSearch={onOpenSearch} onGoHome={onGoHome} />
 
         {/* Desktop Header - hidden on mobile */}
         <div className="hidden lg:block">
-          <DesktopHeader onOpenSearch={onOpenSearch} onViewProfile={onViewAudienceProfile} onGoLive={onGoLive} onOpenStudio={onOpenStudio} onLogout={onLogout} hideLogo />
+          <DesktopHeader onOpenSearch={onOpenSearch} onViewProfile={onViewAudienceProfile} onGoLive={onGoLive} onOpenStudio={onOpenStudio} onLogout={onLogout} onGoHome={onGoHome} hideLogo />
         </div>
 
         {/* Main Layout Container */}
