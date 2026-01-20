@@ -6,18 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { SettingsDrawer } from "./SettingsDrawer";
 import { CreatorActivationModal } from "./CreatorActivationModal";
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
 import { NotificationsDrawer } from "./NotificationsDrawer";
+import { ProfileDrawer } from "./ProfileDrawer";
 
 interface DesktopHeaderProps {
   onOpenSearch?: () => void;
@@ -47,6 +41,8 @@ export function DesktopHeader({
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDrawer, setShowProfileDrawer] = useState(false);
+  const { mode } = useUserMode();
 
   // Check for welcome banner on mount
   useEffect(() => {
@@ -132,75 +128,49 @@ export function DesktopHeader({
             </AnimatePresence>
           </button>
 
-          {/* Profile Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 p-1 rounded-full hover:bg-muted/30 transition-colors duration-200">
-                <Avatar className="h-9 w-9 border border-border/30">
-                  <AvatarImage src={profile?.avatarUrl || ""} />
-                  <AvatarFallback className="bg-obsidian text-foreground text-sm">
-                    {profile?.name ? getInitials(profile.name) : "?"}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-56 bg-carbon border-border/30"
-            >
-              <div className="px-3 py-2 border-b border-border/20">
-                <p className="text-sm font-medium text-foreground">
-                  {profile?.name || "User"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  @{profile?.handle || "handle"}
-                </p>
-              </div>
-
-              <DropdownMenuItem
-                onClick={onViewProfile}
-                className="cursor-pointer"
-              >
-                View Profile
-              </DropdownMenuItem>
-
-              {isVerifiedCreator && (
-                <DropdownMenuItem
-                  onClick={onOpenStudio}
-                  className="cursor-pointer"
-                >
-                  Studio Dashboard
-                </DropdownMenuItem>
-              )}
-
-              <DropdownMenuItem
-                onClick={() => setShowSettings(true)}
-                className="cursor-pointer"
-              >
-                Settings
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator className="bg-border/20" />
-
-              {!isVerifiedCreator && (
-                <DropdownMenuItem
-                  onClick={() => setShowActivationModal(true)}
-                  className="cursor-pointer text-primary"
-                >
-                  Become a Creator
-                </DropdownMenuItem>
-              )}
-
-              <DropdownMenuItem
-                onClick={onLogout}
-                className="cursor-pointer text-destructive"
-              >
-                Log Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Profile Button - Opens Drawer */}
+          <button 
+            onClick={() => setShowProfileDrawer(true)}
+            className="flex items-center gap-2 p-1 rounded-full hover:bg-muted/30 transition-colors duration-200"
+          >
+            <Avatar className="h-9 w-9 border border-border/30">
+              <AvatarImage src={profile?.avatarUrl || ""} />
+              <AvatarFallback className="bg-obsidian text-foreground text-sm">
+                {profile?.name ? getInitials(profile.name) : "?"}
+              </AvatarFallback>
+            </Avatar>
+          </button>
         </div>
       </header>
+
+      {/* Profile Drawer - slides in from right */}
+      <ProfileDrawer
+        isOpen={showProfileDrawer}
+        onClose={() => setShowProfileDrawer(false)}
+        profile={profile ? { avatarUrl: profile.avatarUrl, name: profile.name, handle: profile.handle } : null}
+        mode={mode}
+        isVerifiedCreator={isVerifiedCreator}
+        onViewProfile={() => {
+          setShowProfileDrawer(false);
+          onViewProfile?.();
+        }}
+        onOpenStudio={() => {
+          setShowProfileDrawer(false);
+          if (isVerifiedCreator) {
+            onOpenStudio?.();
+          } else {
+            setShowActivationModal(true);
+          }
+        }}
+        onSettings={() => {
+          setShowProfileDrawer(false);
+          setShowSettings(true);
+        }}
+        onLogout={() => {
+          setShowProfileDrawer(false);
+          onLogout?.();
+        }}
+      />
 
       {/* Notifications Drawer */}
       <NotificationsDrawer
