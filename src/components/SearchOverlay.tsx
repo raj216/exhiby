@@ -222,21 +222,6 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                       </section>
                     )}
 
-                    {/* Categories - Mobile/Tablet only (hidden on lg and up) */}
-                    <section className="lg:hidden">
-                      <h3 className="font-display text-xs text-muted-foreground mb-2 uppercase tracking-wider">Categories</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {categories.map((cat) => (
-                          <button
-                            key={cat.id}
-                            onClick={() => handleCategoryClick(cat)}
-                            className="p-3 rounded-lg bg-obsidian border border-border/30 text-left hover:border-gold/50 transition-colors"
-                          >
-                            <span className="font-sans text-sm text-foreground">{cat.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
                   </motion.div>
                 ) : (
                   /* Search Results */

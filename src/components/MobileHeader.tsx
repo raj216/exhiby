@@ -23,7 +23,7 @@ export function MobileHeader({
       >
         {/* Logo */}
         <div className="shrink-0 whitespace-nowrap">
-          <span className="font-display text-xl font-bold text-foreground">
+          <span className="font-display text-xl font-bold text-white">
             Exhiby
           </span>
         </div>
