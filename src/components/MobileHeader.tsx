@@ -1,26 +1,51 @@
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 
 interface MobileHeaderProps {
   className?: string;
+  onOpenSearch?: () => void;
 }
 
-export function MobileHeader({ className = "" }: MobileHeaderProps) {
+export function MobileHeader({
+  className = "",
+  onOpenSearch,
+}: MobileHeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
 
   return (
     <>
       <header
-        className={`sticky top-0 z-30 flex items-center justify-end px-4 py-3 bg-carbon/95 backdrop-blur-xl border-b border-border/20 lg:hidden ${className}`}
+        className={`sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-carbon/95 backdrop-blur-xl border-b border-border/20 lg:hidden ${className}`}
       >
+        {/* Logo */}
+        <div className="shrink-0 whitespace-nowrap">
+          <span className="font-display text-xl font-bold text-foreground">
+            Exhiby
+          </span>
+        </div>
+
+        {/* Search */}
+        <div className="flex-1 min-w-0">
+          <button
+            onClick={onOpenSearch}
+            className="w-full min-w-0 flex items-center gap-3 px-4 py-2.5 rounded-full bg-obsidian border border-border/30 hover:border-border/50 transition-colors duration-200 group"
+            aria-label="Search"
+          >
+            <Search className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground/70 transition-colors" />
+            <span className="min-w-0 truncate text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors">
+              Explore studios, artists, and process...
+            </span>
+          </button>
+        </div>
+
         {/* Notification Bell */}
         <button
           onClick={() => setShowNotifications(true)}
-          className="relative p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors duration-200"
+          className="relative shrink-0 p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors duration-200"
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5 text-muted-foreground" />
