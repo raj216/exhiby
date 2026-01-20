@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar, Check } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
@@ -196,9 +196,16 @@ export function StudioDashboard({
                   {displayName.charAt(0).toUpperCase()}
                 </div>}
             </div>
-            {/* Verified badge */}
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-destructive flex items-center justify-center">
-              <BadgeCheck className="w-5 h-5 text-foreground" />
+            {/* Verified badge - Premium gold circle */}
+            <div 
+              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
+              style={{
+                background: "linear-gradient(135deg, #F59E0B 0%, #B45309 100%)",
+                border: "2px solid #000000",
+                boxShadow: "0 2px 8px rgba(245, 158, 11, 0.3)"
+              }}
+            >
+              <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
             </div>
           </motion.div>
         </div>
