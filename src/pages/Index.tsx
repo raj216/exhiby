@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
 import { GoLiveWizard } from "@/components/GoLiveWizard";
+import { ScheduleEventModal } from "@/components/ScheduleEventModal";
 import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
@@ -35,6 +36,7 @@ function IndexContent() {
   
   const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
   const [showWizard, setShowWizard] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showLiveSession, setShowLiveSession] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [eventData, setEventData] = useState<EventData | null>(null);
@@ -44,6 +46,7 @@ function IndexContent() {
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
   const [needsPassportSetup, setNeedsPassportSetup] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+  const [refreshScheduleKey, setRefreshScheduleKey] = useState(0);
 
   // Navigate forward to a screen
   const navigateToScreen = useCallback((screen: Screen) => {
@@ -237,6 +240,8 @@ function IndexContent() {
             <ProfileScreen 
               onBack={handleBack} 
               onGoLive={() => setShowWizard(true)}
+              onSchedule={() => setShowScheduleModal(true)}
+              refreshScheduleKey={refreshScheduleKey}
             />
           </PageTransition>
         );
@@ -264,7 +269,7 @@ function IndexContent() {
   };
 
   // Premium easing curve for app scale effect
-  const isModalOpen = showWizard || showLiveSession;
+  const isModalOpen = showWizard || showScheduleModal || showLiveSession;
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
@@ -318,6 +323,18 @@ function IndexContent() {
           <GoLiveWizard
             onClose={() => setShowWizard(false)}
             onGoLive={handleGoLive}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showScheduleModal && (
+          <ScheduleEventModal
+            isOpen={showScheduleModal}
+            onClose={() => setShowScheduleModal(false)}
+            onEventCreated={() => {
+              setRefreshScheduleKey(prev => prev + 1);
+            }}
           />
         )}
       </AnimatePresence>
