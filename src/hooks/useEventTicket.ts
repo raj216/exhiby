@@ -75,33 +75,27 @@ export function useEventTicket(eventId: string | null, userId: string | undefine
     }
 
     try {
-      console.log("[useEventTicket] Creating ticket for event:", eventId);
+      console.log("[useEventTicket] Requesting ticket for event:", eventId);
 
-      // Use upsert to prevent duplicates - if ticket already exists, just update purchased_at
-      const { data, error } = await supabase
-        .from("tickets")
-        .upsert(
-          {
-            event_id: eventId,
-            user_id: userId,
-            purchased_at: new Date().toISOString(),
-          },
-          {
-            onConflict: "event_id,user_id",
-            ignoreDuplicates: false,
-          }
-        )
-        .select("id")
-        .single();
+      // IMPORTANT: Ticket creation must be backend-mediated (prevents client-side bypass)
+      const { data, error } = await supabase.functions.invoke("purchase-ticket", {
+        body: { event_id: eventId },
+      });
 
       if (error) {
-        console.error("[useEventTicket] Error creating ticket:", error);
+        console.error("[useEventTicket] Error requesting ticket:", error);
         return false;
       }
 
-      console.log("[useEventTicket] Ticket created successfully:", data.id);
+      const ticket_id = (data as { ticket_id?: string } | null)?.ticket_id;
+      if (!ticket_id) {
+        console.error("[useEventTicket] Missing ticket_id in response");
+        return false;
+      }
+
+      console.log("[useEventTicket] Ticket created successfully:", ticket_id);
       setHasValidTicket(true);
-      setTicketId(data.id);
+      setTicketId(ticket_id);
       return true;
     } catch (err) {
       console.error("[useEventTicket] Unexpected error creating ticket:", err);
