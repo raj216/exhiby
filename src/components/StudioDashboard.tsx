@@ -91,13 +91,19 @@ export function StudioDashboard({
     // - scheduled sessions: scheduled_at > now AND is_live = false
     // - live sessions: is_live = true
     // No upper-bound cutoff (supports months ahead)
+    // Defensive filters:
+    // - Only show truly scheduled upcoming sessions (not ended)
+    // - Only show live sessions that haven't ended
     const { data, error } = await supabase
       .from("events")
       .select(
         "id, title, cover_url, scheduled_at, is_free, price, creator_id, is_live, live_ended_at"
       )
       .eq("creator_id", user.id)
-      .or(`and(is_live.eq.false,scheduled_at.gt.${nowIso}),is_live.eq.true`)
+      .or(
+        `and(scheduled_at.gt.${nowIso},live_ended_at.is.null,or(is_live.is.null,is_live.eq.false)),` +
+          `and(is_live.eq.true,live_ended_at.is.null)`
+      )
       .order("scheduled_at", { ascending: true });
     
     if (error) {
