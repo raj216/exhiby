@@ -74,43 +74,60 @@ export function StudioDashboard({
   const [localProfile, setLocalProfile] = useState(profile);
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
 
+  // Dev-only schedule debug logging (enable via: localStorage.setItem('debug_schedule','1'))
+  const DEBUG_SCHEDULE = import.meta.env.DEV && localStorage.getItem("debug_schedule") === "1";
+
   // Fetch upcoming events for Creator Profile "My Studio Schedule"
-  // Uses the SAME logic as Home screen: all future sessions + live sessions + missed grace window
+  // IMPORTANT: keep filters consistent with Home's Studio Schedule for scheduled sessions,
+  // but also include currently live sessions.
   const fetchUpcomingEvents = useCallback(async () => {
     if (!user) return;
-    
-    const now = new Date();
-    const sixtyMinutesAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    
-    // Fetch all events for this creator that are not ended
+
+    const nowIso = new Date().toISOString();
+
+    // Same canonical field as Home: scheduled_at (UTC ISO)
+    // Include:
+    // - scheduled sessions: scheduled_at > now AND is_live = false
+    // - live sessions: is_live = true
+    // No upper-bound cutoff (supports months ahead)
     const { data, error } = await supabase
-      .from('events')
-      .select('id, title, cover_url, scheduled_at, is_free, price, creator_id, is_live, live_ended_at')
-      .eq('creator_id', user.id)
-      .is('live_ended_at', null)
-      .order('scheduled_at', { ascending: true });
+      .from("events")
+      .select(
+        "id, title, cover_url, scheduled_at, is_free, price, creator_id, is_live, live_ended_at"
+      )
+      .eq("creator_id", user.id)
+      .or(`and(is_live.eq.false,scheduled_at.gt.${nowIso}),is_live.eq.true`)
+      .order("scheduled_at", { ascending: true });
     
     if (error) {
-      console.error('Error fetching creator events:', error);
+      console.error("[StudioDashboard] Error fetching creator schedule:", error);
       return;
     }
-    
-    if (data) {
-      // Filter client-side to include:
-      // 1. All future sessions (scheduled_at > now) - NO upper limit
-      // 2. Currently live sessions
-      // 3. Missed sessions within 60 min grace window
-      const filtered = data.filter(event => {
-        const scheduledAt = new Date(event.scheduled_at);
-        const isFuture = scheduledAt > now;
-        const isLive = event.is_live === true;
-        const isMissedWithinGrace = scheduledAt >= sixtyMinutesAgo && scheduledAt <= now;
-        
-        return isFuture || isLive || isMissedWithinGrace;
+
+    const events = (data || []) as ScheduledEvent[];
+
+    if (DEBUG_SCHEDULE) {
+      const sample = events.slice(0, 5).map((e) => ({
+        id: e.id,
+        scheduled_at: e.scheduled_at,
+        creator_id: e.creator_id,
+        is_live: e.is_live,
+        live_ended_at: e.live_ended_at,
+      }));
+
+      console.log("[ScheduleDebug][CreatorProfile] params", {
+        creator_id: user.id,
+        nowIso,
+        filter:
+          "creator_id = user.id AND ((is_live=false AND scheduled_at>now) OR is_live=true)",
       });
-      
-      setUpcomingEvents(filtered);
+      console.log("[ScheduleDebug][CreatorProfile] returned", {
+        count: events.length,
+        sample,
+      });
     }
+
+    setUpcomingEvents(events);
   }, [user]);
 
   // Fetch events on mount and when refreshScheduleKey changes
