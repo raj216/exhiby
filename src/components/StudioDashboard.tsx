@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { useFollowStats } from "@/hooks/useFollowStats";
 import featureFlags from "@/lib/featureFlags";
+import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface ScheduledEvent {
   id: string;
   title: string;
@@ -84,34 +85,18 @@ export function StudioDashboard({
   const fetchUpcomingEvents = useCallback(async () => {
     if (!user) return;
 
-    const nowIso = new Date().toISOString();
-
-    // Same canonical field as Home: scheduled_at (UTC ISO)
-    // Include:
-    // - scheduled sessions: scheduled_at > now AND is_live = false
-    // - live sessions: is_live = true
-    // No upper-bound cutoff (supports months ahead)
-    // Defensive filters:
-    // - Only show truly scheduled upcoming sessions (not ended)
-    // - Only show live sessions that haven't ended
-    const { data, error } = await supabase
-      .from("events")
-      .select(
-        "id, title, cover_url, scheduled_at, is_free, price, creator_id, is_live, live_ended_at"
-      )
-      .eq("creator_id", user.id)
-      .or(
-        `and(scheduled_at.gt.${nowIso},live_ended_at.is.null,or(is_live.is.null,is_live.eq.false)),` +
-          `and(is_live.eq.true,live_ended_at.is.null)`
-      )
-      .order("scheduled_at", { ascending: true });
-    
-    if (error) {
-      console.error("[StudioDashboard] Error fetching creator schedule:", error);
-      return;
-    }
-
-    const events = (data || []) as ScheduledEvent[];
+    const sessions = await getUpcomingSessions({ creatorId: user.id, limit: 200 });
+    const events = sessions.map((s) => ({
+      id: s.id,
+      title: s.title,
+      cover_url: s.cover_url,
+      scheduled_at: s.scheduled_at,
+      is_free: s.is_free,
+      price: (s.price ?? 0) as number,
+      creator_id: s.creator_id,
+      is_live: s.is_live,
+      live_ended_at: s.live_ended_at,
+    })) as ScheduledEvent[];
 
     if (DEBUG_SCHEDULE) {
       const sample = events.slice(0, 5).map((e) => ({
@@ -124,9 +109,8 @@ export function StudioDashboard({
 
       console.log("[ScheduleDebug][CreatorProfile] params", {
         creator_id: user.id,
-        nowIso,
         filter:
-          "creator_id = user.id AND ((is_live=false AND scheduled_at>now) OR is_live=true)",
+          "get_upcoming_sessions(creator_id=user.id) (DB now() + 10m grace)",
       });
       console.log("[ScheduleDebug][CreatorProfile] returned", {
         count: events.length,

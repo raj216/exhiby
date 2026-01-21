@@ -18,6 +18,7 @@ import { getCategoryId } from "@/lib/categories";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEventTicket } from "@/hooks/useEventTicket";
 import featureFlags from "@/lib/featureFlags";
+import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface HomeScreenProps {
   onGoLive: () => void;
   onViewCreatorProfile?: () => void;
@@ -128,49 +129,35 @@ export function HomeScreen({
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
       try {
-        const {
-          data,
-          error
-        } = await supabase
-          .from('events')
-          .select('id, title, cover_url, scheduled_at, is_free, price, category, creator_id')
-          .gt('scheduled_at', new Date().toISOString())
-          // Defensive: exclude ended sessions and tolerate is_live NULL (treat as not-live)
-          .is('live_ended_at', null)
-          .in('is_live', [false, null])
-          .order('scheduled_at', {
-          ascending: true
-        });
-        if (error) throw error;
+        const sessions = await getUpcomingSessions({ limit: 50 });
 
-        // Fetch creator profiles for each event
-        if (data && data.length > 0) {
-          const creatorIds = [...new Set(data.map(e => e.creator_id))];
-          const {
-            data: profiles
-          } = await supabase.rpc('get_all_public_profiles');
-          const profileMap = new Map((profiles || []).map((p: {
-            user_id: string;
-            name: string;
-            avatar_url: string | null;
-          }) => [p.user_id, p]));
-          const eventsWithCreators = data.map(event => ({
-            ...event,
-            creator: profileMap.get(event.creator_id) ? {
-              name: (profileMap.get(event.creator_id) as {
-                name: string;
-              }).name,
-              avatar_url: (profileMap.get(event.creator_id) as {
-                avatar_url: string | null;
-              }).avatar_url
-            } : undefined
-          }));
-          setUpcomingEvents(eventsWithCreators);
-        } else {
-          setUpcomingEvents([]);
-        }
+        console.log("[HomeScreen][StudioSchedule] returned", {
+          count: sessions.length,
+          sample: sessions.slice(0, 3).map((s) => ({
+            id: s.id,
+            scheduled_at: s.scheduled_at,
+            creator_id: s.creator_id,
+            status: s.status,
+          })),
+        });
+
+        // Map shared shape → HomeScreen local shape
+        setUpcomingEvents(
+          sessions.map((s) => ({
+            id: s.id,
+            title: s.title,
+            cover_url: s.cover_url,
+            scheduled_at: s.scheduled_at,
+            is_free: s.is_free,
+            price: s.price,
+            category: s.category,
+            creator_id: s.creator_id,
+            creator: s.creator,
+          }))
+        );
       } catch (err) {
         console.error('Error fetching upcoming events:', err);
+        setUpcomingEvents([]);
       } finally {
         setLoadingEvents(false);
       }

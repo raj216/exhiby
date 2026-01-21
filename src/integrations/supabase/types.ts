@@ -813,6 +813,22 @@ export type Database = {
           website: string
         }[]
       }
+      get_upcoming_sessions: {
+        Args: { p_creator_id?: string; p_limit?: number }
+        Returns: {
+          category: string
+          cover_url: string
+          creator_id: string
+          id: string
+          is_free: boolean
+          is_live: boolean
+          live_ended_at: string
+          price: number
+          scheduled_at: string
+          status: string
+          title: string
+        }[]
+      }
       get_user_attendance_count: {
         Args: { target_user_id: string }
         Returns: number
