@@ -9,10 +9,12 @@ import {
   ArrowRight,
   Shield,
   Palette,
-  Building2
+  Building2,
+  Clock
 } from "lucide-react";
 import { triggerClickHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
+import featureFlags from "@/lib/featureFlags";
 
 interface CreatorVerificationFlowProps {
   isOpen: boolean;
@@ -273,44 +275,54 @@ export function CreatorVerificationFlow({
                   ticket sales and tips.
                 </p>
                 
-                <button
-                  onClick={() => {
-                    triggerClickHaptic();
-                    setBankConnected(true);
-                  }}
-                  className={`w-full py-6 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all ${
-                    bankConnected 
-                      ? "border-electric bg-electric/10" 
-                      : "border-border/50 bg-obsidian/50"
-                  }`}
-                >
-                  {bankConnected ? (
-                    <>
-                      <CheckCircle2 className="w-6 h-6 text-electric" />
-                      <span className="text-electric font-medium">Bank Connected</span>
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-6 h-6 text-muted-foreground" />
-                      <span className="text-muted-foreground">Connect via Stripe</span>
-                    </>
-                  )}
-                </button>
+                {featureFlags.paymentsEnabled ? (
+                  <button
+                    onClick={() => {
+                      triggerClickHaptic();
+                      setBankConnected(true);
+                    }}
+                    className={`w-full py-6 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all ${
+                      bankConnected 
+                        ? "border-electric bg-electric/10" 
+                        : "border-border/50 bg-obsidian/50"
+                    }`}
+                  >
+                    {bankConnected ? (
+                      <>
+                        <CheckCircle2 className="w-6 h-6 text-electric" />
+                        <span className="text-electric font-medium">Bank Connected</span>
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-6 h-6 text-muted-foreground" />
+                        <span className="text-muted-foreground">Connect via Stripe</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="w-full py-6 rounded-2xl border-2 border-border/50 bg-obsidian/50 flex flex-col items-center justify-center gap-2">
+                    <Clock className="w-8 h-8 text-muted-foreground" />
+                    <span className="text-muted-foreground font-medium">Payouts coming soon</span>
+                    <span className="text-xs text-muted-foreground/70">You can skip this step for now</span>
+                  </div>
+                )}
 
                 <p className="text-xs text-muted-foreground text-center mt-4 mb-6">
-                  Powered by Stripe. Your banking details are encrypted and secure.
+                  {featureFlags.paymentsEnabled 
+                    ? "Powered by Stripe. Your banking details are encrypted and secure."
+                    : "Payment integration will be available soon. You can complete verification now."}
                 </p>
 
                 <button
                   onClick={handleNext}
-                  disabled={!bankConnected}
+                  disabled={featureFlags.paymentsEnabled && !bankConnected}
                   className={`w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                    bankConnected
+                    !featureFlags.paymentsEnabled || bankConnected
                       ? "bg-electric text-carbon"
                       : "bg-obsidian text-muted-foreground"
                   }`}
                 >
-                  Continue
+                  {featureFlags.paymentsEnabled ? "Continue" : "Skip for Now"}
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </motion.div>

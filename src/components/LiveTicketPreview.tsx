@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { SlideToAction } from "./SlideToAction";
 import { triggerHaptic } from "@/lib/haptics";
+import featureFlags from "@/lib/featureFlags";
 
 interface LiveTicketPreviewProps {
   isOpen: boolean;
@@ -26,6 +27,10 @@ export function LiveTicketPreview({
     triggerHaptic("medium");
     onEnterRoom();
   };
+
+  // When payments disabled, treat all events as free
+  const effectivePrice = featureFlags.paymentsEnabled ? price : 0;
+  const isFree = effectivePrice === 0;
 
   return (
     <AnimatePresence>
@@ -92,7 +97,7 @@ export function LiveTicketPreview({
                   {/* Price Tag */}
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-obsidian border border-gold/30">
                     <span className="text-gold font-semibold">
-                      {price === 0 ? "Free Entry" : `$${price}`}
+                      {isFree ? "Free Entry" : `$${effectivePrice}`}
                     </span>
                   </div>
                 </div>
@@ -101,7 +106,7 @@ export function LiveTicketPreview({
                 <div className="mt-auto">
                   <SlideToAction
                     onComplete={handleComplete}
-                    label={price === 0 ? "Slide to Enter" : "Slide to Pay & Enter"}
+                    label={isFree ? "Slide to Enter" : "Slide to Pay & Enter"}
                   />
                 </div>
               </div>

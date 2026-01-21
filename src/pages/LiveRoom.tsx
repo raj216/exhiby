@@ -15,6 +15,7 @@ import { useSavedSessions } from "@/hooks/useSavedSessions";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { triggerClickHaptic } from "@/lib/haptics";
+import featureFlags from "@/lib/featureFlags";
 import {
   DailyVideoTile,
   LiveRoomControls,
@@ -105,7 +106,8 @@ export default function LiveRoom() {
   } = useEventTicket(eventId || null, user?.id);
   
   // Check if event requires payment and user doesn't have ticket
-  const requiresPayment = event && !event.is_free && event.price > 0 && !isCreator && !hasValidTicket;
+  // When payments are disabled via feature flag, no event requires payment
+  const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && event.price > 0 && !isCreator && !hasValidTicket;
 
   // Live chat from database with realtime
   const {

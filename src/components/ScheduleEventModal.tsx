@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { X, ImagePlus, Loader2 } from "lucide-react";
+import { X, ImagePlus, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { ImageCropper } from "@/components/ImageCropper";
 import { GO_LIVE_CATEGORIES } from "@/lib/categories";
+import featureFlags from "@/lib/featureFlags";
 interface ScheduleEventModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -403,31 +404,46 @@ export function ScheduleEventModal({
             </p>
           </div>
 
-          {/* Entry Type Toggle */}
-          <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
-            <div className="flex items-center gap-3">
-              <div>
-                <p className="text-foreground font-medium text-sm">{isFree ? "Free Studio" : "Paid Studio"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {isFree ? "Toggle off to set a price" : "Paid studios support focused interaction."}
-                </p>
+          {/* Entry Type Toggle - Only show when payments enabled */}
+          {featureFlags.paymentsEnabled ? (
+            <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-foreground font-medium text-sm">{isFree ? "Free Studio" : "Paid Studio"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isFree ? "Toggle off to set a price" : "Paid studios support focused interaction."}
+                  </p>
+                </div>
+                {isFree && <Badge variant="neutral" className="text-xs">
+                    Free
+                  </Badge>}
               </div>
-              {isFree && <Badge variant="neutral" className="text-xs">
-                  Free
-                </Badge>}
+              <Switch checked={isFree} onCheckedChange={checked => {
+                setIsFree(checked);
+                // Reset to non-unlimited if switching to paid
+                if (!checked && capacity === "unlimited") {
+                  setCapacity("10");
+                }
+              }} />
             </div>
-            <Switch checked={isFree} onCheckedChange={checked => {
-              setIsFree(checked);
-              // Reset to non-unlimited if switching to paid
-              if (!checked && capacity === "unlimited") {
-                setCapacity("10");
-              }
-            }} />
-          </div>
+          ) : (
+            <div className="flex items-center justify-between py-3 px-4 bg-surface rounded-xl border border-border/30">
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-foreground font-medium text-sm">Free Studio</p>
+                  <p className="text-xs text-muted-foreground">
+                    Paid sessions coming soon
+                  </p>
+                </div>
+                <Badge variant="neutral" className="text-xs">Free</Badge>
+              </div>
+              <Clock className="w-4 h-4 text-muted-foreground" />
+            </div>
+          )}
 
-          {/* Price Input (when paid) */}
+          {/* Price Input (when paid) - Only show when payments enabled */}
           <AnimatePresence>
-            {!isFree && <motion.div initial={{
+            {featureFlags.paymentsEnabled && !isFree && <motion.div initial={{
               opacity: 0,
               height: 0
             }} animate={{

@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Fingerprint, Apple } from "lucide-react";
+import { X, Fingerprint, Apple, Clock } from "lucide-react";
 import { SlideToAction } from "./SlideToAction";
 import { triggerClickHaptic } from "@/lib/haptics";
+import featureFlags from "@/lib/featureFlags";
 
 interface ProductDropCardProps {
   isOpen: boolean;
@@ -70,35 +71,47 @@ export function ProductDropCard({
               </h2>
 
               <div className="text-4xl font-display text-gold">
-                ${price}
+                {featureFlags.paymentsEnabled ? `$${price}` : "Coming Soon"}
               </div>
             </div>
 
             {/* Payment Options */}
-            <div className="space-y-3">
-              {/* Apple Pay / Google Pay */}
-              <button 
-                onClick={handlePurchase}
-                className="w-full py-4 rounded-xl bg-foreground text-carbon font-semibold flex items-center justify-center gap-3 hover:opacity-90 transition-opacity"
-              >
-                <Apple className="w-5 h-5" />
-                Pay with Apple Pay
-              </button>
+            {featureFlags.paymentsEnabled ? (
+              <div className="space-y-3">
+                {/* Apple Pay / Google Pay */}
+                <button 
+                  onClick={handlePurchase}
+                  className="w-full py-4 rounded-xl bg-foreground text-carbon font-semibold flex items-center justify-center gap-3 hover:opacity-90 transition-opacity"
+                >
+                  <Apple className="w-5 h-5" />
+                  Pay with Apple Pay
+                </button>
 
-              {/* Biometric / Slide to Pay - Hot Metal Gradient */}
-              <div className="relative">
-                <SlideToAction
-                  label="Slide to Pay"
-                  completedLabel="Payment Complete!"
-                  icon={<Fingerprint className="w-6 h-6 text-white" />}
-                  onComplete={handlePurchase}
-                />
+                {/* Biometric / Slide to Pay - Hot Metal Gradient */}
+                <div className="relative">
+                  <SlideToAction
+                    label="Slide to Pay"
+                    completedLabel="Payment Complete!"
+                    icon={<Fingerprint className="w-6 h-6 text-white" />}
+                    onComplete={handlePurchase}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="w-full py-6 rounded-xl bg-muted/30 border border-border/50 flex flex-col items-center justify-center gap-2">
+                  <Clock className="w-8 h-8 text-muted-foreground" />
+                  <span className="text-muted-foreground font-medium">Purchases coming soon</span>
+                  <span className="text-xs text-muted-foreground/70">Payment integration is being set up</span>
+                </div>
+              </div>
+            )}
 
             {/* Security Note */}
             <p className="text-center text-xs text-muted-foreground mt-4">
-              Secured by Stripe • Instant delivery
+              {featureFlags.paymentsEnabled 
+                ? "Secured by Stripe • Instant delivery"
+                : "Stay tuned for product drops"}
             </p>
           </motion.div>
         </>

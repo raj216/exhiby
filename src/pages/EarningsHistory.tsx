@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Calendar } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { triggerClickHaptic } from "@/lib/haptics";
+import featureFlags from "@/lib/featureFlags";
 
 export default function EarningsHistory() {
   const navigate = useNavigate();
@@ -69,16 +70,25 @@ export default function EarningsHistory() {
             {format(new Date(), "MMMM yyyy")}
           </p>
           
-          {/* Payout CTA */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            className="mt-6 w-full py-4 rounded-2xl font-semibold text-obsidian"
-            style={{
-              background: "linear-gradient(135deg, hsl(43 72% 52%), hsl(38 80% 45%))",
-            }}
-          >
-            Payout
-          </motion.button>
+          {/* Payout CTA - Hidden when payments disabled */}
+          {featureFlags.paymentsEnabled ? (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              className="mt-6 w-full py-4 rounded-2xl font-semibold text-obsidian"
+              style={{
+                background: "linear-gradient(135deg, hsl(43 72% 52%), hsl(38 80% 45%))",
+              }}
+            >
+              Payout
+            </motion.button>
+          ) : (
+            <div className="mt-6 w-full py-4 rounded-2xl bg-muted/30 border border-border/40 text-center">
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-medium">Payouts coming soon</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
