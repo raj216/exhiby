@@ -69,17 +69,24 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
           
-          {/* Modal */}
+          {/* Centered Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 grid place-items-center pointer-events-none"
+            style={{ height: "100dvh" }}
           >
-            <div className="bg-background rounded-2xl shadow-2xl border border-border/30 overflow-hidden w-full max-w-sm sm:max-w-md">
+            <div 
+              className="bg-obsidian rounded-2xl shadow-2xl border border-border/30 overflow-hidden pointer-events-auto flex flex-col"
+              style={{ 
+                width: "min(92vw, 400px)",
+                maxHeight: "70vh"
+              }}
+            >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border/30">
+              <div className="flex items-center justify-between p-4 border-b border-border/30 flex-shrink-0">
                 <h2 className="text-lg font-semibold text-foreground capitalize">
                   {type}
                 </h2>
@@ -91,8 +98,8 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
                 </button>
               </div>
 
-              {/* User List */}
-              <div className="max-h-80 overflow-y-auto">
+              {/* User List - only this scrolls */}
+              <div className="flex-1 overflow-y-auto min-h-0">
                 {isLoading ? (
                   <div className="p-8 text-center">
                     <div className="w-8 h-8 border-2 border-muted-foreground border-t-foreground rounded-full animate-spin mx-auto" />
