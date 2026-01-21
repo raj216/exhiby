@@ -12,9 +12,10 @@ import { CategoriesOverlay } from "@/components/CategoriesOverlay";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { PassportStamp, LogoutOverlay, PassportModal } from "@/components/auth";
 import { PageTransition } from "@/components/PageTransition";
-import { UserModeProvider, useUserMode } from "@/contexts/UserModeContext";
+import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationHistory, type Screen } from "@/hooks/useNavigationHistory";
+import { navigateBack } from "@/lib/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -55,28 +56,31 @@ function IndexContent() {
   const navigateToScreen = useCallback((screen: Screen) => {
     setTransitionDirection("forward");
     navTo(screen);
+
+    // Push a real router history entry so browser back works.
+    const params = new URLSearchParams(location.search);
+    params.set("screen", screen);
+    navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: false });
   }, [navTo]);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
+    // Prefer real router history (so routed pages like /tickets-history go back correctly).
+    setTransitionDirection("backward");
+    navigateBack(navigate, "/");
+
+    // Also keep the internal screen stack in sync for in-app screens.
     if (canGoBack) {
-      setTransitionDirection("backward");
       const previousEntry = goBack();
       if (previousEntry) {
-        // Update active tab based on screen
         if (previousEntry.screen === "home") {
           setActiveTab(mode === "audience" ? "home" : "studio");
         } else if (previousEntry.screen === "profile") {
           setActiveTab(mode === "audience" ? "passport" : "profile");
         }
       }
-    } else {
-      // Already at home, do nothing
-      setTransitionDirection("backward");
-      goHome();
-      setActiveTab(mode === "audience" ? "home" : "studio");
     }
-  }, [canGoBack, goBack, goHome, mode]);
+  }, [canGoBack, goBack, mode, navigate]);
 
   // Check if user needs passport setup (first-time users)
   useEffect(() => {
@@ -386,11 +390,7 @@ function IndexContent() {
 }
 
 const Index = () => {
-  return (
-    <UserModeProvider>
-      <IndexContent />
-    </UserModeProvider>
-  );
+  return <IndexContent />;
 };
 
 export default Index;
