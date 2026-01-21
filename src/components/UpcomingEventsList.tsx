@@ -265,10 +265,10 @@ export function UpcomingEventsList({
         {isCreator && (
           <button
             onClick={() => handleShare(event)}
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 glass border border-border/40 hover:bg-white/15 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-muted/50 border border-border/50 hover:bg-muted transition-colors"
             title="Share"
           >
-            <Share className="w-4 h-4 text-foreground" />
+            <Share className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
 
