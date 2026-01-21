@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { triggerClickHaptic } from "@/lib/haptics";
 import featureFlags from "@/lib/featureFlags";
+import { navigateBack } from "@/lib/navigation";
 import {
   DailyVideoTile,
   LiveRoomControls,
@@ -454,7 +455,7 @@ export default function LiveRoom() {
         
         // Creator goes home without feedback modal
         await Promise.race([leavePromise, new Promise((r) => setTimeout(r, 1200))]);
-        navigate("/");
+        navigateBack(navigate, "/");
       } else {
         // Viewer leaving - show feedback modal
         await leaveAsViewer();
@@ -466,12 +467,12 @@ export default function LiveRoom() {
           setFeedbackLeftEarly(false);
           setShowFeedbackModal(true);
         } else {
-          navigate("/");
+          navigateBack(navigate, "/");
         }
       }
     } catch (err) {
       console.error("[LiveRoom] Error in handleClose:", err);
-      navigate("/");
+      navigateBack(navigate, "/");
     }
   }, [isEnding, isCreator, event, leaveAsViewer, leave, navigate]);
 
@@ -486,7 +487,7 @@ export default function LiveRoom() {
       setFeedbackLeftEarly(true);
       setShowFeedbackModal(true);
     } else {
-      navigate("/");
+      navigateBack(navigate, "/");
     }
   }, [leaveAsViewer, leave, navigate, event, isCreator]);
 

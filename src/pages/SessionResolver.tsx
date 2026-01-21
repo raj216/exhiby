@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Calendar, Clock, AlertCircle, Radio } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { navigateBack } from "@/lib/navigation";
 
 interface SessionData {
   id: string;
@@ -239,7 +240,7 @@ export default function SessionResolver() {
           
           {/* Back button */}
           <button
-            onClick={() => navigate("/", { replace: true })}
+            onClick={() => navigateBack(navigate, "/")}
             className="absolute top-4 left-4 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center"
           >
             <svg
