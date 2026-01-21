@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar, Check } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -7,7 +8,6 @@ import { UpcomingEventsList } from "./UpcomingEventsList";
 import { PortfolioGrid } from "./PortfolioGrid";
 import { FollowListModal } from "./FollowListModal";
 import { ShareStudioModal } from "./ShareStudioModal";
-import { AnalyticsBreakdownModal } from "./AnalyticsBreakdownModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
@@ -57,6 +57,7 @@ export function StudioDashboard({
   refreshScheduleKey,
   profile
 }: StudioDashboardProps) {
+  const navigate = useNavigate();
   const {
     user
   } = useAuth();
@@ -70,7 +71,6 @@ export function StudioDashboard({
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showAnalyticsModal, setShowAnalyticsModal] = useState<"earnings" | "tickets" | null>(null);
   const [localProfile, setLocalProfile] = useState(profile);
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
 
@@ -394,12 +394,12 @@ export function StudioDashboard({
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          {/* Earnings - 50% width - Clickable */}
+          {/* Earnings - 50% width - Clickable → navigates to /earnings-history */}
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => {
               triggerClickHaptic();
-              setShowAnalyticsModal("earnings");
+              navigate("/earnings-history");
             }}
             className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors"
           >
@@ -412,12 +412,12 @@ export function StudioDashboard({
             </p>
           </motion.button>
           
-          {/* Tickets Sold - 50% width - Clickable */}
+          {/* Tickets Sold - 50% width - Clickable → navigates to /tickets-history */}
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => {
               triggerClickHaptic();
-              setShowAnalyticsModal("tickets");
+              navigate("/tickets-history");
             }}
             className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-electric/30 transition-colors"
           >
@@ -453,15 +453,6 @@ export function StudioDashboard({
         creatorName={localProfile?.name}
       />
 
-      {/* Analytics Breakdown Modal */}
-      <AnalyticsBreakdownModal
-        isOpen={showAnalyticsModal !== null}
-        onClose={() => setShowAnalyticsModal(null)}
-        type={showAnalyticsModal || "earnings"}
-        total={showAnalyticsModal === "tickets" ? analytics.totalTickets : analytics.totalEarnings}
-        breakdowns={analytics.sessionBreakdowns}
-        showValues={showEarnings}
-      />
       </div>
     </div>;
 }
