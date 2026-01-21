@@ -51,15 +51,22 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [searchParams]);
 
+  // Get redirect path from query params
+  const redirectPath = searchParams.get("redirect");
+
   useEffect(() => {
     // Only redirect if not in password reset mode and user is logged in
     if (!isLoading && user && !isPasswordReset && !checkingReset) {
-      navigate("/", { replace: true });
+      // Use redirect param if available, otherwise go home
+      const destination = redirectPath || "/";
+      navigate(destination, { replace: true });
     }
-  }, [user, isLoading, navigate, isPasswordReset, checkingReset]);
+  }, [user, isLoading, navigate, isPasswordReset, checkingReset, redirectPath]);
 
   const handleComplete = () => {
-    navigate("/", { replace: true });
+    // Use redirect param if available, otherwise go home
+    const destination = redirectPath || "/";
+    navigate(destination, { replace: true });
   };
 
   if (isLoading || checkingReset) {

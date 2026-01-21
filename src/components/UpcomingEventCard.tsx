@@ -232,7 +232,7 @@ export function UpcomingEventCard({
                 e.stopPropagation();
                 triggerClickHaptic();
                 
-                const shareUrl = `${window.location.origin}/event/${id}`;
+                const shareUrl = `${window.location.origin}/s/${id}`;
                 const shareData = {
                   title: title,
                   text: "Join this session on Exhiby!",

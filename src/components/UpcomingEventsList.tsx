@@ -58,7 +58,7 @@ export function UpcomingEventsList({
   const handleShare = async (event: Event) => {
     triggerClickHaptic();
     
-    const shareUrl = `${window.location.origin}/event/${event.id}`;
+    const shareUrl = `${window.location.origin}/s/${event.id}`;
     const shareData = {
       title: event.title,
       text: "Join this session on Exhiby!",
