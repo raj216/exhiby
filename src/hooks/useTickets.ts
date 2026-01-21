@@ -21,6 +21,8 @@ interface TicketWithEvent {
   };
 }
 
+export type TicketSessionStatus = "upcoming" | "starting_soon" | "live" | "ended" | "missed";
+
 export interface UpcomingSession {
   id: string;
   eventId: string;
@@ -28,8 +30,12 @@ export interface UpcomingSession {
   artistName: string;
   artistAvatar: string | null;
   scheduledAt: Date;
+  endTime: Date;
   category: string | null;
   isLive: boolean;
+  creatorId: string;
+  status: TicketSessionStatus;
+  attended: boolean;
 }
 
 export interface PastSession {
@@ -83,7 +89,7 @@ export function useTickets(userId: string | undefined) {
         const eventIds = tickets.map(t => t.event_id);
         const { data: events, error: eventsError } = await supabase
           .from("events")
-          .select("id, title, scheduled_at, category, creator_id, is_live, live_ended_at")
+          .select("id, title, scheduled_at, end_time, duration_minutes, category, creator_id, is_live, live_ended_at")
           .in("id", eventIds);
 
         if (eventsError) {
@@ -117,23 +123,52 @@ export function useTickets(userId: string | undefined) {
 
           const creator = profileMap.get(event.creator_id);
           const scheduledAt = new Date(event.scheduled_at);
-          const hasEnded = event.live_ended_at !== null;
+          
+          // Compute end_time
+          let endTime: Date;
+          if (event.end_time) {
+            endTime = new Date(event.end_time);
+          } else {
+            const durationMs = (event.duration_minutes || 60) * 60 * 1000;
+            endTime = new Date(scheduledAt.getTime() + durationMs);
+          }
+          
+          const hasEnded = event.live_ended_at !== null || now > endTime;
           const wasAttended = ticket.attended_at !== null;
+          const isLive = event.is_live || false;
 
-          // If the event hasn't started yet and hasn't ended, it's upcoming
-          if (scheduledAt > now && !hasEnded) {
-            upcoming.push({
-              id: ticket.id,
-              eventId: event.id,
-              title: event.title,
-              artistName: creator?.name || "Unknown Artist",
-              artistAvatar: creator?.avatar_url || null,
-              scheduledAt,
-              category: event.category,
-              isLive: event.is_live || false,
-            });
-          } else if (wasAttended || hasEnded) {
-            // If attended or event has ended, it's a past session
+          // Compute status
+          let status: TicketSessionStatus;
+          if (isLive && !event.live_ended_at) {
+            status = "live";
+          } else if (hasEnded) {
+            status = wasAttended ? "ended" : "missed";
+          } else if (now < scheduledAt) {
+            const msUntilStart = scheduledAt.getTime() - now.getTime();
+            const minutesUntilStart = msUntilStart / (1000 * 60);
+            status = minutesUntilStart <= 15 ? "starting_soon" : "upcoming";
+          } else {
+            status = "starting_soon";
+          }
+
+          // All sessions go to upcoming array (we filter in UI)
+          upcoming.push({
+            id: ticket.id,
+            eventId: event.id,
+            title: event.title,
+            artistName: creator?.name || "Unknown Artist",
+            artistAvatar: creator?.avatar_url || null,
+            scheduledAt,
+            endTime,
+            category: event.category,
+            isLive,
+            creatorId: event.creator_id,
+            status,
+            attended: wasAttended,
+          });
+
+          // Also add to past if ended (for past sessions section)
+          if (hasEnded) {
             past.push({
               id: ticket.id,
               eventId: event.id,
