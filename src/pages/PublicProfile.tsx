@@ -535,27 +535,12 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
-        {/* Verified Creator Badge - Only show for creators */}
-        {creatorStats.isCreator && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.32 }}
-            className="flex justify-center mt-4"
-          >
-            <div className="px-3 py-1.5 rounded-full border border-electric/40 bg-electric/10 flex items-center gap-1.5">
-              <BadgeCheck className="w-3.5 h-3.5 text-electric" />
-              <span className="text-xs font-medium text-electric">Verified Creator</span>
-            </div>
-          </motion.div>
-        )}
-
         {/* Founding Member Badge */}
         {isFoundingMember && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.35 }}
+            transition={{ delay: 0.32 }}
             className="flex justify-center mt-5"
           >
             <div 
