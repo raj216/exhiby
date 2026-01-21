@@ -13,6 +13,7 @@ import ExploreStudios from "./pages/ExploreStudios";
 import AdminFeedback from "./pages/AdminFeedback";
 import EarningsHistory from "./pages/EarningsHistory";
 import TicketsHistory from "./pages/TicketsHistory";
+import SessionResolver from "./pages/SessionResolver";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/s/:sessionId" element={<SessionResolver />} />
             <Route path="/profile/:userId" element={<PublicProfile />} />
             <Route path="/live/:eventId" element={<LiveRoom />} />
             <Route path="/explore" element={<ExploreStudios />} />
