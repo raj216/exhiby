@@ -29,6 +29,7 @@ export interface UpcomingSession {
   title: string;
   artistName: string;
   artistAvatar: string | null;
+  coverUrl: string | null;
   scheduledAt: Date;
   endTime: Date;
   category: string | null;
@@ -89,7 +90,7 @@ export function useTickets(userId: string | undefined) {
         const eventIds = tickets.map(t => t.event_id);
         const { data: events, error: eventsError } = await supabase
           .from("events")
-          .select("id, title, scheduled_at, end_time, duration_minutes, category, creator_id, is_live, live_ended_at")
+          .select("id, title, cover_url, scheduled_at, end_time, duration_minutes, category, creator_id, is_live, live_ended_at")
           .in("id", eventIds);
 
         if (eventsError) {
@@ -158,6 +159,7 @@ export function useTickets(userId: string | undefined) {
             title: event.title,
             artistName: creator?.name || "Unknown Artist",
             artistAvatar: creator?.avatar_url || null,
+            coverUrl: event.cover_url ?? null,
             scheduledAt,
             endTime,
             category: event.category,

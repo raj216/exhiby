@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -29,6 +29,8 @@ import { useFollowStats } from "@/hooks/useFollowStats";
 import { useTickets, UpcomingSession, PastSession } from "@/hooks/useTickets";
 import { useUpcomingSessions, SavedUpcomingSession } from "@/hooks/useUpcomingSessions";
 import { useSavedSessions } from "@/hooks/useSavedSessions";
+import { toast } from "@/hooks/use-toast";
+import { getEventThumbnailUrl } from "@/lib/eventImages";
 
 interface UserProfile {
   name: string;
@@ -73,7 +75,7 @@ export function AudienceProfile({
   const { stats: followStats } = useFollowStats(user?.id);
   const { upcomingSessions: ticketSessions, pastSessions, isLoading: ticketsLoading } = useTickets(user?.id);
   const { sessions: savedSessions, isLoading: savedLoading, refetch: refetchSaved } = useUpcomingSessions(user?.id);
-  const { removeSession } = useSavedSessions();
+  const { isEventSaved, saveSession, removeSession } = useSavedSessions();
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
@@ -385,7 +387,7 @@ export function AudienceProfile({
                     }
                   };
 
-                  const handleRemoveSession = async (e: React.MouseEvent, eventId: string) => {
+                  const handleRemoveSession = async (e: MouseEvent, eventId: string) => {
                     e.stopPropagation();
                     triggerClickHaptic();
                     await removeSession(eventId);
@@ -409,12 +411,8 @@ export function AudienceProfile({
                           </span>
                         );
                       case "upcoming":
-                        return (
-                          <span className="px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground text-xs font-medium flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            Upcoming
-                          </span>
-                        );
+                        // Audience Upcoming Sessions section already communicates this.
+                        return null;
                       case "ended":
                         return (
                           <span className="px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground text-xs font-medium flex items-center gap-1">
@@ -431,6 +429,32 @@ export function AudienceProfile({
                         );
                       default:
                         return null;
+                    }
+                  };
+
+                  const toggleSaved = async (params: {
+                    e: MouseEvent;
+                    eventId: string;
+                    creatorId: string;
+                  }) => {
+                    const { e, eventId, creatorId } = params;
+                    e.stopPropagation();
+                    triggerClickHaptic();
+
+                    const alreadySaved = isEventSaved(eventId);
+                    const ok = alreadySaved
+                      ? await removeSession(eventId)
+                      : await saveSession(eventId, creatorId);
+
+                    if (ok) {
+                      toast({
+                        title: alreadySaved ? "Removed" : "Added",
+                        description: alreadySaved
+                          ? "Removed from your Upcoming"
+                          : "Added to your Upcoming",
+                      });
+                      // Saved sessions list is derived from saved_sessions; refetch for immediate UI sync.
+                      refetchSaved();
                     }
                   };
 
@@ -458,17 +482,14 @@ export function AudienceProfile({
                               }`}
                             >
                               <div className="flex items-start gap-3">
-                                {session.artistAvatar ? (
-                                  <img
-                                    src={session.artistAvatar}
-                                    alt={session.artistName}
-                                    className="w-10 h-10 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                                    {session.artistName.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                <img
+                                  src={getEventThumbnailUrl({
+                                    eventCoverUrl: session.coverUrl,
+                                    creatorAvatarUrl: session.artistAvatar,
+                                  })}
+                                  alt={session.title}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
                                   <p className="text-xs text-muted-foreground">{session.artistName}</p>
@@ -483,7 +504,22 @@ export function AudienceProfile({
                                     </span>
                                   </div>
                                 </div>
-                                {renderStatusBadge(session.status)}
+                                {session.status === "upcoming" ? (
+                                  <button
+                                    onClick={(e) =>
+                                      toggleSaved({
+                                        e,
+                                        eventId: session.eventId,
+                                        creatorId: session.creatorId,
+                                      })
+                                    }
+                                    className="px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground text-xs font-medium"
+                                  >
+                                    Added ✓
+                                  </button>
+                                ) : (
+                                  renderStatusBadge(session.status)
+                                )}
                               </div>
                             </motion.div>
                           ))}
@@ -502,17 +538,14 @@ export function AudienceProfile({
                               }`}
                             >
                               <div className="flex items-start gap-3">
-                                {session.artistAvatar ? (
-                                  <img
-                                    src={session.artistAvatar}
-                                    alt={session.artistName}
-                                    className="w-10 h-10 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                                    {session.artistName.charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                <img
+                                  src={getEventThumbnailUrl({
+                                    eventCoverUrl: session.coverUrl,
+                                    creatorAvatarUrl: session.artistAvatar,
+                                  })}
+                                  alt={session.title}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
@@ -532,7 +565,22 @@ export function AudienceProfile({
                                     </span>
                                   </div>
                                 </div>
-                                {renderStatusBadge(session.status)}
+                                {session.status === "upcoming" ? (
+                                  <button
+                                    onClick={(e) =>
+                                      toggleSaved({
+                                        e,
+                                        eventId: session.eventId,
+                                        creatorId: session.creatorId,
+                                      })
+                                    }
+                                    className="px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground text-xs font-medium"
+                                  >
+                                    {isEventSaved(session.eventId) ? "Added ✓" : "Add +"}
+                                  </button>
+                                ) : (
+                                  renderStatusBadge(session.status)
+                                )}
                               </div>
                             </motion.div>
                           ))}
