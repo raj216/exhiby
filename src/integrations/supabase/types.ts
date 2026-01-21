@@ -41,13 +41,6 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "event_rooms_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: true
-            referencedRelation: "events_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       events: {
@@ -167,13 +160,6 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "live_materials_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       live_messages: {
@@ -212,13 +198,6 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "live_messages_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       live_viewers: {
@@ -252,13 +231,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "live_viewers_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
             referencedColumns: ["id"]
           },
         ]
@@ -469,13 +441,6 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "saved_sessions_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       sent_emails: {
@@ -506,13 +471,6 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sent_emails_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
             referencedColumns: ["id"]
           },
         ]
@@ -565,13 +523,6 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "session_feedback_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       tickets: {
@@ -607,13 +558,6 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "tickets_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_roles: {
@@ -639,66 +583,7 @@ export type Database = {
       }
     }
     Views: {
-      events_public: {
-        Row: {
-          category: string | null
-          cover_url: string | null
-          created_at: string | null
-          creator_id: string | null
-          description: string | null
-          duration_minutes: number | null
-          end_time: string | null
-          id: string | null
-          is_free: boolean | null
-          is_live: boolean | null
-          live_ended_at: string | null
-          live_started_at: string | null
-          price: number | null
-          scheduled_at: string | null
-          title: string | null
-          updated_at: string | null
-          viewer_count: number | null
-        }
-        Insert: {
-          category?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          description?: string | null
-          duration_minutes?: number | null
-          end_time?: string | null
-          id?: string | null
-          is_free?: boolean | null
-          is_live?: boolean | null
-          live_ended_at?: string | null
-          live_started_at?: string | null
-          price?: number | null
-          scheduled_at?: string | null
-          title?: string | null
-          updated_at?: string | null
-          viewer_count?: number | null
-        }
-        Update: {
-          category?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          creator_id?: string | null
-          description?: string | null
-          duration_minutes?: number | null
-          end_time?: string | null
-          id?: string | null
-          is_free?: boolean | null
-          is_live?: boolean | null
-          live_ended_at?: string | null
-          live_started_at?: string | null
-          price?: number | null
-          scheduled_at?: string | null
-          title?: string | null
-          updated_at?: string | null
-          viewer_count?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       create_notification: {
