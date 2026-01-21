@@ -131,7 +131,14 @@ export function HomeScreen({
         const {
           data,
           error
-        } = await supabase.from('events').select('id, title, cover_url, scheduled_at, is_free, price, category, creator_id').gt('scheduled_at', new Date().toISOString()).eq('is_live', false).order('scheduled_at', {
+        } = await supabase
+          .from('events')
+          .select('id, title, cover_url, scheduled_at, is_free, price, category, creator_id')
+          .gt('scheduled_at', new Date().toISOString())
+          // Defensive: exclude ended sessions and tolerate is_live NULL (treat as not-live)
+          .is('live_ended_at', null)
+          .in('is_live', [false, null])
+          .order('scheduled_at', {
           ascending: true
         });
         if (error) throw error;

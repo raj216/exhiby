@@ -97,15 +97,24 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
       // 2. Currently live sessions
       // 3. Recently ended sessions (within 20 min)
       // 4. Missed sessions (scheduled passed but not live, within 60 min)
+      // IMPORTANT: future sessions must be truly scheduled (not ended/cancelled).
+      // We defensively exclude rows that have live_ended_at set, even if scheduled_at is in the future,
+      // to prevent "ghost" sessions from rendering.
       const { data: events, error: eventsError } = await supabase
         .from("events")
-        .select("id, title, scheduled_at, price, is_free, cover_url, is_live, creator_id, live_ended_at")
+        .select(
+          "id, title, scheduled_at, price, is_free, cover_url, is_live, creator_id, live_ended_at"
+        )
         .eq("creator_id", creatorUserId)
         .or(
-          `scheduled_at.gt.${currentTime.toISOString()},` + // Future sessions
-          `is_live.eq.true,` + // Currently live
-          `live_ended_at.gte.${twentyMinutesAgo.toISOString()},` + // Recently ended (20 min)
-          `and(scheduled_at.gte.${sixtyMinutesAgo.toISOString()},scheduled_at.lte.${currentTime.toISOString()},live_ended_at.is.null,or(is_live.is.null,is_live.eq.false))` // Missed within 60 min
+          // Future scheduled sessions (must not be ended)
+          `and(scheduled_at.gt.${currentTime.toISOString()},live_ended_at.is.null,or(is_live.is.null,is_live.eq.false)),` +
+            // Currently live
+            `and(is_live.eq.true,live_ended_at.is.null),` +
+            // Recently ended (20 min)
+            `live_ended_at.gte.${twentyMinutesAgo.toISOString()},` +
+            // Missed within 60 min
+            `and(scheduled_at.gte.${sixtyMinutesAgo.toISOString()},scheduled_at.lte.${currentTime.toISOString()},live_ended_at.is.null,or(is_live.is.null,is_live.eq.false))`
         )
         .order("scheduled_at", { ascending: true })
         .limit(10); // Fetch more initially, filter client-side

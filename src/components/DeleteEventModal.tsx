@@ -32,9 +32,19 @@ export function DeleteEventModal({
     setIsDeleting(true);
 
     try {
-      const { error } = await supabase.from("events").delete().eq("id", eventId);
+      // Clean up dependent rows so audience-facing surfaces can't show orphaned items.
+      // NOTE: DB-level FK cascades also protect us, but we still delete notifications explicitly.
+      const [{ error: notificationsError }, { error: eventsError }] = await Promise.all([
+        supabase.from("notifications").delete().eq("link", `/live/${eventId}`),
+        supabase.from("events").delete().eq("id", eventId),
+      ]);
 
-      if (error) throw error;
+      if (notificationsError) {
+        // Non-blocking: deleting notifications is best-effort
+        console.warn("[DeleteEventModal] Failed to delete notifications:", notificationsError);
+      }
+
+      if (eventsError) throw eventsError;
 
       toast({ title: "Studio deleted" });
       onDeleted();
