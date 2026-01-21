@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,16 +17,44 @@ const UserModeContext = createContext<UserModeContextType | undefined>(undefined
 
 export function UserModeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [mode, setMode] = useState<UserRole>("audience");
+  const readStoredMode = (): UserRole => {
+    try {
+      const raw = localStorage.getItem("exhiby_app_mode");
+      return raw === "creator" ? "creator" : "audience";
+    } catch {
+      return "audience";
+    }
+  };
+
+  const writeStoredMode = (next: UserRole) => {
+    try {
+      localStorage.setItem("exhiby_app_mode", next);
+    } catch {
+      // ignore
+    }
+  };
+
+  const [mode, _setMode] = useState<UserRole>(() => readStoredMode());
   const [isVerifiedCreator, setVerifiedCreator] = useState(false);
   const [isLoadingCreatorStatus, setIsLoadingCreatorStatus] = useState(true);
+
+  const setMode = useCallback(
+    (next: UserRole) => {
+      // Only verified creators can enter creator mode.
+      if (next === "creator" && !isVerifiedCreator) return;
+      _setMode(next);
+      writeStoredMode(next);
+    },
+    [isVerifiedCreator]
+  );
 
   // Load creator status from database on mount and when user changes
   useEffect(() => {
     const loadCreatorStatus = async () => {
       if (!user) {
         setVerifiedCreator(false);
-        setMode("audience");
+        _setMode("audience");
+        writeStoredMode("audience");
         setIsLoadingCreatorStatus(false);
         return;
       }
@@ -44,12 +72,21 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
           setVerifiedCreator(false);
         } else if (data) {
           setVerifiedCreator(true);
+          // Restore creator mode if user previously chose it.
+          if (readStoredMode() === "creator") {
+            _setMode("creator");
+          }
         } else {
           setVerifiedCreator(false);
+          // If not a verified creator, ensure mode cannot be stuck on creator.
+          _setMode("audience");
+          writeStoredMode("audience");
         }
       } catch (err) {
         console.error("Failed to load creator status:", err);
         setVerifiedCreator(false);
+        _setMode("audience");
+        writeStoredMode("audience");
       } finally {
         setIsLoadingCreatorStatus(false);
       }
@@ -72,7 +109,8 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
         // If it's a duplicate error, user is already a creator
         if (error.message.includes("duplicate") || error.code === "23505") {
           setVerifiedCreator(true);
-          setMode("creator");
+          _setMode("creator");
+          writeStoredMode("creator");
           return true;
         }
         console.error("Failed to activate creator role:", error);
@@ -80,7 +118,8 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
       }
 
       setVerifiedCreator(true);
-      setMode("creator");
+      _setMode("creator");
+      writeStoredMode("creator");
       return true;
     } catch (err) {
       console.error("Error activating creator role:", err);
@@ -91,9 +130,10 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
   const toggleMode = () => {
     // Allow creators to always return to audience mode.
     // Only allow entering creator mode once the user is verified.
-    setMode((prev) => {
-      if (prev === "creator") return "audience";
-      return isVerifiedCreator ? "creator" : prev;
+    _setMode((prev) => {
+      const next = prev === "creator" ? "audience" : isVerifiedCreator ? "creator" : prev;
+      writeStoredMode(next);
+      return next;
     });
   };
 
