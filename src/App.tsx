@@ -11,6 +11,8 @@ import PublicProfile from "./pages/PublicProfile";
 import LiveRoom from "./pages/LiveRoom";
 import ExploreStudios from "./pages/ExploreStudios";
 import AdminFeedback from "./pages/AdminFeedback";
+import EarningsHistory from "./pages/EarningsHistory";
+import TicketsHistory from "./pages/TicketsHistory";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -29,6 +31,8 @@ const App = () => (
             <Route path="/live/:eventId" element={<LiveRoom />} />
             <Route path="/explore" element={<ExploreStudios />} />
             <Route path="/admin/feedback" element={<AdminFeedback />} />
+            <Route path="/earnings-history" element={<EarningsHistory />} />
+            <Route path="/tickets-history" element={<TicketsHistory />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
