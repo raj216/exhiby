@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, Loader2, Radio, Clock, Calendar, CalendarClock } from "lucide-react";
+import { Trash2, Loader2, Radio, Clock, Calendar, CalendarClock, Share } from "lucide-react";
 import { format, isToday, isTomorrow, differenceInMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -47,12 +47,43 @@ export function UpcomingEventsList({
   const formatEventDate = (dateStr: string) => {
     const date = new Date(dateStr);
     if (isToday(date)) {
-      return `Today • ${format(date, "h:mm a")}`;
+      return { date: "Today", time: format(date, "h:mm a") };
     }
     if (isTomorrow(date)) {
-      return `Tomorrow • ${format(date, "h:mm a")}`;
+      return { date: "Tomorrow", time: format(date, "h:mm a") };
     }
-    return format(date, "MMM d • h:mm a");
+    return { date: format(date, "MMM d"), time: format(date, "h:mm a") };
+  };
+
+  const handleShare = async (event: Event) => {
+    triggerClickHaptic();
+    
+    const shareUrl = `${window.location.origin}/event/${event.id}`;
+    const shareData = {
+      title: event.title,
+      text: "Join this session on Exhiby!",
+      url: shareUrl,
+    };
+    
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Share failed:', err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link Copied",
+          description: "Event link copied to clipboard",
+        });
+      } catch (err) {
+        console.error('Clipboard failed:', err);
+      }
+    }
   };
 
   // Determine event status based on time window:
@@ -162,19 +193,34 @@ export function UpcomingEventsList({
         <div className="flex-1 min-w-0">
           <p className="font-medium text-foreground text-sm truncate">{event.title}</p>
           {status === "ready_to_go_live" ? (
-            <p className="text-xs text-destructive mt-0.5 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              Scheduled for {formatEventDate(event.scheduled_at)}
-            </p>
+            <div className="mt-0.5">
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatEventDate(event.scheduled_at).date}
+              </p>
+              <p className="text-xs text-destructive/80 ml-4">
+                {formatEventDate(event.scheduled_at).time}
+              </p>
+            </div>
           ) : status === "upcoming" ? (
-            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {formatEventDate(event.scheduled_at)}
-            </p>
+            <div className="mt-0.5">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {formatEventDate(event.scheduled_at).date}
+              </p>
+              <p className="text-xs text-muted-foreground/80 ml-4">
+                {formatEventDate(event.scheduled_at).time}
+              </p>
+            </div>
           ) : (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {formatEventDate(event.scheduled_at)}
-            </p>
+            <div className="mt-0.5">
+              <p className="text-xs text-muted-foreground">
+                {formatEventDate(event.scheduled_at).date}
+              </p>
+              <p className="text-xs text-muted-foreground/80">
+                {formatEventDate(event.scheduled_at).time}
+              </p>
+            </div>
           )}
         </div>
 
@@ -212,6 +258,17 @@ export function UpcomingEventsList({
             title="Reschedule"
           >
             <CalendarClock className="w-4 h-4 text-accent" />
+          </button>
+        )}
+
+        {/* Share Button - only show for event creator */}
+        {isCreator && (
+          <button
+            onClick={() => handleShare(event)}
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 glass border border-border/40 hover:bg-white/15 transition-colors"
+            title="Share"
+          >
+            <Share className="w-4 h-4 text-foreground" />
           </button>
         )}
 
