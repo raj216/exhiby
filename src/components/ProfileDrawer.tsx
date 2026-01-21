@@ -73,11 +73,10 @@ export function ProfileDrawer({
               damping: 30,
               mass: 0.8
             }}
-            className="fixed top-0 right-0 z-50 h-full w-full sm:w-[400px] flex flex-col overflow-y-auto"
+            className="fixed top-0 right-0 z-50 h-full w-full sm:w-[400px] flex flex-col"
             style={{
               background: "#0A0A0A",
               borderLeft: "1px solid #333",
-              paddingBottom: "env(safe-area-inset-bottom)",
             }}
           >
             {/* Header */}
@@ -115,8 +114,8 @@ export function ProfileDrawer({
               </button>
             </div>
 
-            {/* Menu Items */}
-            <div className="flex-1 py-4">
+            {/* Menu Items - scrollable */}
+            <div className="flex-1 py-4 overflow-y-auto" style={{ paddingBottom: "80px" }}>
               <button
                 onClick={() => handleAction(onViewProfile)}
                 className="w-full flex items-center gap-4 px-6 py-4 text-white hover:bg-muted/20 transition-colors"
@@ -160,8 +159,14 @@ export function ProfileDrawer({
               </button>
             </div>
 
-            {/* Footer - Log Out */}
-            <div className="p-6 border-t border-border/20">
+            {/* Footer - Log Out (sticky at bottom) */}
+            <div 
+              className="sticky bottom-0 p-6 border-t border-border/20"
+              style={{ 
+                background: "#0A0A0A",
+                paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)"
+              }}
+            >
               <button
                 onClick={() => handleAction(onLogout)}
                 className="w-full flex items-center gap-4 px-4 py-3 text-crimson hover:bg-crimson/10 rounded-lg transition-colors"
