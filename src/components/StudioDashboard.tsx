@@ -329,13 +329,6 @@ export function StudioDashboard({
                 Founding Member {localProfile.foundingNumber ? `#${localProfile.foundingNumber}` : ""}
               </span>
             </div>}
-          {/* Verified Creator Badge */}
-          <div className="px-3 py-1.5 rounded-full border border-border/60 bg-muted/50 flex items-center gap-1.5">
-            <BadgeCheck className="w-3.5 h-3.5 text-electric" />
-            <span className="text-xs font-medium text-foreground">
-              Verified Creator
-            </span>
-          </div>
         </motion.div>
 
         {/* Passport Line */}
