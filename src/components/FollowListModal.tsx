@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, UserCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,40 +59,37 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
     navigate(`/profile/${userIdToVisit}`);
   };
 
-  if (!isOpen) return null;
-
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ height: '100dvh' }}
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
           />
           
-          {/* Full-screen flex wrapper for perfect centering */}
+          {/* Modal Panel */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col"
+            style={{ 
+              width: "min(92vw, 420px)",
+              maxHeight: "calc(70dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
+            }}
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col pointer-events-auto"
-              style={{ 
-                width: "min(92vw, 420px)",
-                maxHeight: "70vh",
-              }}
-            >
             {/* Header - fixed height, no scroll */}
             <div className="flex items-center justify-between p-4 border-b border-border/30 flex-shrink-0">
               <h2 className="text-lg font-semibold text-foreground capitalize">
@@ -106,7 +104,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             </div>
 
             {/* User List - only this scrolls if content exceeds */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
               {isLoading ? (
                 <div className="p-8 text-center">
                   <div className="w-8 h-8 border-2 border-muted-foreground border-t-foreground rounded-full animate-spin mx-auto" />
@@ -154,10 +152,11 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
                 </div>
               )}
             </div>
-            </motion.div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, ImageIcon } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface AddArtModalProps {
   isOpen: boolean;
@@ -21,6 +23,9 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<{ title?: string; description?: string; image?: string }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Lock background scroll when modal is open
+  useScrollLock(isOpen);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -108,26 +113,40 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
     }
   };
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-carbon/95 backdrop-blur-xl flex items-center justify-center p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ height: '100dvh' }}
           onClick={onClose}
         >
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-carbon/95 backdrop-blur-xl"
+          />
+
+          {/* Modal Panel */}
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="w-full max-w-md bg-surface-elevated border border-border/50 rounded-2xl overflow-hidden"
+            className="relative z-10 bg-surface-elevated border border-border/50 rounded-2xl overflow-hidden flex flex-col"
+            style={{
+              width: "min(92vw, 480px)",
+              maxHeight: "calc(85dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border/30">
+            <div className="flex items-center justify-between p-4 border-b border-border/30 flex-shrink-0">
               <h2 className="font-display text-lg text-foreground">Add Artwork</h2>
               <button
                 onClick={onClose}
@@ -137,8 +156,8 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-4 space-y-4">
+            {/* Content - scrollable */}
+            <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain p-4 space-y-4">
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
@@ -152,7 +171,7 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
               <div>
                 <button
                   onClick={handleImageClick}
-                  className={`w-full min-h-[120px] max-h-[300px] rounded-xl border-2 border-dashed overflow-hidden flex flex-col items-center justify-center transition-colors ${
+                  className={`w-full min-h-[120px] max-h-[240px] rounded-xl border-2 border-dashed overflow-hidden flex flex-col items-center justify-center transition-colors ${
                     errors.image 
                       ? "border-destructive bg-destructive/5" 
                       : "border-border/50 hover:border-primary/50 bg-muted/10"
@@ -162,7 +181,7 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
                     <img
                       src={previewUrl}
                       alt="Preview"
-                      className="w-full h-auto max-h-[300px] object-contain"
+                      className="w-full h-auto max-h-[240px] object-contain"
                     />
                   ) : (
                     <div className="py-8">
@@ -215,7 +234,7 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-border/30">
+            <div className="p-4 border-t border-border/30 flex-shrink-0">
               <Button
                 onClick={handleSubmit}
                 disabled={isUploading}
@@ -239,4 +258,6 @@ export function AddArtModal({ isOpen, onClose, onUpload, isUploading }: AddArtMo
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Upload, Trash2, ImageIcon } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -7,6 +8,7 @@ import { usePortfolioItems, PortfolioItem } from "@/hooks/usePortfolioItems";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddArtModal } from "@/components/AddArtModal";
 import { supabase } from "@/integrations/supabase/client";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +38,9 @@ export function PortfolioGrid({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const canEdit = isOwner && user;
+
+  // Lock background scroll when lightbox is open
+  useScrollLock(!!selectedImage);
 
   const handleImageClick = (item: PortfolioItem) => {
     triggerClickHaptic();
@@ -107,6 +112,99 @@ export function PortfolioGrid({
   
   const twoColumns = getColumns(2);
   const threeColumns = getColumns(3);
+
+  // Lightbox modal rendered via portal
+  const lightboxModal = (
+    <AnimatePresence>
+      {selectedImage && createPortal(
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ height: '100dvh' }}
+          onClick={handleCloseLightbox}
+        >
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-carbon/95 backdrop-blur-xl"
+          />
+
+          {/* Delete Button (for owner) - top left */}
+          {canEdit && (
+            <button
+              onClick={handleDeleteClick}
+              className="absolute top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-20"
+              style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
+            >
+              <Trash2 className="w-5 h-5 text-destructive" />
+            </button>
+          )}
+
+          {/* Close Button - top right */}
+          <button
+            onClick={handleCloseLightbox}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center z-20"
+            style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
+          >
+            <X className="w-5 h-5 text-foreground" />
+          </button>
+
+          {/* Content Panel - centered */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 flex flex-col items-center px-4"
+            style={{
+              maxWidth: "min(92vw, 800px)",
+              maxHeight: "calc(80dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Image */}
+            <div className="rounded-2xl overflow-hidden">
+              <img
+                src={selectedImage.image_url}
+                alt={selectedImage.title || "Portfolio artwork"}
+                className="max-w-full object-contain"
+                style={{ maxHeight: "calc(65dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))" }}
+              />
+            </div>
+
+            {/* Metadata: Title and Description */}
+            {(selectedImage.title || selectedImage.description) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="mt-4 max-w-lg w-full text-center space-y-2"
+              >
+                {/* Title */}
+                {selectedImage.title && (
+                  <h3 className="text-xl font-display text-foreground">
+                    {selectedImage.title}
+                  </h3>
+                )}
+
+                {/* Description */}
+                {selectedImage.description && (
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
+                    {selectedImage.description}
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </motion.div>
+        </motion.div>,
+        document.body
+      )}
+    </AnimatePresence>
+  );
 
   if (isLoading) {
     return (
@@ -251,81 +349,8 @@ export function PortfolioGrid({
         </>
       )}
 
-      {/* Artwork Detail Modal */}
-      <AnimatePresence>
-        {selectedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-carbon/95 backdrop-blur-xl overflow-y-auto"
-            onClick={handleCloseLightbox}
-          >
-            {/* Delete Button (for owner) - top left */}
-            {canEdit && (
-              <button
-                onClick={handleDeleteClick}
-                className="fixed top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-10"
-              >
-                <Trash2 className="w-5 h-5 text-destructive" />
-              </button>
-            )}
-
-            {/* Close Button - top right */}
-            <button
-              onClick={handleCloseLightbox}
-              className="fixed top-4 right-4 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center z-10"
-            >
-              <X className="w-5 h-5 text-foreground" />
-            </button>
-
-            {/* Content Container */}
-            <div 
-              className="min-h-full flex flex-col items-center justify-start pt-16 pb-8 px-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Image */}
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="max-w-full lg:max-w-3xl rounded-2xl overflow-hidden"
-              >
-                <img
-                  src={selectedImage.image_url}
-                  alt={selectedImage.title || "Portfolio artwork"}
-                  className="max-w-full max-h-[65vh] object-contain mx-auto"
-                />
-              </motion.div>
-
-              {/* Metadata: Title and Description */}
-              {(selectedImage.title || selectedImage.description) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="mt-6 max-w-lg w-full text-center space-y-2"
-                >
-                  {/* Title */}
-                  {selectedImage.title && (
-                    <h3 className="text-xl font-display text-foreground">
-                      {selectedImage.title}
-                    </h3>
-                  )}
-
-                  {/* Description */}
-                  {selectedImage.description && (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
-                      {selectedImage.description}
-                    </p>
-                  )}
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Lightbox Modal (via Portal) */}
+      {lightboxModal}
     </>
   );
 }
