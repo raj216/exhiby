@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Bell, BellRing, Calendar, Check, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Bell, BellRing, Calendar, Check, Loader2, Share } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { format } from "date-fns";
@@ -200,29 +200,72 @@ export function UpcomingEventCard({
 
         {/* Bottom Section - inside image */}
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-carbon via-carbon/80 to-transparent">
-          <button 
-            onClick={handleRemind}
-            disabled={isLoading}
-            className={`w-full py-2 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-luxury ease-luxury disabled:opacity-50 ${
-              isSaved 
-                ? 'bg-electric/10 text-electric border border-electric/50' 
-                : 'bg-transparent border border-electric/60 text-electric/90 hover:bg-electric/10 hover:text-electric'
-            }`}
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : isSaved ? (
-              <>
-                <Check className="w-4 h-4" />
-                Reminder Set
-              </>
-            ) : (
-              <>
-                <Bell className="w-4 h-4" />
-                Remind Me
-              </>
-            )}
-          </button>
+          <div className="flex items-stretch gap-2">
+            {/* Remind Me Button - flex-1 */}
+            <button 
+              onClick={handleRemind}
+              disabled={isLoading}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all duration-luxury ease-luxury disabled:opacity-50 ${
+                isSaved 
+                  ? 'bg-electric/10 text-electric border border-electric/50' 
+                  : 'bg-transparent border border-electric/60 text-electric/90 hover:bg-electric/10 hover:text-electric'
+              }`}
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isSaved ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  Reminder Set
+                </>
+              ) : (
+                <>
+                  <Bell className="w-4 h-4" />
+                  Remind Me
+                </>
+              )}
+            </button>
+            
+            {/* Share Button - Square */}
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                triggerClickHaptic();
+                
+                const shareUrl = `${window.location.origin}/event/${id}`;
+                const shareData = {
+                  title: title,
+                  text: "Join this session on Exhiby!",
+                  url: shareUrl,
+                };
+                
+                if (navigator.share && navigator.canShare?.(shareData)) {
+                  try {
+                    await navigator.share(shareData);
+                  } catch (err) {
+                    // User cancelled or share failed silently
+                    if ((err as Error).name !== 'AbortError') {
+                      console.error('Share failed:', err);
+                    }
+                  }
+                } else {
+                  // Fallback: copy to clipboard
+                  try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    toast({
+                      title: "Link Copied",
+                      description: "Event link copied to clipboard",
+                    });
+                  } catch (err) {
+                    console.error('Clipboard failed:', err);
+                  }
+                }
+              }}
+              className="aspect-square h-full px-3 rounded-lg glass border border-border/40 flex items-center justify-center hover:bg-white/15 transition-all duration-luxury"
+            >
+              <Share className="w-4 h-4 text-foreground" />
+            </button>
+          </div>
         </div>
       </div>
 
