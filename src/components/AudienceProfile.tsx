@@ -13,13 +13,15 @@ import {
   Calendar,
   Clock,
   Radio,
-  Hourglass,
-  XCircle
+  XCircle,
+  Trash2,
+  CheckCircle2
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import { FollowListModal } from "./FollowListModal";
 import { ShareProfileModal } from "./ShareProfileModal";
+import { SessionEndedScreen } from "./SessionEndedScreen";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudienceStats } from "@/hooks/useAudienceStats";
@@ -70,12 +72,13 @@ export function AudienceProfile({
   const { stats } = useAudienceStats(user?.id);
   const { stats: followStats } = useFollowStats(user?.id);
   const { upcomingSessions: ticketSessions, pastSessions, isLoading: ticketsLoading } = useTickets(user?.id);
-  const { sessions: savedSessions, isLoading: savedLoading } = useUpcomingSessions(user?.id);
+  const { sessions: savedSessions, isLoading: savedLoading, refetch: refetchSaved } = useUpcomingSessions(user?.id);
   const { removeSession } = useSavedSessions();
   const [localProfile, setLocalProfile] = useState(profile);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [showShareProfile, setShowShareProfile] = useState(false);
+  const [selectedEndedSession, setSelectedEndedSession] = useState<SavedUpcomingSession | null>(null);
   
   // Sync local profile with prop changes
   useEffect(() => {
@@ -349,177 +352,289 @@ export function AudienceProfile({
                 exit={{ opacity: 0, y: -10 }}
                 className="p-4"
               >
-                {/* Upcoming Sessions - Combined from tickets AND saved sessions */}
-                <h3 className="font-display text-lg text-foreground mb-4">Upcoming Sessions</h3>
-                {(ticketsLoading || savedLoading) ? (
-                  <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
-                    <div className="w-8 h-8 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
-                  </div>
-                ) : (ticketSessions.length > 0 || savedSessions.length > 0) ? (
-                  <div className="space-y-3">
-                    {/* Saved Sessions (from "Add to My Sessions") */}
-                    {savedSessions.map((session) => (
-                      <motion.div
-                        key={`saved-${session.id}`}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        onClick={() => {
-                          triggerClickHaptic();
-                          navigate(`/live/${session.eventId}`);
-                        }}
-                        className={`bg-obsidian rounded-xl border p-4 cursor-pointer transition-colors ${
-                          session.status === "live" 
-                            ? "border-destructive/50 bg-destructive/5" 
-                            : session.status === "missed"
-                            ? "border-muted-foreground/30 opacity-60"
-                            : "border-border/30 hover:border-border/50"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          {session.artistAvatar ? (
-                            <img
-                              src={session.artistAvatar}
-                              alt={session.artistName}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                              {session.artistName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
-                            <p className="text-xs text-muted-foreground">{session.artistName}</p>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {session.scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {session.scheduledAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                              </span>
-                            </div>
-                          </div>
-                          {/* Status Badge */}
-                          {session.status === "live" ? (
-                            <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-medium flex items-center gap-1">
-                              <Radio className="w-3 h-3" />
-                              LIVE
-                            </span>
-                          ) : session.status === "starting_soon" ? (
-                            <span className="px-2 py-0.5 rounded-full bg-electric/15 text-electric text-xs font-medium flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              Soon
-                            </span>
-                          ) : session.status === "waiting" ? (
-                            <span className="px-2 py-0.5 rounded-full bg-gold/15 text-gold text-xs font-medium flex items-center gap-1">
-                              <Hourglass className="w-3 h-3" />
-                              Waiting
-                            </span>
-                          ) : session.status === "missed" ? (
-                            <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium flex items-center gap-1">
-                              <XCircle className="w-3 h-3" />
-                              Missed
-                            </span>
-                          ) : null}
-                        </div>
-                      </motion.div>
-                    ))}
-                    
-                    {/* Ticket Sessions (purchased) */}
-                    {ticketSessions.map((session) => (
-                      <motion.div
-                        key={`ticket-${session.id}`}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        onClick={() => {
-                          triggerClickHaptic();
-                          navigate(`/live/${session.eventId}`);
-                        }}
-                        className="bg-obsidian rounded-xl border border-border/30 p-4 cursor-pointer hover:border-border/50 transition-colors"
-                      >
-                        <div className="flex items-start gap-3">
-                          {session.artistAvatar ? (
-                            <img
-                              src={session.artistAvatar}
-                              alt={session.artistName}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                              {session.artistName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
-                              <span className="px-1.5 py-0.5 rounded bg-gold/15 text-gold text-[10px] font-medium">
-                                TICKET
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{session.artistName}</p>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {session.scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {session.scheduledAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-                              </span>
-                            </div>
-                          </div>
-                          {session.isLive && (
-                            <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-medium">
-                              LIVE
-                            </span>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
-                    <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground text-center">
-                      No upcoming sessions
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 mt-1 text-center">
-                      Add sessions from creator profiles to get reminders
-                    </p>
-                  </div>
-                )}
+                {/* Filter sessions into upcoming and past */}
+                {(() => {
+                  const upcomingSaved = savedSessions.filter(s => 
+                    s.status === "upcoming" || s.status === "starting_soon" || s.status === "live"
+                  );
+                  const pastSaved = savedSessions.filter(s => 
+                    s.status === "ended" || s.status === "missed"
+                  );
+                  const upcomingTickets = ticketSessions.filter(s => 
+                    s.status === "upcoming" || s.status === "starting_soon" || s.status === "live"
+                  );
+                  const pastTickets = ticketSessions.filter(s => 
+                    s.status === "ended" || s.status === "missed"
+                  );
 
-                {/* Past Sessions */}
-                <h3 className="font-display text-lg text-foreground mt-8 mb-4">Past Sessions</h3>
-                {ticketsLoading ? (
-                  <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
-                    <div className="w-6 h-6 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
-                  </div>
-                ) : pastSessions.length > 0 ? (
-                  <div className="space-y-2">
-                    {pastSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className="bg-obsidian/50 rounded-xl border border-border/20 p-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{session.artistName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {session.category || "Studio Session"} · {session.attendedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                            </p>
-                          </div>
+                  const handleSessionClick = (session: SavedUpcomingSession | UpcomingSession, isSaved: boolean) => {
+                    triggerClickHaptic();
+                    
+                    if (session.status === "live") {
+                      navigate(`/live/${session.eventId}`);
+                    } else if (session.status === "upcoming" || session.status === "starting_soon") {
+                      navigate(`/s/${session.eventId}`);
+                    } else if (session.status === "ended" || session.status === "missed") {
+                      // Show ended screen for saved sessions
+                      if (isSaved && "creatorId" in session) {
+                        setSelectedEndedSession(session as SavedUpcomingSession);
+                      } else {
+                        // For tickets, just navigate to session page
+                        navigate(`/s/${session.eventId}`);
+                      }
+                    }
+                  };
+
+                  const handleRemoveSession = async (e: React.MouseEvent, eventId: string) => {
+                    e.stopPropagation();
+                    triggerClickHaptic();
+                    await removeSession(eventId);
+                    refetchSaved();
+                  };
+
+                  const renderStatusBadge = (status: string, attended?: boolean) => {
+                    switch (status) {
+                      case "live":
+                        return (
+                          <span className="px-2 py-0.5 rounded-full bg-destructive text-destructive-foreground text-xs font-medium flex items-center gap-1">
+                            <Radio className="w-3 h-3" />
+                            LIVE
+                          </span>
+                        );
+                      case "starting_soon":
+                        return (
+                          <span className="px-2 py-0.5 rounded-full bg-electric/15 text-electric text-xs font-medium flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Soon
+                          </span>
+                        );
+                      case "upcoming":
+                        return (
+                          <span className="px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground text-xs font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            Upcoming
+                          </span>
+                        );
+                      case "ended":
+                        return (
+                          <span className="px-2 py-0.5 rounded-full bg-muted/50 text-muted-foreground text-xs font-medium flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Attended
+                          </span>
+                        );
+                      case "missed":
+                        return (
+                          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium flex items-center gap-1">
+                            <XCircle className="w-3 h-3" />
+                            Missed
+                          </span>
+                        );
+                      default:
+                        return null;
+                    }
+                  };
+
+                  return (
+                    <>
+                      {/* Upcoming Sessions */}
+                      <h3 className="font-display text-lg text-foreground mb-4">Upcoming Sessions</h3>
+                      {(ticketsLoading || savedLoading) ? (
+                        <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                          <div className="w-8 h-8 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
-                    <p className="text-muted-foreground/60 text-sm">No past sessions</p>
-                  </div>
-                )}
+                      ) : (upcomingSaved.length > 0 || upcomingTickets.length > 0) ? (
+                        <div className="space-y-3">
+                          {/* Saved Sessions (upcoming only) */}
+                          {upcomingSaved.map((session) => (
+                            <motion.div
+                              key={`saved-${session.id}`}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              onClick={() => handleSessionClick(session, true)}
+                              className={`bg-obsidian rounded-xl border p-4 cursor-pointer transition-colors ${
+                                session.status === "live" 
+                                  ? "border-destructive/50 bg-destructive/5" 
+                                  : "border-border/30 hover:border-border/50"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                {session.artistAvatar ? (
+                                  <img
+                                    src={session.artistAvatar}
+                                    alt={session.artistName}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                                    {session.artistName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
+                                  <p className="text-xs text-muted-foreground">{session.artistName}</p>
+                                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {session.scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {session.scheduledAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                                    </span>
+                                  </div>
+                                </div>
+                                {renderStatusBadge(session.status)}
+                              </div>
+                            </motion.div>
+                          ))}
+                          
+                          {/* Ticket Sessions (upcoming only) */}
+                          {upcomingTickets.map((session) => (
+                            <motion.div
+                              key={`ticket-${session.id}`}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              onClick={() => handleSessionClick(session, false)}
+                              className={`bg-obsidian rounded-xl border p-4 cursor-pointer transition-colors ${
+                                session.status === "live" 
+                                  ? "border-destructive/50 bg-destructive/5" 
+                                  : "border-border/30 hover:border-border/50"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                {session.artistAvatar ? (
+                                  <img
+                                    src={session.artistAvatar}
+                                    alt={session.artistName}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                                    {session.artistName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
+                                    <span className="px-1.5 py-0.5 rounded bg-gold/15 text-gold text-[10px] font-medium">
+                                      TICKET
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{session.artistName}</p>
+                                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {session.scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {session.scheduledAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                                    </span>
+                                  </div>
+                                </div>
+                                {renderStatusBadge(session.status)}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                          <Ticket className="w-12 h-12 text-muted-foreground mb-3" />
+                          <p className="text-muted-foreground text-center">
+                            No upcoming sessions
+                          </p>
+                          <p className="text-xs text-muted-foreground/70 mt-1 text-center">
+                            Add sessions from creator profiles to get reminders
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Past Sessions - Including missed and ended saved sessions */}
+                      <h3 className="font-display text-lg text-foreground mt-8 mb-4">Past Sessions</h3>
+                      {(ticketsLoading || savedLoading) ? (
+                        <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
+                          <div className="w-6 h-6 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
+                        </div>
+                      ) : (pastSaved.length > 0 || pastSessions.length > 0 || pastTickets.length > 0) ? (
+                        <div className="space-y-2">
+                          {/* Missed/Ended saved sessions with remove button */}
+                          {pastSaved.map((session) => (
+                            <motion.div
+                              key={`past-saved-${session.id}`}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, x: -20 }}
+                              onClick={() => handleSessionClick(session, true)}
+                              className={`bg-obsidian/50 rounded-xl border p-4 cursor-pointer transition-colors ${
+                                session.status === "missed"
+                                  ? "border-muted-foreground/30 opacity-70"
+                                  : "border-border/20 hover:border-border/40"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                {session.artistAvatar ? (
+                                  <img
+                                    src={session.artistAvatar}
+                                    alt={session.artistName}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                                    {session.artistName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
+                                  <p className="text-xs text-muted-foreground">{session.artistName}</p>
+                                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {session.scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {renderStatusBadge(session.status, session.attended)}
+                                  <button
+                                    onClick={(e) => handleRemoveSession(e, session.eventId)}
+                                    className="p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                    title="Remove from list"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+
+                          {/* Past ticketed sessions */}
+                          {pastSessions.map((session) => (
+                            <div
+                              key={`past-ticket-${session.id}`}
+                              className="bg-obsidian/50 rounded-xl border border-border/20 p-4"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{session.artistName}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {session.category || "Studio Session"} · {session.attendedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                  </p>
+                                </div>
+                                <span className="px-1.5 py-0.5 rounded bg-gold/15 text-gold text-[10px] font-medium">
+                                  TICKET
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-8 bg-obsidian/50 rounded-2xl border border-border/20">
+                          <p className="text-muted-foreground/60 text-sm">No past sessions</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </motion.div>
             )}
 
@@ -568,6 +683,26 @@ export function AudienceProfile({
         handle={localProfile?.handle || null}
         userId={user?.id}
       />
+
+      {/* Session Ended Screen */}
+      <AnimatePresence>
+        {selectedEndedSession && (
+          <SessionEndedScreen
+            title={selectedEndedSession.title}
+            artistName={selectedEndedSession.artistName}
+            artistAvatar={selectedEndedSession.artistAvatar}
+            scheduledAt={selectedEndedSession.scheduledAt}
+            creatorId={selectedEndedSession.creatorId}
+            isMissed={selectedEndedSession.status === "missed"}
+            onRemove={async () => {
+              await removeSession(selectedEndedSession.eventId);
+              refetchSaved();
+              setSelectedEndedSession(null);
+            }}
+            onBack={() => setSelectedEndedSession(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
