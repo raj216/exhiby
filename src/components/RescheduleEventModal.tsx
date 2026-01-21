@@ -70,14 +70,17 @@ export function RescheduleEventModal({
     setIsSubmitting(true);
 
     try {
-      // Update the event
+      // Update ONLY the scheduled_at field and reset live status
+      // IMPORTANT: Preserve creator_id, status fields - only update timestamp
+      // Set is_live to FALSE (not null) so queries with is_live.eq.false still match
       const { error } = await supabase
         .from("events")
         .update({
           scheduled_at: newDateTime.toISOString(),
-          // Reset status fields in case it was marked as missed
-          is_live: null,
+          // Reset to scheduled state (not live, not ended)
+          is_live: false,
           live_ended_at: null,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", eventId);
 
