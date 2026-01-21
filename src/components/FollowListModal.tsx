@@ -73,22 +73,25 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
           
-          {/* Centered Modal - absolute positioning with transform */}
+          {/* Full-screen flex wrapper for perfect centering */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed z-50 bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col"
-            style={{ 
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "min(92vw, 400px)",
-              maxHeight: "70vh",
-              height: "auto",
-            }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
           >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col pointer-events-auto"
+              style={{ 
+                width: "min(92vw, 420px)",
+                maxHeight: "70vh",
+              }}
+            >
             {/* Header - fixed height, no scroll */}
             <div className="flex items-center justify-between p-4 border-b border-border/30 flex-shrink-0">
               <h2 className="text-lg font-semibold text-foreground capitalize">
@@ -151,6 +154,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
                 </div>
               )}
             </div>
+            </motion.div>
           </motion.div>
         </>
       )}
