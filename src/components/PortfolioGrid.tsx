@@ -43,6 +43,11 @@ export function PortfolioGrid({
   useScrollLock(!!selectedImage);
 
   const handleImageClick = (item: PortfolioItem) => {
+    console.log("[PortfolioGrid] Image clicked:", { 
+      id: item.id, 
+      hasImageUrl: !!item.image_url,
+      title: item.title 
+    });
     triggerClickHaptic();
     setSelectedImage(item);
   };
@@ -114,97 +119,106 @@ export function PortfolioGrid({
   const threeColumns = getColumns(3);
 
   // Lightbox modal rendered via portal
-  const lightboxModal = (
+  const lightboxModal = selectedImage ? createPortal(
     <AnimatePresence>
-      {selectedImage && createPortal(
+      <motion.div
+        key="portfolio-lightbox"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[9999] flex items-center justify-center"
+        style={{ height: '100dvh' }}
+        onClick={handleCloseLightbox}
+      >
+        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
-          style={{ height: '100dvh' }}
-          onClick={handleCloseLightbox}
-        >
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-carbon/95 backdrop-blur-xl"
-          />
+          className="absolute inset-0 bg-carbon/95 backdrop-blur-xl"
+        />
 
-          {/* Delete Button (for owner) - top left */}
-          {canEdit && (
-            <button
-              onClick={handleDeleteClick}
-              className="absolute top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-20"
-              style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
-            >
-              <Trash2 className="w-5 h-5 text-destructive" />
-            </button>
-          )}
-
-          {/* Close Button - top right */}
+        {/* Delete Button (for owner) - top left */}
+        {canEdit && (
           <button
-            onClick={handleCloseLightbox}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center z-20"
+            onClick={handleDeleteClick}
+            className="absolute top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-20"
             style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
           >
-            <X className="w-5 h-5 text-foreground" />
+            <Trash2 className="w-5 h-5 text-destructive" />
           </button>
+        )}
 
-          {/* Content Panel - centered */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 flex flex-col items-center px-4"
-            style={{
-              maxWidth: "min(92vw, 800px)",
-              maxHeight: "calc(80dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Image */}
+        {/* Close Button - top right */}
+        <button
+          onClick={handleCloseLightbox}
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center z-20"
+          style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
+        >
+          <X className="w-5 h-5 text-foreground" />
+        </button>
+
+        {/* Content Panel - centered */}
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="relative z-10 flex flex-col items-center px-4"
+          style={{
+            maxWidth: "min(92vw, 800px)",
+            maxHeight: "calc(80dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Image */}
+          {selectedImage.image_url ? (
             <div className="rounded-2xl overflow-hidden">
               <img
                 src={selectedImage.image_url}
                 alt={selectedImage.title || "Portfolio artwork"}
                 className="max-w-full object-contain"
                 style={{ maxHeight: "calc(65dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))" }}
+                onError={(e) => {
+                  console.error("Image failed to load:", selectedImage.image_url);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
             </div>
+          ) : (
+            <div className="w-64 h-64 rounded-2xl bg-obsidian flex items-center justify-center">
+              <ImageIcon className="w-16 h-16 text-muted-foreground/50" />
+            </div>
+          )}
 
-            {/* Metadata: Title and Description */}
-            {(selectedImage.title || selectedImage.description) && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="mt-4 max-w-lg w-full text-center space-y-2"
-              >
-                {/* Title */}
-                {selectedImage.title && (
-                  <h3 className="text-xl font-display text-foreground">
-                    {selectedImage.title}
-                  </h3>
-                )}
+          {/* Metadata: Title and Description */}
+          {(selectedImage.title || selectedImage.description) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="mt-4 max-w-lg w-full text-center space-y-2"
+            >
+              {/* Title */}
+              {selectedImage.title && (
+                <h3 className="text-xl font-display text-foreground">
+                  {selectedImage.title}
+                </h3>
+              )}
 
-                {/* Description */}
-                {selectedImage.description && (
-                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
-                    {selectedImage.description}
-                  </p>
-                )}
-              </motion.div>
-            )}
-          </motion.div>
-        </motion.div>,
-        document.body
-      )}
-    </AnimatePresence>
-  );
+              {/* Description */}
+              {selectedImage.description && (
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
+                  {selectedImage.description}
+                </p>
+              )}
+            </motion.div>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>,
+    document.body
+  ) : null;
 
   if (isLoading) {
     return (
