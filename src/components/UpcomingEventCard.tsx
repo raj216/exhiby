@@ -261,9 +261,9 @@ export function UpcomingEventCard({
                   }
                 }
               }}
-              className="aspect-square h-full px-3 rounded-lg glass border border-border/40 flex items-center justify-center hover:bg-white/15 transition-all duration-luxury"
+              className="aspect-square h-full px-3 rounded-lg bg-muted/50 border border-border/50 flex items-center justify-center hover:bg-muted transition-all duration-luxury"
             >
-              <Share className="w-4 h-4 text-foreground" />
+              <Share className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>
