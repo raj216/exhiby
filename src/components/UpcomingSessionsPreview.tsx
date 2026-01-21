@@ -341,21 +341,32 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
                     : "bg-obsidian/50 border-border/30 hover:bg-obsidian/70"
                 }`}
               >
-                <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                    isLive
-                      ? "bg-red-500/20"
-                      : isEnded
-                      ? "bg-muted/30"
-                      : isMissed
-                      ? "bg-orange-500/10"
-                      : "bg-electric/10"
-                  }`}
-                >
-                  {isLive ? (
-                    <Radio className="w-5 h-5 text-red-400" />
+                {/* Event Thumbnail */}
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface shrink-0">
+                  {session.cover_url ? (
+                    <img 
+                      src={session.cover_url} 
+                      alt={session.title} 
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
-                    <Palette className={`w-5 h-5 ${isEnded || isMissed ? "text-muted-foreground" : "text-electric"}`} />
+                    <div
+                      className={`w-full h-full flex items-center justify-center ${
+                        isLive
+                          ? "bg-red-500/20"
+                          : isEnded
+                          ? "bg-muted/30"
+                          : isMissed
+                          ? "bg-orange-500/10"
+                          : "bg-electric/10"
+                      }`}
+                    >
+                      {isLive ? (
+                        <Radio className="w-5 h-5 text-red-400" />
+                      ) : (
+                        <Palette className={`w-5 h-5 ${isEnded || isMissed ? "text-muted-foreground" : "text-electric"}`} />
+                      )}
+                    </div>
                   )}
                 </div>
 
