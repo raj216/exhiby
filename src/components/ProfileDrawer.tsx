@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, LayoutDashboard, CreditCard, Settings, LogOut, Palette } from "lucide-react";
+import { X, User, LayoutDashboard, CreditCard, Settings, LogOut, Palette, Clock } from "lucide-react";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import featureFlags from "@/lib/featureFlags";
 
 interface ProfileDrawerProps {
   isOpen: boolean;
@@ -142,13 +143,21 @@ export function ProfileDrawer({
                 </button>
               )}
 
-              <button
-                onClick={() => handleAction(onSettings)}
-                className="w-full flex items-center gap-4 px-6 py-4 text-white hover:bg-muted/20 transition-colors"
-              >
-                <CreditCard className="w-5 h-5 text-muted-foreground" />
-                <span className="text-base font-medium">Wallet & Earnings</span>
-              </button>
+              {featureFlags.paymentsEnabled ? (
+                <button
+                  onClick={() => handleAction(onSettings)}
+                  className="w-full flex items-center gap-4 px-6 py-4 text-white hover:bg-muted/20 transition-colors"
+                >
+                  <CreditCard className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-base font-medium">Wallet & Earnings</span>
+                </button>
+              ) : (
+                <div className="w-full flex items-center gap-4 px-6 py-4 text-muted-foreground/60 cursor-not-allowed">
+                  <CreditCard className="w-5 h-5" />
+                  <span className="text-base font-medium">Wallet & Earnings</span>
+                  <span className="ml-auto text-xs bg-muted/30 px-2 py-0.5 rounded">Coming Soon</span>
+                </div>
+              )}
 
               <button
                 onClick={() => handleAction(onSettings)}

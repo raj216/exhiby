@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar, Check } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar, Check, Clock } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { useFollowStats } from "@/hooks/useFollowStats";
+import featureFlags from "@/lib/featureFlags";
 interface ScheduledEvent {
   id: string;
   title: string;
@@ -395,22 +396,35 @@ export function StudioDashboard({
         
         <div className="grid grid-cols-2 gap-4">
           {/* Earnings - 50% width - Clickable → navigates to /earnings-history */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              triggerClickHaptic();
-              navigate("/earnings-history");
-            }}
-            className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <DollarSign className="w-5 h-5 text-gold" />
-              <span className="text-sm text-muted-foreground">This Month</span>
+          {featureFlags.paymentsEnabled ? (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                triggerClickHaptic();
+                navigate("/earnings-history");
+              }}
+              className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign className="w-5 h-5 text-gold" />
+                <span className="text-sm text-muted-foreground">This Month</span>
+              </div>
+              <p className="font-display text-3xl text-gold">
+                {showEarnings ? `$${analytics.totalEarnings.toLocaleString()}` : "••••"}
+              </p>
+            </motion.button>
+          ) : (
+            <div className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left">
+              <div className="flex items-center gap-2 mb-3">
+                <DollarSign className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Earnings</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Coming soon</p>
+              </div>
             </div>
-            <p className="font-display text-3xl text-gold">
-              {showEarnings ? `$${analytics.totalEarnings.toLocaleString()}` : "••••"}
-            </p>
-          </motion.button>
+          )}
           
           {/* Tickets Sold - 50% width - Clickable → navigates to /tickets-history */}
           <motion.button

@@ -17,6 +17,7 @@ import { useLiveEvents, LiveEvent } from "@/hooks/useLiveEvents";
 import { getCategoryId } from "@/lib/categories";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEventTicket } from "@/hooks/useEventTicket";
+import featureFlags from "@/lib/featureFlags";
 interface HomeScreenProps {
   onGoLive: () => void;
   onViewCreatorProfile?: () => void;
@@ -195,6 +196,13 @@ export function HomeScreen({
     // Navigate directly to the live room page
     console.log("[HomeScreen] Navigating to live room:", event.id);
     
+    // When payments are disabled, all events are free - go directly to live room
+    if (!featureFlags.paymentsEnabled || event.price === 0) {
+      navigate(`/live/${event.id}`);
+      return;
+    }
+    
+    // Payments enabled and event is paid
     if (event.price > 0) {
       // Set portal event first to trigger ticket check
       setPortalEvent(event);
