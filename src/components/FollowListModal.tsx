@@ -3,6 +3,7 @@ import { X, UserCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface FollowUser {
   user_id: string;
@@ -22,6 +23,9 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Lock background scroll when modal is open
+  useScrollLock(isOpen);
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -69,84 +73,83 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
           
-          {/* Centered Modal Container */}
+          {/* Centered Modal - absolute positioning with transform */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 grid place-items-center pointer-events-none"
-            style={{ height: "100dvh" }}
+            className="fixed z-50 bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col"
+            style={{ 
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "min(92vw, 400px)",
+              maxHeight: "70vh",
+              height: "auto",
+            }}
           >
-            <div 
-              className="bg-obsidian rounded-2xl shadow-2xl border border-border/30 overflow-hidden pointer-events-auto flex flex-col"
-              style={{ 
-                width: "min(92vw, 400px)",
-                maxHeight: "70vh"
-              }}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border/30 flex-shrink-0">
-                <h2 className="text-lg font-semibold text-foreground capitalize">
-                  {type}
-                </h2>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
-                >
-                  <X className="w-5 h-5 text-foreground" />
-                </button>
-              </div>
+            {/* Header - fixed height, no scroll */}
+            <div className="flex items-center justify-between p-4 border-b border-border/30 flex-shrink-0">
+              <h2 className="text-lg font-semibold text-foreground capitalize">
+                {type}
+              </h2>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+              >
+                <X className="w-5 h-5 text-foreground" />
+              </button>
+            </div>
 
-              {/* User List - only this scrolls */}
-              <div className="flex-1 overflow-y-auto min-h-0">
-                {isLoading ? (
-                  <div className="p-8 text-center">
-                    <div className="w-8 h-8 border-2 border-muted-foreground border-t-foreground rounded-full animate-spin mx-auto" />
-                  </div>
-                ) : users.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <UserCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">
-                      {type === "followers" ? "No followers yet" : "Not following anyone"}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/20">
-                    {users.map((user) => (
-                      <button
-                        key={user.user_id}
-                        onClick={() => handleUserClick(user.user_id)}
-                        className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
-                      >
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                          {user.avatar_url ? (
-                            <img
-                              src={user.avatar_url}
-                              alt={user.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-muted">
-                              <UserCircle className="w-8 h-8 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-foreground font-medium truncate">
-                            {user.handle || user.name}
+            {/* User List - only this scrolls if content exceeds */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              {isLoading ? (
+                <div className="p-8 text-center">
+                  <div className="w-8 h-8 border-2 border-muted-foreground border-t-foreground rounded-full animate-spin mx-auto" />
+                </div>
+              ) : users.length === 0 ? (
+                <div className="p-8 text-center">
+                  <UserCircle className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">
+                    {type === "followers" ? "No followers yet" : "Not following anyone"}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/20">
+                  {users.map((user) => (
+                    <button
+                      key={user.user_id}
+                      onClick={() => handleUserClick(user.user_id)}
+                      className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex-shrink-0">
+                        {user.avatar_url ? (
+                          <img
+                            src={user.avatar_url}
+                            alt={user.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-muted">
+                            <UserCircle className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground font-medium truncate">
+                          {user.handle || user.name}
+                        </p>
+                        {user.handle && (
+                          <p className="text-muted-foreground text-sm truncate">
+                            {user.name}
                           </p>
-                          {user.handle && (
-                            <p className="text-muted-foreground text-sm truncate">
-                              {user.name}
-                            </p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
         </>
