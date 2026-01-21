@@ -75,8 +75,17 @@ export function StudioDashboard({
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduledEvent[]>([]);
 
   // Fetch upcoming events + ready-to-go-live events (scheduled time passed, not live yet, not ended)
+  // Uses time-aware filtering to include:
+  // 1. All future scheduled sessions (no upper-bound - includes 30+ days out)
+  // 2. Currently live sessions
+  // 3. Missed sessions within 60 min window (for "Go Live Now" button)
+  // Excludes ended sessions and old missed sessions
   const fetchUpcomingEvents = useCallback(async () => {
     if (!user) return;
+    
+    const now = new Date();
+    const sixtyMinutesAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    
     const {
       data,
       error
@@ -85,6 +94,11 @@ export function StudioDashboard({
       .select('id, title, cover_url, scheduled_at, is_free, price, creator_id, is_live, live_ended_at')
       .eq('creator_id', user.id)
       .is('live_ended_at', null) // Not ended
+      .or(
+        `scheduled_at.gt.${now.toISOString()},` + // Future sessions (any date, no upper limit)
+        `is_live.eq.true,` + // Currently live
+        `and(scheduled_at.gte.${sixtyMinutesAgo.toISOString()},scheduled_at.lte.${now.toISOString()})` // Missed within 60 min
+      )
       .order('scheduled_at', { ascending: true });
     
     if (!error && data) {
