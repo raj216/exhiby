@@ -55,14 +55,17 @@ export function ClosedDoor({
       </motion.div>
 
       {/* Invitation line */}
-      <motion.p
-        className="my-8 max-w-xs text-center text-sm md:text-base font-light font-sans text-muted-foreground/80"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.85, duration: 0.6, ease: "easeOut" }}
-      >
-        “Support the artists you love, live.”
-      </motion.p>
+      <motion.p className="my-8 max-w-xs text-center text-sm md:text-base font-light font-sans text-muted-foreground/80" initial={{
+      opacity: 0,
+      y: 10
+    }} animate={{
+      opacity: 1,
+      y: 0
+    }} transition={{
+      delay: 0.85,
+      duration: 0.6,
+      ease: "easeOut"
+    }}>Support the artists you love, live.</motion.p>
 
       {/* Action Buttons */}
       <motion.div className="flex flex-col gap-4 w-full max-w-xs" initial={{
