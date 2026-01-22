@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { usePublicCreatorStats } from "@/hooks/usePublicCreatorStats";
 import { CreatorReputationStats } from "@/components/CreatorReputationStats";
 import { UpcomingSessionsPreview } from "@/components/UpcomingSessionsPreview";
+import { TipCreatorModal } from "@/components/TipCreatorModal";
 
 interface LiveEventData {
   id: string;
@@ -49,6 +50,7 @@ export default function PublicProfile() {
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [liveEvent, setLiveEvent] = useState<LiveEventData | null>(null);
+  const [isTipOpen, setIsTipOpen] = useState(false);
 
   const isOwnProfile = user?.id === profile?.user_id;
   
@@ -57,6 +59,8 @@ export default function PublicProfile() {
   
   // Public creator stats (only show if user is a creator)
   const { stats: creatorStats, loading: creatorStatsLoading } = usePublicCreatorStats(profile?.user_id);
+
+  const showTipMe = Boolean(creatorStats.isCreator);
   
   // Check if user is a founding member from database
   const isFoundingMember = profile?.is_founding_member ?? false;
@@ -536,24 +540,44 @@ export default function PublicProfile() {
         </motion.div>
 
         {/* Founding Member Badge */}
-        {isFoundingMember && (
+        {(isFoundingMember || showTipMe) && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.32 }}
-            className="flex justify-center mt-5"
+            className="mt-5"
           >
-            <div 
-              className="px-4 py-2 rounded-full border-2 flex items-center gap-2 shadow-gold"
-              style={{
-                background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
-                borderColor: "hsl(43 72% 52% / 0.6)"
-              }}
-            >
-              <Award className="w-4 h-4 text-gold" />
-              <span className="text-sm font-semibold text-gold">
-                Founding Member {foundingNumber ? `#${foundingNumber}` : ""}
-              </span>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {/* Founding Member Pill */}
+              {isFoundingMember && (
+                <div
+                  className="px-4 py-2 rounded-full border-2 flex items-center gap-2 shadow-gold"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
+                    borderColor: "hsl(43 72% 52% / 0.6)",
+                  }}
+                >
+                  <Award className="w-4 h-4 text-gold" />
+                  <span className="text-sm font-semibold text-gold">
+                    Founding Member {foundingNumber ? `#${foundingNumber}` : ""}
+                  </span>
+                </div>
+              )}
+
+              {/* Tip Me Pill (creator-only) */}
+              {showTipMe && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setIsTipOpen(true);
+                  }}
+                  className="px-4 py-2 rounded-full border border-border/40 bg-carbon/60 backdrop-blur-sm flex items-center gap-2 hover:bg-muted/30 transition-colors"
+                >
+                  <Heart className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Tip Me</span>
+                </motion.button>
+              )}
             </div>
           </motion.div>
         )}
@@ -611,6 +635,16 @@ export default function PublicProfile() {
           onClose={() => setShowFollowList(null)}
           userId={profile.user_id}
           type={showFollowList || "followers"}
+        />
+      )}
+
+      {/* Tip Modal */}
+      {profile && (
+        <TipCreatorModal
+          isOpen={isTipOpen}
+          onClose={() => setIsTipOpen(false)}
+          creatorName={profile.name}
+          onComingSoon={() => toast.info("Tips will be enabled soon")}
         />
       )}
     </div>
