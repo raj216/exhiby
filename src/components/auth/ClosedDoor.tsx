@@ -12,7 +12,7 @@ export function ClosedDoor({
   onHoverStart,
   onHoverEnd
 }: ClosedDoorProps) {
-  return <motion.div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6" initial={{
+  return <motion.div className="relative z-10 min-h-screen flex flex-col items-center px-6 py-12" initial={{
     opacity: 0
   }} animate={{
     opacity: 1
@@ -21,8 +21,8 @@ export function ClosedDoor({
   }} transition={{
     duration: 0.5
   }}>
-      {/* Pulsing Neon Logo */}
-      <motion.div className="flex flex-col items-center gap-4 mb-8" initial={{
+      {/* Brand Block (Top Group) */}
+      <motion.div className="flex flex-col items-center gap-2" initial={{
       scale: 0.9,
       opacity: 0
     }} animate={{
@@ -54,21 +54,11 @@ export function ClosedDoor({
         </motion.p>
       </motion.div>
 
-      {/* Invitation line */}
-      <motion.p className="my-8 max-w-xs text-center text-sm md:text-base font-light font-sans text-muted-foreground/80" initial={{
-      opacity: 0,
-      y: 10
-    }} animate={{
-      opacity: 1,
-      y: 0
-    }} transition={{
-      delay: 0.85,
-      duration: 0.6,
-      ease: "easeOut"
-    }}>Support the artists you love, live.</motion.p>
+      {/* Breathing room between brand + actions */}
+      <div className="flex-1" />
 
-      {/* Action Buttons */}
-      <motion.div className="flex flex-col gap-4 w-full max-w-xs" initial={{
+      {/* Action Block (Bottom Group) */}
+      <motion.div className="flex flex-col items-center w-full max-w-xs gap-6" initial={{
       opacity: 0,
       y: 30
     }} animate={{
@@ -78,6 +68,19 @@ export function ClosedDoor({
       delay: 0.95,
       duration: 0.5
     }}>
+        {/* Invitation line */}
+        <motion.p className="max-w-xs text-center text-sm md:text-base font-light font-sans text-muted-foreground/70" initial={{
+        opacity: 0,
+        y: 10
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        delay: 0.85,
+        duration: 0.6,
+        ease: "easeOut"
+      }}>Support the artists you love, live.</motion.p>
+
         {/* Primary: Get a Pass (Sign Up) */}
         <motion.button className="relative w-full py-4 px-8 rounded-2xl font-semibold text-lg overflow-hidden group" onClick={onGetPass} onHoverStart={onHoverStart} onHoverEnd={onHoverEnd} whileHover={{
         scale: 1.02
