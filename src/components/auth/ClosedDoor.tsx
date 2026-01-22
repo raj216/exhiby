@@ -22,7 +22,7 @@ export function ClosedDoor({
     duration: 0.5
   }}>
       {/* Pulsing Neon Logo */}
-      <motion.div className="flex flex-col items-center gap-4 mb-20" initial={{
+      <motion.div className="flex flex-col items-center gap-4 mb-8" initial={{
       scale: 0.9,
       opacity: 0
     }} animate={{
@@ -54,6 +54,16 @@ export function ClosedDoor({
         </motion.p>
       </motion.div>
 
+      {/* Invitation line */}
+      <motion.p
+        className="my-8 max-w-xs text-center text-sm md:text-base font-light font-sans text-muted-foreground/80"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.85, duration: 0.6, ease: "easeOut" }}
+      >
+        “Support the artists you love, live.”
+      </motion.p>
+
       {/* Action Buttons */}
       <motion.div className="flex flex-col gap-4 w-full max-w-xs" initial={{
       opacity: 0,
@@ -62,7 +72,7 @@ export function ClosedDoor({
       opacity: 1,
       y: 0
     }} transition={{
-      delay: 0.7,
+      delay: 0.95,
       duration: 0.5
     }}>
         {/* Primary: Get a Pass (Sign Up) */}
