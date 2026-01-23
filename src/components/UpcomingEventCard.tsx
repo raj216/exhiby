@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { BadgeCheck, Bell, BellRing, Calendar, Check, Loader2, Share } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { format } from "date-fns";
 import { useSavedSessions } from "@/hooks/useSavedSessions";
@@ -42,6 +42,7 @@ export function UpcomingEventCard({
   desktopSize = false,
 }: UpcomingEventCardProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { isEventSaved, saveSession, removeSession } = useSavedSessions();
   const [isLoading, setIsLoading] = useState(false);
@@ -117,14 +118,23 @@ export function UpcomingEventCard({
     
     if (!creatorId) return;
     
-    // Navigate to the creator's profile
-    // If it's the current user, they'll be redirected to their own profile view
-    if (user?.id === creatorId) {
-      // Navigate to own profile (handled by routing logic)
-      navigate(`/profile/${creatorId}`);
-    } else {
-      navigate(`/profile/${creatorId}`);
+    // Navigate to the creator's profile, preserving return context.
+    const baseState =
+      location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
+    const returnTo = {
+      pathname: location.pathname,
+      search: location.search,
+      state: baseState,
+    };
+
+    try {
+      sessionStorage.setItem("exhiby_return_to", JSON.stringify(returnTo));
+    } catch {
+      // ignore
     }
+
+    // If it's the current user, PublicProfile will redirect to internal profile.
+    navigate(`/profile/${creatorId}`, { state: { returnTo } });
   };
 
   // Format the scheduled date
