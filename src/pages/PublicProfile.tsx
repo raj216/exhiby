@@ -338,159 +338,148 @@ export default function PublicProfile() {
 
   return (
     <div className="min-h-screen bg-carbon">
-      {/* Cover Image */}
-      <div className="relative h-48 md:h-64">
-        {profile.cover_url ? (
-          <img
-            src={profile.cover_url}
-            alt={`Cover photo of ${profile.name}`}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
-        )}
+      {/* Main Container - match creator self-view (StudioDashboard) */}
+      <div className="max-w-screen-xl mx-auto lg:px-8">
+        {/* Cover Image - constrained to container (matches creator self-view) */}
+        <div className="relative h-48 sm:h-56 w-full overflow-hidden">
+          {profile.cover_url ? (
+            <img
+              src={profile.cover_url}
+              alt={`Cover photo of ${profile.name}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
+          )}
 
-        {/* Live pill on cover */}
-        {isLive && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full backdrop-blur-sm border border-live/30 bg-carbon/70 flex items-center gap-2"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-live" />
-            </span>
-            <span className="text-xs font-bold tracking-wide text-primary-foreground">LIVE NOW</span>
-            {viewerCount > 0 && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Users className="w-3 h-3" />
-                {viewerCount}
-              </span>
-            )}
-          </motion.div>
-        )}
-
-        {/* Back Button */}
-        <motion.button
-          onClick={handleBack}
-          className="absolute top-4 left-4 p-2 rounded-full bg-carbon/60 backdrop-blur-sm border border-border/30"
-          style={{ top: "max(1rem, env(safe-area-inset-top))" }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ArrowLeft className="w-5 h-5 text-foreground" />
-        </motion.button>
-
-        {/* Share Button */}
-        <motion.button
-          onClick={handleShare}
-          className="absolute top-4 right-4 p-2 rounded-full bg-carbon/60 backdrop-blur-sm border border-border/30"
-          style={{ top: "max(1rem, env(safe-area-inset-top))" }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Share2 className="w-5 h-5 text-foreground" />
-        </motion.button>
-      </div>
-
-      {/* Profile Content */}
-      <div className="px-4 md:px-6 -mt-16 relative z-10 max-w-2xl mx-auto">
-        {/* Avatar with Live Beacon */}
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="relative"
-        >
-          {/* Beacon wrapper (must NOT be overflow-hidden or the ring gets clipped) */}
-          <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full ${isLive ? "live-avatar-beacon" : ""}`}>
-            <div className="w-full h-full rounded-full border-4 border-carbon overflow-hidden bg-obsidian">
-              {profile.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={`Avatar of ${profile.name}`}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground">
-                  {profile.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* LIVE Badge */}
+          {/* Live pill on cover */}
           {isLive && (
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 400 }}
-              className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full font-bold text-xs bg-live text-primary-foreground"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute bottom-4 left-4 px-3 py-1.5 rounded-full backdrop-blur-sm border border-live/30 bg-carbon/70 flex items-center gap-2"
             >
-              LIVE
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-live opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-live" />
+              </span>
+              <span className="text-xs font-bold tracking-wide text-primary-foreground">LIVE NOW</span>
+              {viewerCount > 0 && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Users className="w-3 h-3" />
+                  {viewerCount}
+                </span>
+              )}
             </motion.div>
           )}
-        </motion.div>
 
-        {/* Name & Handle */}
-        <motion.div
-          className="mt-4"
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.15 }}
-        >
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl md:text-3xl text-foreground">
-              {profile.name}
-            </h1>
-            {profile.is_verified === true && (
-              <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
+          {/* Back Button */}
+          <motion.button
+            onClick={handleBack}
+            className="absolute top-4 left-4 p-2 rounded-full bg-carbon/60 backdrop-blur-sm border border-border/30"
+            style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft className="w-5 h-5 text-foreground" />
+          </motion.button>
+
+          {/* Share Button */}
+          <motion.button
+            onClick={handleShare}
+            className="absolute top-4 right-4 p-2 rounded-full bg-carbon/60 backdrop-blur-sm border border-border/30"
+            style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Share2 className="w-5 h-5 text-foreground" />
+          </motion.button>
+        </div>
+
+        {/* Profile Content - match creator self-view spacing */}
+        <div className="relative px-4 -mt-16">
+          {/* Avatar with Live Beacon */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="relative"
+          >
+            {/* Beacon wrapper (must NOT be overflow-hidden or the ring gets clipped) */}
+            <div className={`w-28 h-28 rounded-full ${isLive ? "live-avatar-beacon" : ""}`}>
+              <div className="w-full h-full rounded-full border-4 border-carbon overflow-hidden bg-obsidian">
+                {profile.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={`Avatar of ${profile.name}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* LIVE Badge */}
+            {isLive && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 400 }}
+                className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full font-bold text-xs bg-live text-primary-foreground"
+              >
+                LIVE
+              </motion.div>
             )}
-          </div>
-          {profile.handle && (
-            <p className="text-muted-foreground text-sm">@{profile.handle}</p>
-          )}
-        </motion.div>
+          </motion.div>
 
-        {/* Bio */}
-        <motion.div
-          className="mt-4"
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          {profile.bio ? (
-            <p className="text-foreground/80 text-sm leading-relaxed">
-              {profile.bio}
-            </p>
-          ) : (
-            <p className="text-muted-foreground/50 text-sm italic">
-              No bio yet
-            </p>
-          )}
-          {websiteHref && (
-            <a
-              href={websiteHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-electric text-sm hover:underline mt-1 block"
-            >
-              {websiteHref.replace(/^https?:\/\//, "")}
-            </a>
-          )}
-        </motion.div>
+          {/* Name & Handle & Bio (spacing matches creator self-view) */}
+          <motion.div
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15 }}
+            className="mt-4"
+          >
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-2xl text-foreground font-bold">
+                {profile.name}
+              </h1>
+              {profile.is_verified === true && (
+                <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
+              )}
+            </div>
+            {profile.handle && (
+              <p className="text-muted-foreground text-sm mt-0.5">@{profile.handle}</p>
+            )}
+            {profile.bio ? (
+              <p className="text-foreground/80 text-sm mt-2">{profile.bio}</p>
+            ) : (
+              <p className="text-muted-foreground/50 text-sm italic mt-2">No bio yet</p>
+            )}
+            {websiteHref && (
+              <a
+                href={websiteHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-electric text-sm hover:underline mt-1 block"
+              >
+                {websiteHref.replace(/^https?:\/\//, "")}
+              </a>
+            )}
+          </motion.div>
 
-        {/* Creator Reputation Stats - Only show for creators */}
-        {creatorStats.isCreator && !creatorStatsLoading && (
-          <div className="mt-4">
-            <CreatorReputationStats
-              sessionsHosted={creatorStats.sessionsHosted}
-              averageRating={creatorStats.averageRating}
-              totalGuests={creatorStats.totalGuests}
-            />
-          </div>
-        )}
+          {/* Creator Reputation Stats - Only show for creators */}
+          {creatorStats.isCreator && !creatorStatsLoading && (
+            <div className="mt-4">
+              <CreatorReputationStats
+                sessionsHosted={creatorStats.sessionsHosted}
+                averageRating={creatorStats.averageRating}
+                totalGuests={creatorStats.totalGuests}
+              />
+            </div>
+          )}
 
         {/* Stats */}
         <motion.div
@@ -640,15 +629,16 @@ export default function PublicProfile() {
           <UpcomingSessionsPreview creatorUserId={profile.user_id} />
         )}
 
-        {/* Portfolio Section */}
-        <motion.div
-          className="mt-8 pb-8"
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.45 }}
-        >
-          <PortfolioGrid userId={profile.user_id} isOwner={false} />
-        </motion.div>
+          {/* Portfolio Section */}
+          <motion.div
+            className="mt-8 pb-8"
+            initial={{ y: 10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.45 }}
+          >
+            <PortfolioGrid userId={profile.user_id} isOwner={false} />
+          </motion.div>
+        </div>
       </div>
 
       {/* Follow List Modal */}
