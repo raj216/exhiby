@@ -250,17 +250,17 @@ export function AudienceProfile({
           >
             <p className="text-sm text-muted-foreground">
               <button 
-                onClick={() => { triggerClickHaptic(); setShowFollowList("following"); }}
-                className="hover:underline"
-              >
-                <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
-              </button>
-              {" · "}
-              <button 
                 onClick={() => { triggerClickHaptic(); setShowFollowList("followers"); }}
                 className="hover:underline"
               >
                 <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
+              </button>
+              {" · "}
+              <button 
+                onClick={() => { triggerClickHaptic(); setShowFollowList("following"); }}
+                className="hover:underline"
+              >
+                <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
               </button>
             </p>
             <p className="text-sm text-muted-foreground">

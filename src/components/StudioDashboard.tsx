@@ -262,16 +262,16 @@ export function StudioDashboard({
       }} className="text-sm text-muted-foreground mt-3">
           <button onClick={() => {
           triggerClickHaptic();
-          setShowFollowList("following");
+          setShowFollowList("followers");
         }} className="hover:underline">
-            <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
+            <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
           </button>
           {" · "}
           <button onClick={() => {
           triggerClickHaptic();
-          setShowFollowList("followers");
+          setShowFollowList("following");
         }} className="hover:underline">
-            <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
+            <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
           </button>
         </motion.div>
 
