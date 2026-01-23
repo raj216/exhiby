@@ -58,7 +58,9 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   };
 
   const handleUserClick = (userIdToVisit: string) => {
-    onClose();
+    // IMPORTANT: Do NOT close the modal before navigating.
+    // The modal open state can be encoded in URL history by the parent.
+    // Closing first would destroy that history entry, breaking back navigation.
     navigate(`/profile/${userIdToVisit}`);
   };
 
