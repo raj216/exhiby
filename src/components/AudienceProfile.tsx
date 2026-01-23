@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
   Image as ImageIcon, 
-  Award, 
   ShoppingBag,
   Ticket,
   ChevronRight,
@@ -293,37 +292,21 @@ export function AudienceProfile({
             </button>
           </motion.div>
 
-          {/* Founding Member Badge - Centered, Premium */}
-          {localProfile?.isFoundingMember && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex justify-center mt-5"
-            >
-              <div 
-                className="px-4 py-2 rounded-full border-2 flex items-center gap-2 shadow-gold"
-                style={{
-                  background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
-                  borderColor: "hsl(43 72% 52% / 0.6)"
-                }}
-              >
-                <Award className="w-4 h-4 text-gold" />
-                <span className="text-sm font-semibold text-gold">
-                  Founding Member {localProfile.foundingNumber ? `#${localProfile.foundingNumber}` : ""}
-                </span>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Passport Line */}
+          {/* Passport Line (Founding status merged into timestamp) */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.35 }}
             className="text-xs text-muted-foreground mt-4"
           >
-            Collector's Passport · Since {displayMemberSince}
+            {localProfile?.isFoundingMember ? (
+              <>
+                <span className="text-gold font-semibold">Founding Member</span>
+                <span> · Since {displayMemberSince}</span>
+              </>
+            ) : (
+              <>Collector's Passport · Since {displayMemberSince}</>
+            )}
           </motion.p>
         </div>
 
