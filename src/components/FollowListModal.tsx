@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { FollowListRow, type FollowUser } from "@/components/follow/FollowListRow";
+import { toast } from "sonner";
 
 interface FollowListModalProps {
   isOpen: boolean;
@@ -52,9 +53,15 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   };
 
   const handleUserClick = (user: FollowUser) => {
-    const userIdToVisit = user?.user_id;
-    console.log("FollowList row clicked", user);
-    if (!userIdToVisit) return;
+    console.log("clicked user:", user);
+
+    const targetId = user?.user_id || user?.id || user?.profile_id;
+    console.log("targetId:", targetId);
+
+    if (!targetId) {
+      toast.error("Unable to open profile — missing user id");
+      return;
+    }
 
     // Close modal first (requested behavior). We still persist an explicit returnTo
     // context so the PublicProfile back button can restore this modal.
@@ -85,8 +92,8 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
       // ignore
     }
 
-    console.log("Navigating to", `/profile/${userIdToVisit}`);
-    navigate(`/profile/${userIdToVisit}`, {
+    console.log("Navigating to", `/profile/${targetId}`);
+    navigate(`/profile/${targetId}`, {
       state: {
         returnTo,
       },

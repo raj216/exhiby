@@ -1,7 +1,10 @@
 import { BadgeCheck, UserCircle } from "lucide-react";
 
 export interface FollowUser {
-  user_id: string;
+  // Depending on RPC, this can come back as user_id (auth user id) or id/profile_id (profile row id)
+  user_id?: string;
+  id?: string;
+  profile_id?: string;
   name: string;
   handle: string | null;
   avatar_url: string | null;
