@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Loader2 } from "lucide-react";
@@ -38,9 +38,27 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { results: profileResults, isSearching, searchProfiles, clearResults } = useProfileSearch();
+  const { results: profileResults, isSearching, searchProfiles, clearResults, hydrateResults } = useProfileSearch();
   const { recentSearches, addSearch } = useRecentSearches();
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const SEARCH_STATE_KEY = "exhiby_search_state";
+  const isHydratingRef = useRef(false);
+
+  const persistSearchState = useCallback(() => {
+    try {
+      sessionStorage.setItem(
+        SEARCH_STATE_KEY,
+        JSON.stringify({
+          query,
+          results: profileResults,
+          ts: Date.now(),
+        })
+      );
+    } catch {
+      // ignore
+    }
+  }, [SEARCH_STATE_KEY, query, profileResults]);
   
   // Lock body scroll when overlay is open
   useScrollLock(isOpen);
@@ -51,13 +69,47 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
       setTimeout(() => inputRef.current?.focus(), 100);
     }
     if (!isOpen) {
+      // Keep state persisted even after closing; we clear local state for cleanliness.
+      persistSearchState();
       setQuery("");
       clearResults();
     }
-  }, [isOpen, clearResults]);
+  }, [isOpen, clearResults, persistSearchState]);
+
+  // Restore last query/results when opening
+  useEffect(() => {
+    if (!isOpen) return;
+
+    try {
+      const raw = sessionStorage.getItem(SEARCH_STATE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { query?: string; results?: SearchResult[] };
+      if (typeof parsed.query === "string" && parsed.query.trim()) {
+        isHydratingRef.current = true;
+        setQuery(parsed.query);
+        if (Array.isArray(parsed.results)) {
+          hydrateResults(parsed.results, { clearError: true });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [isOpen, hydrateResults]);
+
+  // Persist as user types / results change (only while open)
+  useEffect(() => {
+    if (!isOpen) return;
+    persistSearchState();
+  }, [isOpen, query, profileResults, persistSearchState]);
 
   // Debounced search
   useEffect(() => {
+    if (isHydratingRef.current) {
+      // Skip one debounce cycle after hydration so we keep the exact restored results.
+      isHydratingRef.current = false;
+      return;
+    }
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -102,6 +154,9 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
       onClose();
       navigate("/", { state: { openProfile: true } });
     } else {
+      // Persist current query + results so back restores the exact list.
+      persistSearchState();
+
       // HARD FIX: pass explicit return context so PublicProfile back button
       // can return to Search even if history is empty/reset.
       const baseState =
