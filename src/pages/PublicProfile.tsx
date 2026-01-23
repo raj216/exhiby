@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck, Heart } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck, Heart, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { usePublicCreatorStats } from "@/hooks/usePublicCreatorStats";
 import { CreatorReputationStats } from "@/components/CreatorReputationStats";
 import { UpcomingSessionsPreview } from "@/components/UpcomingSessionsPreview";
 import { TipCreatorModal } from "@/components/TipCreatorModal";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface LiveEventData {
   id: string;
@@ -52,6 +53,7 @@ export default function PublicProfile() {
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [liveEvent, setLiveEvent] = useState<LiveEventData | null>(null);
   const [isTipOpen, setIsTipOpen] = useState(false);
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
 
   const isOwnProfile = user?.id === profile?.user_id;
   
@@ -551,28 +553,40 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
-        {/* Tip Me pill (creator-only) */}
-        {showTipMe && (
+        {/* Message + Tip pills (creator-only, audience view) */}
+        {showTipMe && !isOwnProfile && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.32 }}
             className="mt-5"
           >
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {showTipMe && (
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    triggerHaptic("light");
-                    setIsTipOpen(true);
-                  }}
-                  className="px-4 py-2 rounded-full border border-border/40 bg-carbon/60 backdrop-blur-sm flex items-center gap-2 hover:bg-muted/30 transition-colors"
-                >
-                  <Heart className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">Tip Me</span>
-                </motion.button>
-              )}
+            <div className="flex items-center justify-center gap-3">
+              {/* Message (LEFT) */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setIsMessageOpen(true);
+                }}
+                className="px-4 py-2 rounded-full border border-border/40 bg-carbon/60 backdrop-blur-sm flex items-center gap-2 hover:bg-muted/30 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Message</span>
+              </motion.button>
+
+              {/* Tip / Support (RIGHT) */}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setIsTipOpen(true);
+                }}
+                className="px-4 py-2 rounded-full border border-border/40 bg-carbon/60 backdrop-blur-sm flex items-center gap-2 hover:bg-muted/30 transition-colors"
+              >
+                <Heart className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">Tip Me</span>
+              </motion.button>
             </div>
           </motion.div>
         )}
@@ -650,6 +664,23 @@ export default function PublicProfile() {
           onComingSoon={() => toast.info("Tips will be enabled soon")}
         />
       )}
+
+      {/* Message Placeholder Modal */}
+      <Dialog open={isMessageOpen} onOpenChange={setIsMessageOpen}>
+        <DialogContent className="bg-obsidian border-border/40">
+          <DialogHeader>
+            <DialogTitle className="font-display text-foreground">Messaging is coming soon</DialogTitle>
+            <DialogDescription>
+              Direct messages with creators aren’t available yet. We’ll add this soon.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setIsMessageOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
