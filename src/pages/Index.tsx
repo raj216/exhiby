@@ -15,7 +15,6 @@ import { PageTransition } from "@/components/PageTransition";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationHistory, type Screen } from "@/hooks/useNavigationHistory";
-import { navigateBack } from "@/lib/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -67,7 +66,8 @@ function IndexContent() {
   const handleBack = useCallback(() => {
     // Prefer real router history (so routed pages like /tickets-history go back correctly).
     setTransitionDirection("backward");
-    navigateBack(navigate, "/");
+    // Always go back exactly one step; do not force a homepage fallback.
+    navigate(-1);
 
     // Also keep the internal screen stack in sync for in-app screens.
     if (canGoBack) {
