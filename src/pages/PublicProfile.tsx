@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck, Heart, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +44,7 @@ export default function PublicProfile() {
     userId: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     user
   } = useAuth();
@@ -253,7 +254,60 @@ export default function PublicProfile() {
   };
   const handleBack = () => {
     triggerHaptic("light");
-    navigate(-1);
+
+    // HARD FIX: prefer explicit return context so back works even if browser history
+    // was reset (new tab, full reload, replace(), etc.).
+    const state = (location.state && typeof location.state === "object"
+      ? (location.state as Record<string, unknown>)
+      : {}) as Record<string, unknown>;
+
+    const returnTo = state.returnTo as
+      | {
+          pathname: string;
+          search?: string;
+          state?: Record<string, unknown>;
+        }
+      | undefined;
+
+    if (returnTo?.pathname) {
+      navigate(
+        {
+          pathname: returnTo.pathname,
+          search: returnTo.search ?? "",
+        },
+        { state: returnTo.state ?? undefined }
+      );
+      return;
+    }
+
+    try {
+      const raw = sessionStorage.getItem("exhiby_return_to");
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          pathname?: string;
+          search?: string;
+          state?: Record<string, unknown>;
+        };
+        if (parsed?.pathname) {
+          navigate(
+            { pathname: parsed.pathname, search: parsed.search ?? "" },
+            { state: parsed.state ?? undefined }
+          );
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // Prefer real history if present
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    // Fallback: go to the user's own internal profile view (NOT home)
+    navigate("/", { state: { openProfile: true }, replace: true });
   };
   const handleEditProfile = () => {
     triggerHaptic("light");
