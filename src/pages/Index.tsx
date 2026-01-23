@@ -131,7 +131,20 @@ function IndexContent() {
 
   // Handle navigation state for opening own profile from search
   useEffect(() => {
-    const state = location.state as { openProfile?: boolean; openEditProfile?: boolean } | null;
+    const state = location.state as {
+      openProfile?: boolean;
+      openEditProfile?: boolean;
+      openSearch?: boolean;
+    } | null;
+
+    if (state?.openSearch) {
+      console.log("[Index] Re-opening search overlay from navigation state");
+      setShowSearch(true);
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+
     if (state?.openProfile) {
       console.log("[Index] Opening own profile from navigation state");
       navigateToScreen("profile");
