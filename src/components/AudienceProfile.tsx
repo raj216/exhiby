@@ -90,6 +90,7 @@ export function AudienceProfile({
   // Fetch updated profile data
   const refreshProfile = async () => {
     if (!user) return;
+    console.log("[AudienceProfile] Refreshing profile for user:", user.id);
     const { data } = await supabase
       .from("profiles")
       .select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number")
@@ -97,6 +98,7 @@ export function AudienceProfile({
       .maybeSingle();
     
     if (data) {
+      console.log("[AudienceProfile] ✅ Profile refreshed:", data.name);
       const createdDate = new Date(data.created_at);
       const memberSince = createdDate.toLocaleDateString("en-US", {
         month: "short",
@@ -113,13 +115,15 @@ export function AudienceProfile({
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
       });
+    } else {
+      console.warn("[AudienceProfile] ⚠️ Profile refresh returned null for authenticated user");
     }
   };
 
-  // Use real profile data or fallback
-  const displayName = localProfile?.name || fallbackUser.name;
-  const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : fallbackUser.username;
-  const displayMemberSince = localProfile?.memberSince || fallbackUser.memberSince;
+  // CRITICAL: Do NOT fall back to "Guest" if user is authenticated and profile is loading/missing
+  const displayName = localProfile?.name || (user ? "Loading..." : fallbackUser.name);
+  const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : (user ? "@..." : fallbackUser.username);
+  const displayMemberSince = localProfile?.memberSince || (user ? "..." : fallbackUser.memberSince);
   const displayBio = localProfile?.bio;
   
   const [activeTab, setActiveTab] = useState<TabType>("tickets");
