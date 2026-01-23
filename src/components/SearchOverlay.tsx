@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Loader2 } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
@@ -36,6 +36,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { results: profileResults, isSearching, searchProfiles, clearResults } = useProfileSearch();
   const { recentSearches, addSearch } = useRecentSearches();
@@ -101,7 +102,35 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
       onClose();
       navigate("/", { state: { openProfile: true } });
     } else {
-      navigate(`/profile/${profile.user_id}`);
+      // HARD FIX: pass explicit return context so PublicProfile back button
+      // can return to Search even if history is empty/reset.
+      const baseState =
+        location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
+
+      const returnTo = {
+        pathname: location.pathname,
+        search: location.search,
+        state:
+          location.pathname === "/"
+            ? {
+                ...baseState,
+                openSearch: true,
+              }
+            : {
+                ...baseState,
+                openSearch: true,
+              },
+      };
+
+      try {
+        sessionStorage.setItem("exhiby_return_to", JSON.stringify(returnTo));
+      } catch {
+        // ignore
+      }
+
+      navigate(`/profile/${profile.user_id}`, {
+        state: { returnTo },
+      });
     }
   };
 
