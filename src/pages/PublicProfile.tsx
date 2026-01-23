@@ -43,6 +43,9 @@ export default function PublicProfile() {
   } = useParams<{
     userId: string;
   }>();
+
+  // Debug: confirm the route param we are receiving
+  console.log("[PublicProfile] param userId:", userId);
   const navigate = useNavigate();
   const location = useLocation();
   const {
