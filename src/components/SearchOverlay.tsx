@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X, Loader2, BadgeCheck } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
 import { useProfileSearch, SearchResult } from "@/hooks/useProfileSearch";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
@@ -338,8 +338,16 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                             )}
                           </div>
                           <div className="flex-1 text-left">
-                            <div className="flex items-center gap-2">
-                              <span className="font-display text-lg text-foreground">{topHit.name}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-display text-lg text-foreground truncate">{topHit.name}</span>
+                              {topHit.is_verified === true && (
+                                <BadgeCheck className="w-4 h-4 text-gold fill-gold/20 flex-shrink-0" />
+                              )}
+                              {topHit.account_type && (
+                                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30 flex-shrink-0">
+                                  {topHit.account_type}
+                                </span>
+                              )}
                             </div>
                             {topHit.handle && (
                               <span className="text-sm text-muted-foreground">@{topHit.handle}</span>
@@ -376,10 +384,20 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                                   </span>
                                 </div>
                               )}
-                              <div className="flex-1 text-left">
-                                <span className="font-display text-foreground">{profile.name}</span>
+                              <div className="flex-1 text-left min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-display text-foreground truncate">{profile.name}</span>
+                                  {profile.is_verified === true && (
+                                    <BadgeCheck className="w-4 h-4 text-gold fill-gold/20 flex-shrink-0" />
+                                  )}
+                                  {profile.account_type && (
+                                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30 flex-shrink-0">
+                                      {profile.account_type}
+                                    </span>
+                                  )}
+                                </div>
                                 {profile.handle && (
-                                  <span className="block text-xs text-muted-foreground">@{profile.handle}</span>
+                                  <span className="block text-xs text-muted-foreground truncate">@{profile.handle}</span>
                                 )}
                               </div>
                             </button>
