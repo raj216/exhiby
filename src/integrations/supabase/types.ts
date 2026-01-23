@@ -349,9 +349,11 @@ export type Database = {
           handle: string | null
           id: string
           is_founding_member: boolean | null
+          is_verified: boolean
           name: string
           updated_at: string
           user_id: string
+          verified_at: string | null
           website: string | null
         }
         Insert: {
@@ -363,9 +365,11 @@ export type Database = {
           handle?: string | null
           id?: string
           is_founding_member?: boolean | null
+          is_verified?: boolean
           name: string
           updated_at?: string
           user_id: string
+          verified_at?: string | null
           website?: string | null
         }
         Update: {
@@ -377,9 +381,11 @@ export type Database = {
           handle?: string | null
           id?: string
           is_founding_member?: boolean | null
+          is_verified?: boolean
           name?: string
           updated_at?: string
           user_id?: string
+          verified_at?: string | null
           website?: string | null
         }
         Relationships: []
@@ -610,9 +616,11 @@ export type Database = {
           created_at: string
           handle: string
           id: string
+          is_verified: boolean
           name: string
           updated_at: string
           user_id: string
+          verified_at: string
           website: string
         }[]
       }
@@ -620,6 +628,7 @@ export type Database = {
         Args: { user_ids: string[] }
         Returns: {
           avatar_url: string
+          is_verified: boolean
           name: string
           user_id: string
         }[]
@@ -647,6 +656,7 @@ export type Database = {
         Returns: {
           avatar_url: string
           handle: string
+          is_verified: boolean
           name: string
           user_id: string
         }[]
@@ -657,6 +667,7 @@ export type Database = {
         Returns: {
           avatar_url: string
           handle: string
+          is_verified: boolean
           name: string
           user_id: string
         }[]
@@ -682,8 +693,10 @@ export type Database = {
           founding_number: number
           handle: string
           is_founding_member: boolean
+          is_verified: boolean
           name: string
           user_id: string
+          verified_at: string
           website: string
         }[]
       }
@@ -697,8 +710,10 @@ export type Database = {
           founding_number: number
           handle: string
           is_founding_member: boolean
+          is_verified: boolean
           name: string
           user_id: string
+          verified_at: string
           website: string
         }[]
       }
@@ -741,6 +756,7 @@ export type Database = {
           bio: string
           handle: string
           id: string
+          is_verified: boolean
           name: string
           user_id: string
         }[]
