@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { X, UserCircle, BadgeCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface FollowUser {
@@ -25,6 +25,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   const [users, setUsers] = useState<FollowUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Lock background scroll when modal is open
   useScrollLock(isOpen);
@@ -61,7 +62,38 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
     // IMPORTANT: Do NOT close the modal before navigating.
     // The modal open state can be encoded in URL history by the parent.
     // Closing first would destroy that history entry, breaking back navigation.
-    navigate(`/profile/${userIdToVisit}`);
+    // HARD FIX: always pass a "returnTo" context so the public profile back button
+    // can return to Followers/Following even if history is empty/reset.
+    const baseState =
+      location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
+
+    const returnTo = {
+      pathname: location.pathname,
+      search: location.search,
+      state:
+        location.pathname === "/"
+          ? {
+              ...baseState,
+              openProfile: true,
+              openFollowList: type,
+            }
+          : {
+              ...baseState,
+              openFollowList: type,
+            },
+    };
+
+    try {
+      sessionStorage.setItem("exhiby_return_to", JSON.stringify(returnTo));
+    } catch {
+      // ignore
+    }
+
+    navigate(`/profile/${userIdToVisit}`, {
+      state: {
+        returnTo,
+      },
+    });
   };
 
   const modalContent = (
