@@ -90,11 +90,15 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
     addSearch(profile.name);
     
     const isSelf = user && profile.user_id === user.id;
-    onClose();
-    
+
+    // If navigating away (to /profile/:id), do NOT close first.
+    // Parent may be encoding the overlay open state in URL history;
+    // closing would destroy the history entry and break back navigation.
     if (isSelf && onOpenOwnProfile) {
+      onClose();
       onOpenOwnProfile();
     } else if (isSelf) {
+      onClose();
       navigate("/", { state: { openProfile: true } });
     } else {
       navigate(`/profile/${profile.user_id}`);
