@@ -1,18 +1,11 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, UserCircle, BadgeCheck } from "lucide-react";
+import { X, UserCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
-
-interface FollowUser {
-  user_id: string;
-  name: string;
-  handle: string | null;
-  avatar_url: string | null;
-  is_verified?: boolean;
-}
+import { FollowListRow, type FollowUser } from "@/components/follow/FollowListRow";
 
 interface FollowListModalProps {
   isOpen: boolean;
@@ -58,12 +51,15 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
     }
   };
 
-  const handleUserClick = (userIdToVisit: string) => {
-    // IMPORTANT: Do NOT close the modal before navigating.
-    // The modal open state can be encoded in URL history by the parent.
-    // Closing first would destroy that history entry, breaking back navigation.
-    // HARD FIX: always pass a "returnTo" context so the public profile back button
-    // can return to Followers/Following even if history is empty/reset.
+  const handleUserClick = (user: FollowUser) => {
+    const userIdToVisit = user?.user_id;
+    console.log("FollowList row clicked", user);
+    if (!userIdToVisit) return;
+
+    // Close modal first (requested behavior). We still persist an explicit returnTo
+    // context so the PublicProfile back button can restore this modal.
+    onClose();
+
     const baseState =
       location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
 
@@ -89,6 +85,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
       // ignore
     }
 
+    console.log("Navigating to", `/profile/${userIdToVisit}`);
     navigate(`/profile/${userIdToVisit}`, {
       state: {
         returnTo,
@@ -112,7 +109,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 z-0 bg-black/70 backdrop-blur-sm"
           />
           
           {/* Modal Panel */}
@@ -121,7 +118,8 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative z-10 bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            className="relative z-10 bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col pointer-events-auto"
             style={{ 
               width: "min(92vw, 420px)",
               maxHeight: "calc(70dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
@@ -141,7 +139,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             </div>
 
             {/* User List - only this scrolls if content exceeds */}
-            <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
+            <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain pointer-events-auto">
               {isLoading ? (
                 <div className="p-8 text-center">
                   <div className="w-8 h-8 border-2 border-muted-foreground border-t-foreground rounded-full animate-spin mx-auto" />
@@ -156,40 +154,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
               ) : (
                 <div className="divide-y divide-border/20">
                   {users.map((user) => (
-                    <button
-                      key={user.user_id}
-                      onClick={() => handleUserClick(user.user_id)}
-                      className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
-                    >
-                      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                        {user.avatar_url ? (
-                          <img
-                            src={user.avatar_url}
-                            alt={user.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-muted">
-                            <UserCircle className="w-8 h-8 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <p className="text-foreground font-medium truncate">
-                            {user.handle || user.name}
-                          </p>
-                          {user.is_verified === true && (
-                            <BadgeCheck className="w-4 h-4 text-gold fill-gold/20 flex-shrink-0" />
-                          )}
-                        </div>
-                        {user.handle && (
-                          <p className="text-muted-foreground text-sm truncate">
-                            {user.name}
-                          </p>
-                        )}
-                      </div>
-                    </button>
+                    <FollowListRow key={user.user_id} user={user} onActivate={handleUserClick} />
                   ))}
                 </div>
               )}
