@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Share2, Pencil, Award, Zap, Calendar, Check, Clock } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Pencil, Award, Zap, Calendar, Check, Clock, Share } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
@@ -85,9 +85,11 @@ export function StudioDashboard({
   // but also include currently live sessions.
   const fetchUpcomingEvents = useCallback(async () => {
     if (!user) return;
-
-    const sessions = await getUpcomingSessions({ creatorId: user.id, limit: 200 });
-    const events = sessions.map((s) => ({
+    const sessions = await getUpcomingSessions({
+      creatorId: user.id,
+      limit: 200
+    });
+    const events = sessions.map(s => ({
       id: s.id,
       title: s.title,
       cover_url: s.cover_url,
@@ -96,29 +98,25 @@ export function StudioDashboard({
       price: (s.price ?? 0) as number,
       creator_id: s.creator_id,
       is_live: s.is_live,
-      live_ended_at: s.live_ended_at,
+      live_ended_at: s.live_ended_at
     })) as ScheduledEvent[];
-
     if (DEBUG_SCHEDULE) {
-      const sample = events.slice(0, 5).map((e) => ({
+      const sample = events.slice(0, 5).map(e => ({
         id: e.id,
         scheduled_at: e.scheduled_at,
         creator_id: e.creator_id,
         is_live: e.is_live,
-        live_ended_at: e.live_ended_at,
+        live_ended_at: e.live_ended_at
       }));
-
       console.log("[ScheduleDebug][CreatorProfile] params", {
         creator_id: user.id,
-        filter:
-          "get_upcoming_sessions(creator_id=user.id) (DB now() + 10m grace)",
+        filter: "get_upcoming_sessions(creator_id=user.id) (DB now() + 10m grace)"
       });
       console.log("[ScheduleDebug][CreatorProfile] returned", {
         count: events.length,
-        sample,
+        sample
       });
     }
-
     setUpcomingEvents(events);
   }, [user]);
 
@@ -183,26 +181,26 @@ export function StudioDashboard({
         {/* Header Controls */}
         <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
           <motion.button initial={{
-          opacity: 0
-        }} animate={{
-          opacity: 1
-        }} onClick={e => {
-          e.stopPropagation();
-          onBack();
-        }} className="w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center">
+            opacity: 0
+          }} animate={{
+            opacity: 1
+          }} onClick={e => {
+            e.stopPropagation();
+            onBack();
+          }} className="w-10 h-10 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center justify-center">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
           
           {/* Mode Switch - Subtle toggle, not a primary CTA */}
           <motion.button initial={{
-          opacity: 0
-        }} animate={{
-          opacity: 1
-        }} onClick={e => {
-          e.stopPropagation();
-          triggerClickHaptic();
-          onSwitchMode();
-        }} className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center gap-2">
+            opacity: 0
+          }} animate={{
+            opacity: 1
+          }} onClick={e => {
+            e.stopPropagation();
+            triggerClickHaptic();
+            onSwitchMode();
+          }} className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center gap-2">
             <span className="text-xs text-muted-foreground font-medium">Switch to Buying</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </motion.button>
@@ -214,14 +212,14 @@ export function StudioDashboard({
         <div className="flex items-end gap-4">
           {/* Avatar (NOT clickable - edit through Edit Profile) */}
           <motion.div initial={{
-          scale: 0.8,
-          opacity: 0
-        }} animate={{
-          scale: 1,
-          opacity: 1
-        }} transition={{
-          delay: 0.1
-        }} className="relative">
+            scale: 0.8,
+            opacity: 0
+          }} animate={{
+            scale: 1,
+            opacity: 1
+          }} transition={{
+            delay: 0.1
+          }} className="relative">
             <div className="w-28 h-28 rounded-full border-4 border-carbon overflow-hidden bg-obsidian shadow-deep">
               {displayAvatar ? <img src={displayAvatar} alt={displayName} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground">
                   {displayName.charAt(0).toUpperCase()}
@@ -232,19 +230,17 @@ export function StudioDashboard({
 
         {/* Name & Handle & Bio */}
         <motion.div initial={{
-        opacity: 0,
-        y: 10
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.15
-      }} className="mt-4">
+          opacity: 0,
+          y: 10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          delay: 0.15
+        }} className="mt-4">
           <div className="flex items-center gap-2">
             <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
-            {localProfile?.isVerified === true && (
-              <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
-            )}
+            {localProfile?.isVerified === true && <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />}
           </div>
           {displayHandle && <p className="text-muted-foreground text-sm mt-0.5">{displayHandle}</p>}
           {displayBio && <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>}
@@ -252,93 +248,85 @@ export function StudioDashboard({
 
         {/* Stats Row - Following/Followers (replacing Sessions) */}
         <motion.div initial={{
-        opacity: 0,
-        y: 10
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.2
-      }} className="text-sm text-muted-foreground mt-3">
+          opacity: 0,
+          y: 10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          delay: 0.2
+        }} className="text-sm text-muted-foreground mt-3">
           <button onClick={() => {
-          triggerClickHaptic();
-          setShowFollowList("followers");
-        }} className="hover:underline">
+            triggerClickHaptic();
+            setShowFollowList("followers");
+          }} className="hover:underline">
             <span className="text-foreground font-medium">{followStats.followersCount}</span> Followers
           </button>
           {" · "}
           <button onClick={() => {
-          triggerClickHaptic();
-          setShowFollowList("following");
-        }} className="hover:underline">
+            triggerClickHaptic();
+            setShowFollowList("following");
+          }} className="hover:underline">
             <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
           </button>
         </motion.div>
 
         {/* Action Buttons (matches Audience) */}
         <motion.div initial={{
-        opacity: 0,
-        y: 10
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.25
-      }} className="flex items-center gap-3 mt-4">
+          opacity: 0,
+          y: 10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          delay: 0.25
+        }} className="flex items-center gap-3 mt-4">
           <button onClick={() => {
-          triggerClickHaptic();
-          setShowEditProfile(true);
-        }} className="px-5 py-2.5 rounded-full bg-muted/50 border border-border/40 text-muted-foreground text-sm font-medium flex items-center gap-2 hover:bg-muted/70 transition-colors">
+            triggerClickHaptic();
+            setShowEditProfile(true);
+          }} className="px-5 py-2.5 rounded-full bg-muted/50 border border-border/40 text-muted-foreground text-sm font-medium flex items-center gap-2 hover:bg-muted/70 transition-colors">
             <Pencil className="w-4 h-4" />
             Edit Profile
           </button>
           <button onClick={handleShare} className="w-10 h-10 rounded-full bg-muted/50 border border-border/40 flex items-center justify-center hover:bg-muted/70 transition-colors">
-            <Share2 className="w-4 h-4 text-muted-foreground" />
+            <Share className="w-4 h-4 text-muted-foreground" />
           </button>
         </motion.div>
 
         {/* Passport Line (Founding status merged into timestamp) */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="text-xs text-muted-foreground mt-4"
-        >
-          {localProfile?.isFoundingMember ? (
-            <>
+        <motion.p initial={{
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} transition={{
+          delay: 0.35
+        }} className="text-xs text-muted-foreground mt-4">
+          {localProfile?.isFoundingMember ? <>
               <span className="text-gold font-semibold">Founding Member</span>
               <span> · Since {displayMemberSince}</span>
-            </>
-          ) : (
-            <>Creator's Passport · Since {displayMemberSince}</>
-          )}
+            </> : <>Creator's Passport · Since {displayMemberSince}</>}
         </motion.p>
       </div>
 
       {/* Studio Action Buttons - Split CTA */}
       <div className="px-4 mt-6 flex gap-3">
         {/* Open Studio - Immediate (60%) */}
-        <motion.button 
-          whileTap={{ scale: 0.98 }} 
-          onClick={() => {
-            triggerClickHaptic();
-            onGoLive();
-          }} 
-          className="flex-[3] flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-semibold shadow-electric"
-          style={{
-            background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
-          }}
-        >
+        <motion.button whileTap={{
+          scale: 0.98
+        }} onClick={() => {
+          triggerClickHaptic();
+          onGoLive();
+        }} className="flex-[3] flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-semibold shadow-electric" style={{
+          background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
+        }}>
           <Zap className="w-5 h-5" />
           <span className="text-sm">Open Studio</span>
         </motion.button>
         
         {/* Schedule - Future (40%) */}
-        <motion.button 
-          whileTap={{ scale: 0.98 }} 
-          onClick={handleScheduleClick} 
-          className="flex-[2] flex items-center justify-center gap-2 py-4 rounded-2xl bg-obsidian border border-border/60 text-foreground font-semibold hover:bg-muted/50 transition-colors"
-        >
+        <motion.button whileTap={{
+          scale: 0.98
+        }} onClick={handleScheduleClick} className="flex-[2] flex items-center justify-center gap-2 py-4 rounded-2xl bg-obsidian border border-border/60 text-foreground font-semibold hover:bg-muted/50 transition-colors">
           <Calendar className="w-5 h-5 text-muted-foreground" />
           <span className="text-sm">Schedule</span>
         </motion.button>
@@ -352,24 +340,21 @@ export function StudioDashboard({
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg text-foreground">Analytics</h2>
           <button onClick={() => {
-          triggerClickHaptic();
-          setShowEarnings(!showEarnings);
-        }} className="p-2">
+            triggerClickHaptic();
+            setShowEarnings(!showEarnings);
+          }} className="p-2">
             {showEarnings ? <Eye className="w-4 h-4 text-muted-foreground" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
           </button>
         </div>
         
         <div className="grid grid-cols-2 gap-4">
           {/* Earnings - 50% width - Clickable → navigates to /earnings-history */}
-          {featureFlags.paymentsEnabled ? (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                triggerClickHaptic();
-                navigate("/earnings-history");
-              }}
-              className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors"
-            >
+          {featureFlags.paymentsEnabled ? <motion.button whileTap={{
+            scale: 0.98
+          }} onClick={() => {
+            triggerClickHaptic();
+            navigate("/earnings-history");
+          }} className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-5 h-5 text-gold" />
                 <span className="text-sm text-muted-foreground">This Month</span>
@@ -377,9 +362,7 @@ export function StudioDashboard({
               <p className="font-display text-3xl text-gold">
                 {showEarnings ? `$${analytics.totalEarnings.toLocaleString()}` : "••••"}
               </p>
-            </motion.button>
-          ) : (
-            <div className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left">
+            </motion.button> : <div className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-5 h-5 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Earnings</span>
@@ -388,18 +371,15 @@ export function StudioDashboard({
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">Coming soon</p>
               </div>
-            </div>
-          )}
+            </div>}
           
           {/* Tickets Sold - 50% width - Clickable → navigates to /tickets-history */}
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              triggerClickHaptic();
-              navigate("/tickets-history");
-            }}
-            className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-electric/30 transition-colors"
-          >
+          <motion.button whileTap={{
+            scale: 0.98
+          }} onClick={() => {
+            triggerClickHaptic();
+            navigate("/tickets-history");
+          }} className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-electric/30 transition-colors">
             <div className="flex items-center gap-2 mb-3">
               <Ticket className="w-5 h-5 text-electric" />
               <span className="text-sm text-muted-foreground">Tickets</span>
@@ -424,13 +404,7 @@ export function StudioDashboard({
       {user && <FollowListModal isOpen={showFollowList !== null} onClose={() => setShowFollowList(null)} userId={user.id} type={showFollowList || "followers"} />}
 
       {/* Share Studio Modal */}
-      <ShareStudioModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        handle={localProfile?.handle || null}
-        userId={user?.id}
-        creatorName={localProfile?.name}
-      />
+      <ShareStudioModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} handle={localProfile?.handle || null} userId={user?.id} creatorName={localProfile?.name} />
 
       </div>
     </div>;
