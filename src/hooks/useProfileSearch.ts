@@ -15,6 +15,12 @@ export function useProfileSearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hydrateResults = useCallback((next: SearchResult[], options?: { clearError?: boolean }) => {
+    setResults(Array.isArray(next) ? next : []);
+    if (options?.clearError !== false) setError(null);
+    setIsSearching(false);
+  }, []);
+
   const searchProfiles = useCallback(async (searchText: string) => {
     const trimmed = searchText.trim();
     if (!trimmed) {
@@ -66,5 +72,6 @@ export function useProfileSearch() {
     error,
     searchProfiles,
     clearResults,
+    hydrateResults,
   };
 }
