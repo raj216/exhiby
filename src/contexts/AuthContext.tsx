@@ -13,6 +13,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Ensure profile exists for user (creates one if missing)
 async function ensureProfileExists(user: User) {
+  console.log("[AuthContext] ensureProfileExists called for user:", user.id);
   try {
     const { data: existingProfile } = await supabase
       .from("profiles")
@@ -21,18 +22,22 @@ async function ensureProfileExists(user: User) {
       .maybeSingle();
 
     if (!existingProfile) {
-      // Profile doesn't exist, create one
+      console.warn("[AuthContext] ⚠️ Profile missing for user, creating now...");
       const { error } = await supabase.from("profiles").insert({
         user_id: user.id,
         name: user.user_metadata?.name || user.user_metadata?.full_name || "Guest",
       });
 
       if (error && !error.message.includes("duplicate")) {
-        console.error("Failed to create profile:", error);
+        console.error("[AuthContext] ❌ Failed to create profile:", error);
+      } else {
+        console.log("[AuthContext] ✅ Profile created successfully");
       }
+    } else {
+      console.log("[AuthContext] ✅ Profile already exists:", existingProfile.id);
     }
   } catch (error) {
-    console.error("Error ensuring profile exists:", error);
+    console.error("[AuthContext] ❌ Error ensuring profile exists:", error);
   }
 }
 
@@ -45,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("[AuthContext] Auth state changed:", event, { hasSession: !!session, userId: session?.user?.id });
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
@@ -60,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("[AuthContext] Initial session check:", { hasSession: !!session, userId: session?.user?.id });
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);

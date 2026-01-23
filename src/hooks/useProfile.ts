@@ -21,13 +21,22 @@ export function useProfile() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      // Debug: Always log auth state
+      console.log("[useProfile] Auth state:", { 
+        hasUser: !!user, 
+        userId: user?.id, 
+        email: user?.email 
+      });
+
       if (!user) {
+        console.log("[useProfile] No user, clearing profile");
         setProfile(null);
         setIsLoading(false);
         return;
       }
 
       try {
+        console.log("[useProfile] Fetching profile for user:", user.id);
         const { data, error } = await supabase
           .from("profiles")
           .select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number")
@@ -35,12 +44,19 @@ export function useProfile() {
           .maybeSingle();
 
         if (error) {
-          console.error("Error fetching profile:", error);
+          console.error("[useProfile] ❌ Error fetching profile:", error);
+          // IMPORTANT: Do NOT set fallback "Guest" for authenticated users
           setIsLoading(false);
           return;
         }
 
         if (data) {
+          console.log("[useProfile] ✅ Profile loaded:", { 
+            name: data.name, 
+            handle: data.handle,
+            hasAvatar: !!data.avatar_url,
+            hasCover: !!data.cover_url
+          });
           const createdDate = new Date(data.created_at);
           const memberSince = createdDate.toLocaleDateString("en-US", {
             month: "short",
@@ -58,9 +74,12 @@ export function useProfile() {
             isFoundingMember: data.is_founding_member ?? false,
             foundingNumber: data.founding_number,
           });
+        } else {
+          console.warn("[useProfile] ⚠️ Profile query returned null/empty for authenticated user");
+          // Profile row missing - this should not happen for authenticated users
         }
       } catch (error) {
-        console.error("Profile fetch error:", error);
+        console.error("[useProfile] ❌ Unexpected error:", error);
       } finally {
         setIsLoading(false);
       }
