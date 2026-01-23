@@ -551,8 +551,8 @@ export default function PublicProfile() {
           )}
         </motion.div>
 
-        {/* Founding Member Badge */}
-        {(isFoundingMember || showTipMe) && (
+        {/* Tip Me pill (creator-only) */}
+        {showTipMe && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -560,23 +560,6 @@ export default function PublicProfile() {
             className="mt-5"
           >
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {/* Founding Member Pill */}
-              {isFoundingMember && (
-                <div
-                  className="px-4 py-2 rounded-full border-2 flex items-center gap-2 shadow-gold"
-                  style={{
-                    background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
-                    borderColor: "hsl(43 72% 52% / 0.6)",
-                  }}
-                >
-                  <Award className="w-4 h-4 text-gold" />
-                  <span className="text-sm font-semibold text-gold">
-                    Founding Member {foundingNumber ? `#${foundingNumber}` : ""}
-                  </span>
-                </div>
-              )}
-
-              {/* Tip Me Pill (creator-only) */}
               {showTipMe && (
                 <motion.button
                   whileTap={{ scale: 0.97 }}
@@ -620,7 +603,14 @@ export default function PublicProfile() {
             transition={{ delay: 0.4 }}
             className="text-xs text-muted-foreground mt-4 text-center"
           >
-            Member since {memberSince}
+            {isFoundingMember ? (
+              <>
+                <span className="text-gold font-semibold">Founding Member</span>
+                <span> · Since {memberSince}</span>
+              </>
+            ) : (
+              <>Member since {memberSince}</>
+            )}
           </motion.p>
         )}
 

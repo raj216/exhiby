@@ -297,35 +297,21 @@ export function StudioDashboard({
           </button>
         </motion.div>
 
-        {/* Badges Row */}
-        <motion.div initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        delay: 0.3
-      }} className="flex flex-wrap gap-2 mt-4">
-          {/* Founding Member Badge */}
-          {localProfile?.isFoundingMember && <div className="px-3 py-1.5 rounded-full border-2 flex items-center gap-1.5 shadow-gold" style={{
-          background: "linear-gradient(135deg, hsl(43 72% 52% / 0.15), hsl(38 80% 45% / 0.1))",
-          borderColor: "hsl(43 72% 52% / 0.6)"
-        }}>
-              <Award className="w-3.5 h-3.5 text-gold" />
-              <span className="text-xs font-semibold text-gold">
-                Founding Member {localProfile.foundingNumber ? `#${localProfile.foundingNumber}` : ""}
-              </span>
-            </div>}
-        </motion.div>
-
-        {/* Passport Line */}
-        <motion.p initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        delay: 0.35
-      }} className="text-xs text-muted-foreground mt-4">
-          Creator's Passport · Since {displayMemberSince}
+        {/* Passport Line (Founding status merged into timestamp) */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+          className="text-xs text-muted-foreground mt-4"
+        >
+          {localProfile?.isFoundingMember ? (
+            <>
+              <span className="text-gold font-semibold">Founding Member</span>
+              <span> · Since {displayMemberSince}</span>
+            </>
+          ) : (
+            <>Creator's Passport · Since {displayMemberSince}</>
+          )}
         </motion.p>
       </div>
 
