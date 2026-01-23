@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, UserCircle } from "lucide-react";
+import { X, UserCircle, BadgeCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ interface FollowUser {
   name: string;
   handle: string | null;
   avatar_url: string | null;
+  is_verified?: boolean;
 }
 
 interface FollowListModalProps {
@@ -39,6 +40,8 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
     try {
       const rpcName = type === "followers" ? "get_followers_list" : "get_following_list";
       const { data, error } = await supabase.rpc(rpcName, { target_user_id: userId });
+
+      console.log(`[FollowListModal] ${rpcName} response:`, { data, error });
       
       if (error) {
         console.error(`Error fetching ${type}:`, error);
@@ -138,9 +141,14 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-foreground font-medium truncate">
-                          {user.handle || user.name}
-                        </p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="text-foreground font-medium truncate">
+                            {user.handle || user.name}
+                          </p>
+                          {user.is_verified === true && (
+                            <BadgeCheck className="w-4 h-4 text-gold fill-gold/20 flex-shrink-0" />
+                          )}
+                        </div>
                         {user.handle && (
                           <p className="text-muted-foreground text-sm truncate">
                             {user.name}

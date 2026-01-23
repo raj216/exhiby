@@ -35,6 +35,7 @@ interface UserProfile {
   coverUrl?: string | null;
   isFoundingMember?: boolean;
   foundingNumber?: number | null;
+  isVerified?: boolean;
 }
 interface StudioDashboardProps {
   onBack: () => void;
@@ -134,7 +135,7 @@ export function StudioDashboard({
     if (!user) return;
     const {
       data
-    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number").eq("user_id", user.id).maybeSingle();
+    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified").eq("user_id", user.id).maybeSingle();
     if (data) {
       const createdDate = new Date(data.created_at);
       const memberSince = createdDate.toLocaleDateString("en-US", {
@@ -150,7 +151,8 @@ export function StudioDashboard({
         website: data.website,
         coverUrl: data.cover_url,
         isFoundingMember: data.is_founding_member ?? false,
-        foundingNumber: data.founding_number
+        foundingNumber: data.founding_number,
+        isVerified: data.is_verified ?? false
       });
     }
   };
@@ -225,17 +227,6 @@ export function StudioDashboard({
                   {displayName.charAt(0).toUpperCase()}
                 </div>}
             </div>
-            {/* Verified badge - Premium gold circle */}
-            <div 
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #F59E0B 0%, #B45309 100%)",
-                border: "2px solid #000000",
-                boxShadow: "0 2px 8px rgba(245, 158, 11, 0.3)"
-              }}
-            >
-              <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-            </div>
           </motion.div>
         </div>
 
@@ -249,7 +240,12 @@ export function StudioDashboard({
       }} transition={{
         delay: 0.15
       }} className="mt-4">
-          <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
+            {localProfile?.isVerified === true && (
+              <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
+            )}
+          </div>
           {displayHandle && <p className="text-muted-foreground text-sm mt-0.5">{displayHandle}</p>}
           {displayBio && <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>}
         </motion.div>

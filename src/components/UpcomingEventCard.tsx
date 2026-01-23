@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, BellRing, Calendar, Check, Loader2, Share } from "lucide-react";
+import { BadgeCheck, Bell, BellRing, Calendar, Check, Loader2, Share } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -18,6 +18,7 @@ interface UpcomingEventCardProps {
   category?: string;
   artistName?: string;
   artistAvatar?: string;
+  artistIsVerified?: boolean;
   creatorId?: string;
   onClick?: () => void;
   onRemind?: () => void;
@@ -34,6 +35,7 @@ export function UpcomingEventCard({
   category,
   artistName,
   artistAvatar,
+  artistIsVerified,
   creatorId,
   onClick,
   onRemind,
@@ -157,7 +159,12 @@ export function UpcomingEventCard({
               </span>
             </div>
           )}
-          <span className="text-sm font-medium text-foreground truncate">{artistName}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-medium text-foreground truncate">{artistName}</span>
+            {artistIsVerified === true && (
+              <BadgeCheck className="w-4 h-4 text-gold fill-gold/20 flex-shrink-0" />
+            )}
+          </div>
         </div>
       )}
 

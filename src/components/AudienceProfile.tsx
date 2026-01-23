@@ -15,7 +15,8 @@ import {
   Radio,
   XCircle,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  BadgeCheck
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
@@ -42,6 +43,7 @@ interface UserProfile {
   coverUrl?: string | null;
   isFoundingMember?: boolean;
   foundingNumber?: number | null;
+  isVerified?: boolean;
 }
 
 interface AudienceProfileProps {
@@ -93,7 +95,9 @@ export function AudienceProfile({
     console.log("[AudienceProfile] Refreshing profile for user:", user.id);
     const { data } = await supabase
       .from("profiles")
-      .select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number")
+      .select(
+        "name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified"
+      )
       .eq("user_id", user.id)
       .maybeSingle();
     
@@ -114,6 +118,7 @@ export function AudienceProfile({
         coverUrl: data.cover_url,
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
+        isVerified: data.is_verified ?? false,
       });
     } else {
       console.warn("[AudienceProfile] ⚠️ Profile refresh returned null for authenticated user");
@@ -224,7 +229,12 @@ export function AudienceProfile({
             transition={{ delay: 0.15 }}
             className="mt-4"
           >
-            <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
+              {localProfile?.isVerified === true && (
+                <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
+              )}
+            </div>
             <p className="text-muted-foreground text-sm mt-0.5">{displayHandle}</p>
             {displayBio && (
               <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>

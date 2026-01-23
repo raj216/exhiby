@@ -20,6 +20,7 @@ export interface UpcomingSessionWithCreator extends UpcomingSessionRow {
   creator?: {
     name: string;
     avatar_url: string | null;
+    is_verified?: boolean;
   };
 }
 
@@ -56,7 +57,7 @@ export async function getUpcomingSessions(params: {
   }
 
   const creatorMap = new Map(
-    (creators || []).map((c: { user_id: string; name: string; avatar_url: string | null }) => [
+    (creators || []).map((c: { user_id: string; name: string; avatar_url: string | null; is_verified?: boolean }) => [
       c.user_id,
       c,
     ])
@@ -70,6 +71,7 @@ export async function getUpcomingSessions(params: {
         ? {
             name: creator.name,
             avatar_url: creator.avatar_url,
+            is_verified: (creator as any).is_verified,
           }
         : undefined,
     };
