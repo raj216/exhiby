@@ -50,25 +50,12 @@ export default function SessionResolver() {
       setIsLoading(true);
       
       try {
-        // Fetch event with creator profile
+        // Fetch event (do NOT join profiles; public access is via vetted RPCs)
         const { data, error } = await supabase
           .from("events")
-          .select(`
-            id,
-            title,
-            cover_url,
-            is_live,
-            is_free,
-            price,
-            scheduled_at,
-            live_ended_at,
-            category,
-            creator_id,
-            profiles!events_creator_id_fkey (
-              name,
-              avatar_url
-            )
-          `)
+          .select(
+            "id, title, cover_url, is_live, is_free, price, scheduled_at, live_ended_at, category, creator_id"
+          )
           .eq("id", sessionId)
           .single();
 
@@ -76,6 +63,25 @@ export default function SessionResolver() {
           setStatus("not_found");
           setIsLoading(false);
           return;
+        }
+
+        // Hydrate creator profile using safe RPC (returns only public fields)
+        let creatorName: string | null = null;
+        let creatorAvatar: string | null = null;
+
+        if (data.creator_id) {
+          const { data: creators, error: creatorsError } = await supabase.rpc(
+            "get_creator_profiles",
+            { user_ids: [data.creator_id] }
+          );
+
+          if (creatorsError) {
+            console.warn("[SessionResolver] get_creator_profiles error:", creatorsError);
+          }
+
+          const creator = creators?.find((c: any) => c.user_id === data.creator_id);
+          creatorName = creator?.name ?? null;
+          creatorAvatar = creator?.avatar_url ?? null;
         }
 
         const sessionData: SessionData = {
@@ -89,8 +95,8 @@ export default function SessionResolver() {
           live_ended_at: data.live_ended_at,
           category: data.category,
           creator_id: data.creator_id,
-          creator_name: (data.profiles as any)?.name || null,
-          creator_avatar: (data.profiles as any)?.avatar_url || null,
+          creator_name: creatorName,
+          creator_avatar: creatorAvatar,
         };
 
         setSession(sessionData);
