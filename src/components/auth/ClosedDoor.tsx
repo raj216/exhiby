@@ -22,7 +22,7 @@ export function ClosedDoor({
     duration: 0.5
   }}>
       {/* Pulsing Neon Logo */}
-      <motion.div className="flex flex-col items-center gap-4 mb-8" initial={{
+      <motion.div className="flex flex-col items-center gap-2 mb-4" initial={{
       scale: 0.9,
       opacity: 0
     }} animate={{
@@ -41,21 +41,10 @@ export function ClosedDoor({
       }}>
           <span className="text-gradient-electric">Exhiby</span>
         </motion.h1>
-        <motion.p className="text-muted-foreground text-sm tracking-[0.3em] uppercase" initial={{
-        opacity: 0,
-        y: 10
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        delay: 0.5
-      }}>
-          The Midnight Studio
-        </motion.p>
       </motion.div>
 
       {/* Invitation line */}
-      <motion.p className="my-8 max-w-xs text-center text-sm md:text-base font-light font-sans text-muted-foreground/80" initial={{
+      <motion.p className="mt-2 mb-6 max-w-xs text-center text-sm md:text-base font-medium font-sans text-muted-foreground/80" initial={{
       opacity: 0,
       y: 10
     }} animate={{
@@ -65,7 +54,7 @@ export function ClosedDoor({
       delay: 0.85,
       duration: 0.6,
       ease: "easeOut"
-    }}>Support the artists you love, live.</motion.p>
+    }}>Support your favorite artists — live.</motion.p>
 
       {/* Action Buttons */}
       <motion.div className="flex flex-col gap-4 w-full max-w-xs" initial={{
@@ -94,7 +83,7 @@ export function ClosedDoor({
           duration: 2,
           repeat: Infinity
         }} />
-          <span className="relative z-10 text-white">Get studio Pass</span>
+          <span className="relative z-10 text-white">Create account</span>
         </motion.button>
 
         {/* Secondary: I have a Pass (Log In) */}
