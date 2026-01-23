@@ -500,18 +500,18 @@ export default function PublicProfile() {
           transition={{ delay: 0.25 }}
         >
           <button 
-            onClick={() => { triggerHaptic("light"); setShowFollowList("following"); }}
-            className="text-center hover:opacity-80 transition-opacity"
-          >
-            <p className="font-display text-lg text-foreground">{followingCount}</p>
-            <p className="text-xs text-muted-foreground">Following</p>
-          </button>
-          <button 
             onClick={() => { triggerHaptic("light"); setShowFollowList("followers"); }}
             className="text-center hover:opacity-80 transition-opacity"
           >
             <p className="font-display text-lg text-foreground">{followerCount}</p>
             <p className="text-xs text-muted-foreground">Followers</p>
+          </button>
+          <button 
+            onClick={() => { triggerHaptic("light"); setShowFollowList("following"); }}
+            className="text-center hover:opacity-80 transition-opacity"
+          >
+            <p className="font-display text-lg text-foreground">{followingCount}</p>
+            <p className="text-xs text-muted-foreground">Following</p>
           </button>
         </motion.div>
 
