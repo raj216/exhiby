@@ -92,12 +92,16 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
       // ignore
     }
 
-    console.log("Navigating to", `/profile/${targetId}`);
-    navigate(`/profile/${targetId}`, {
-      state: {
-        returnTo,
-      },
-    });
+    // NOTE: closing the modal can unmount this component immediately.
+    // Schedule navigation on the next tick so it can't get swallowed by the unmount.
+    setTimeout(() => {
+      console.log("Navigating to", `/profile/${targetId}`);
+      navigate(`/profile/${targetId}`, {
+        state: {
+          returnTo,
+        },
+      });
+    }, 0);
   };
 
   const modalContent = (
