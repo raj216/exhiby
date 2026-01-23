@@ -63,6 +63,13 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
       return;
     }
 
+    // If the user taps the profile they're already viewing, don't re-navigate.
+    // (On some devices this can look like a flash/blank because the route doesn't change.)
+    if (location.pathname === `/profile/${targetId}`) {
+      onClose();
+      return;
+    }
+
     // Close modal first (requested behavior). We still persist an explicit returnTo
     // context so the PublicProfile back button can restore this modal.
     onClose();
