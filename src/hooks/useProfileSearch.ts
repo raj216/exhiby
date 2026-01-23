@@ -8,6 +8,8 @@ export interface SearchResult {
   name: string;
   avatar_url: string | null;
   bio: string | null;
+  is_verified?: boolean;
+  account_type?: string;
 }
 
 export function useProfileSearch() {

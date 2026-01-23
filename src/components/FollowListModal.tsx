@@ -22,7 +22,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
 
   // Lock background scroll when modal is open
   useScrollLock(isOpen);
@@ -55,12 +55,12 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
     }
   };
 
-  const handleUserClick = (user: FollowUser) => {
-    const targetId = user?.user_id || user?.id || user?.profile_id;
+  const handleUserClick = (followUser: FollowUser) => {
+    const targetId = followUser?.user_id || followUser?.id || followUser?.profile_id;
 
     if (import.meta.env.DEV) {
       // Temporary debugging aid (requested). Remove once confirmed stable.
-      console.log("[FOLLOW ROW CLICK]", user);
+      console.log("[FOLLOW ROW CLICK]", followUser);
       console.log("[FOLLOW TARGET ID]", targetId);
     }
 
@@ -76,7 +76,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
       return;
     }
 
-    const isSelf = user && targetId === user.id;
+    const isSelf = authUser && targetId === authUser.id;
 
     // IMPORTANT: Navigate first, then close modal (closing first can swallow navigation).
     if (isSelf) {
