@@ -752,6 +752,7 @@ export type Database = {
       search_public_profiles: {
         Args: { search_text: string }
         Returns: {
+          account_type: string
           avatar_url: string
           bio: string
           handle: string
