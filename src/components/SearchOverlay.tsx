@@ -7,6 +7,7 @@ import { useProfileSearch, SearchResult } from "@/hooks/useProfileSearch";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useAuth } from "@/contexts/AuthContext";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { navigateToPublicProfile } from "@/lib/publicProfileNavigation";
 
 interface Category {
   id: string;
@@ -157,34 +158,10 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
       // Persist current query + results so back restores the exact list.
       persistSearchState();
 
-      // HARD FIX: pass explicit return context so PublicProfile back button
-      // can return to Search even if history is empty/reset.
-      const baseState =
-        location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
-
-      const returnTo = {
-        pathname: location.pathname,
-        search: location.search,
-        state:
-          location.pathname === "/"
-            ? {
-                ...baseState,
-                openSearch: true,
-              }
-            : {
-                ...baseState,
-                openSearch: true,
-              },
-      };
-
-      try {
-        sessionStorage.setItem("exhiby_return_to", JSON.stringify(returnTo));
-      } catch {
-        // ignore
-      }
-
-      navigate(`/profile/${profile.user_id}`, {
-        state: { returnTo },
+      // Reusable navigation (Search + Follow lists must behave identically)
+      navigateToPublicProfile(navigate, location, profile.user_id, {
+        overlayState: { openSearch: true },
+        persistReturnToKey: "exhiby_return_to",
       });
     }
   };

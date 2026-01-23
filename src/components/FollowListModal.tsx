@@ -7,6 +7,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { FollowListRow, type FollowUser } from "@/components/follow/FollowListRow";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { navigateToPublicProfile } from "@/lib/publicProfileNavigation";
 
 interface FollowListModalProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   // Lock background scroll when modal is open
   useScrollLock(isOpen);
@@ -53,10 +56,13 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   };
 
   const handleUserClick = (user: FollowUser) => {
-    console.log("clicked user:", user);
-
     const targetId = user?.user_id || user?.id || user?.profile_id;
-    console.log("targetId:", targetId);
+
+    if (import.meta.env.DEV) {
+      // Temporary debugging aid (requested). Remove once confirmed stable.
+      console.log("[FOLLOW ROW CLICK]", user);
+      console.log("[FOLLOW TARGET ID]", targetId);
+    }
 
     if (!targetId) {
       toast.error("Unable to open profile — missing user id");
@@ -70,45 +76,23 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
       return;
     }
 
-    // Close modal first (requested behavior). We still persist an explicit returnTo
-    // context so the PublicProfile back button can restore this modal.
-    onClose();
+    const isSelf = user && targetId === user.id;
 
-    const baseState =
-      location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
+    // IMPORTANT: Navigate first, then close modal (closing first can swallow navigation).
+    if (isSelf) {
+      if (import.meta.env.DEV) console.log("[FOLLOW NAV PATH]", "/ (openProfile: true)");
+      navigate("/", { state: { openProfile: true } });
+    } else {
+      if (import.meta.env.DEV) console.log("[FOLLOW NAV PATH]", `/profile/${targetId}`);
 
-    const returnTo = {
-      pathname: location.pathname,
-      search: location.search,
-      state:
-        location.pathname === "/"
-          ? {
-              ...baseState,
-              openProfile: true,
-              openFollowList: type,
-            }
-          : {
-              ...baseState,
-              openFollowList: type,
-            },
-    };
-
-    try {
-      sessionStorage.setItem("exhiby_return_to", JSON.stringify(returnTo));
-    } catch {
-      // ignore
+      // Reuse the exact same navigation helper used by Search results.
+      navigateToPublicProfile(navigate, location, targetId, {
+        overlayState: { openFollowList: type },
+        persistReturnToKey: "exhiby_return_to",
+      });
     }
 
-    // NOTE: closing the modal can unmount this component immediately.
-    // Schedule navigation on the next tick so it can't get swallowed by the unmount.
-    setTimeout(() => {
-      console.log("Navigating to", `/profile/${targetId}`);
-      navigate(`/profile/${targetId}`, {
-        state: {
-          returnTo,
-        },
-      });
-    }, 0);
+    requestAnimationFrame(() => onClose());
   };
 
   const modalContent = (
@@ -171,9 +155,10 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
                 </div>
               ) : (
                 <div className="divide-y divide-border/20">
-                  {users.map((user) => (
-                    <FollowListRow key={user.user_id} user={user} onActivate={handleUserClick} />
-                  ))}
+                  {users.map((user, idx) => {
+                    const key = user.user_id || user.id || user.profile_id || `${user.name}-${idx}`;
+                    return <FollowListRow key={key} user={user} onActivate={handleUserClick} />;
+                  })}
                 </div>
               )}
             </div>
