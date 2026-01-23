@@ -35,6 +35,7 @@ interface PublicProfileData {
   created_at: string | null;
   is_founding_member: boolean | null;
   founding_number: number | null;
+  is_verified?: boolean | null;
 }
 
 export default function PublicProfile() {
@@ -127,9 +128,15 @@ export default function PublicProfile() {
 
       try {
         // Only use RPC - never query profiles table directly for other users
-        const { data, error: rpcError } = await supabase.rpc("get_public_profile", {
+          const { data, error: rpcError } = await supabase.rpc("get_public_profile", {
           profile_user_id: userId,
         });
+
+          console.log("[PublicProfile][AUDIENCE] RPC get_public_profile response:", {
+            args: { profile_user_id: userId },
+            data,
+            error: rpcError,
+          });
 
         let profileData: PublicProfileData | null = null;
 
@@ -142,6 +149,12 @@ export default function PublicProfile() {
             "get_public_profile_by_profile_id",
             { profile_id: userId }
           );
+
+            console.log("[PublicProfile][AUDIENCE] RPC get_public_profile_by_profile_id response:", {
+              args: { profile_id: userId },
+              data: fallbackData,
+              error: fallbackError,
+            });
 
           if (!fallbackError && fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
             console.log("PublicProfile loaded via RPC for user_id:", fallbackData[0].user_id);
@@ -162,6 +175,11 @@ export default function PublicProfile() {
         }
 
         setProfile(profileData);
+
+        // TEMP DEBUG: Verify audience receives is_verified
+        console.log("AUDIENCE PROFILE FETCH:", profileData);
+        console.log("AUDIENCE is_verified:", (profileData as any)?.is_verified);
+
         fetchFollowData(profileData.user_id);
 
         // Live status must use the resolved creator user_id (route param may be user_id OR profile row id)
@@ -422,9 +440,14 @@ export default function PublicProfile() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15 }}
         >
-          <h1 className="font-display text-2xl md:text-3xl text-foreground">
-            {profile.name}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl md:text-3xl text-foreground">
+              {profile.name}
+            </h1>
+            {profile.is_verified === true && (
+              <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
+            )}
+          </div>
           {profile.handle && (
             <p className="text-muted-foreground text-sm">@{profile.handle}</p>
           )}
