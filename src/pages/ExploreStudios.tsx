@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ interface StudioItem {
 
 export default function ExploreStudios() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [studios, setStudios] = useState<StudioItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +174,21 @@ export default function ExploreStudios() {
       navigate(`/event/${studio.id}`);
     } else {
       // Quiet studio - navigate to creator profile
-      navigate(`/profile/${studio.creator_id}`);
+      const baseState =
+        location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
+      const returnTo = {
+        pathname: location.pathname,
+        search: location.search,
+        state: baseState,
+      };
+
+      try {
+        sessionStorage.setItem("exhiby_return_to", JSON.stringify(returnTo));
+      } catch {
+        // ignore
+      }
+
+      navigate(`/profile/${studio.creator_id}`, { state: { returnTo } });
     }
   };
 

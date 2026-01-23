@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { LiveBadge, useEndedLabel } from "./EventStatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,6 +55,7 @@ export function LiveMarqueeCard({
   desktopSize = false,
 }: LiveMarqueeCardProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const isEnded = !!endedAt;
   const endedLabel = useEndedLabel(endedAt);
@@ -78,8 +79,22 @@ export function LiveMarqueeCard({
     
     if (!creatorId) return;
     
-    // Navigate to the creator's profile
-    navigate(`/profile/${creatorId}`);
+    // Navigate to the creator's profile, preserving return context.
+    const baseState =
+      location.state && typeof location.state === "object" ? (location.state as Record<string, unknown>) : {};
+    const returnTo = {
+      pathname: location.pathname,
+      search: location.search,
+      state: baseState,
+    };
+
+    try {
+      sessionStorage.setItem("exhiby_return_to", JSON.stringify(returnTo));
+    } catch {
+      // ignore
+    }
+
+    navigate(`/profile/${creatorId}`, { state: { returnTo } });
   };
 
   return (
