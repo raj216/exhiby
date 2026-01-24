@@ -30,6 +30,7 @@ import {
 import { DebugPanel } from "@/components/live/DebugPanel";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
+import { LiveRoomSkeleton } from "@/components/ui/loading-skeletons";
 
 interface EventData {
   id: string;
@@ -613,7 +614,8 @@ export default function LiveRoom() {
 
   if (loading || ticketLoading) {
     return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+      <>
+        <LiveRoomSkeleton />
         <DebugPanel
           eventId={eventId}
           eventData={null}
@@ -623,11 +625,7 @@ export default function LiveRoom() {
           isRecreatingRoom={isRecreatingRoom}
           onRecreateRoom={handleRecreateRoom}
         />
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-electric mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading live room...</p>
-        </div>
-      </div>
+      </>
     );
   }
 

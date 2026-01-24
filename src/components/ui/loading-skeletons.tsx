@@ -326,3 +326,47 @@ export function ExploreStudiosSkeleton() {
     </div>
   );
 }
+
+/**
+ * LiveRoom skeleton - shows loading state for live streaming page
+ */
+export function LiveRoomSkeleton() {
+  return (
+    <div className="fixed inset-0 bg-carbon flex flex-col animate-pulse">
+      {/* Header skeleton */}
+      <div className="absolute top-0 left-0 right-0 z-20 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-16 rounded-full" />
+          <Skeleton className="w-10 h-10 rounded-full" />
+        </div>
+      </div>
+      
+      {/* Video area skeleton */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-muted/30 mx-auto flex items-center justify-center">
+            <Skeleton className="w-8 h-8 rounded" />
+          </div>
+          <Skeleton className="h-4 w-40 mx-auto" />
+        </div>
+      </div>
+      
+      {/* Controls skeleton */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 p-4">
+        <div className="flex items-center justify-center gap-4">
+          <Skeleton className="w-12 h-12 rounded-full" />
+          <Skeleton className="w-12 h-12 rounded-full" />
+          <Skeleton className="w-12 h-12 rounded-full" />
+          <Skeleton className="w-12 h-12 rounded-full" />
+        </div>
+      </div>
+    </div>
+  );
+}
