@@ -5,7 +5,7 @@ import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProfilePageSkeleton } from "@/components/ui/loading-skeletons";
 import { triggerHaptic } from "@/lib/haptics";
 import { safeExternalUrl } from "@/lib/utils";
 import { toast } from "sonner";
@@ -362,15 +362,7 @@ export default function PublicProfile() {
     canonical.setAttribute("href", canonicalHref);
   }, [profile, isLive]);
   if (isLoading) {
-    return <div className="min-h-screen bg-carbon">
-        <Skeleton className="w-full h-48" />
-        <div className="px-4 -mt-16">
-          <Skeleton className="w-32 h-32 rounded-full border-4 border-carbon" />
-          <Skeleton className="mt-4 h-8 w-48" />
-          <Skeleton className="mt-2 h-4 w-32" />
-          <Skeleton className="mt-4 h-16 w-full" />
-        </div>
-      </div>;
+    return <ProfilePageSkeleton />;
   }
   if (error || !profile) {
     return <div className="min-h-screen bg-carbon flex flex-col items-center justify-center px-4">
