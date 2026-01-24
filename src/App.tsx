@@ -15,6 +15,7 @@ import AdminFeedback from "./pages/AdminFeedback";
 import EarningsHistory from "./pages/EarningsHistory";
 import TicketsHistory from "./pages/TicketsHistory";
 import SessionResolver from "./pages/SessionResolver";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/admin/feedback" element={<AdminFeedback />} />
               <Route path="/earnings-history" element={<EarningsHistory />} />
               <Route path="/tickets-history" element={<TicketsHistory />} />
+              <Route path="/settings" element={<Settings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

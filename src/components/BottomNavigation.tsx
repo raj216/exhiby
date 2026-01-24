@@ -4,7 +4,6 @@ import { Home, Search, User, Compass, Video } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useProfile } from "@/hooks/useProfile";
-import { SettingsDrawer } from "./SettingsDrawer";
 import { CreatorActivationModal } from "./CreatorActivationModal";
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
@@ -55,7 +54,6 @@ export function BottomNavigation({
   const { isVerifiedCreator, setMode } = useUserMode();
   const { profile } = useProfile();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -111,11 +109,6 @@ export function BottomNavigation({
     }
   };
 
-  const handleSettings = () => {
-    setShowProfileMenu(false);
-    setShowSettings(true);
-  };
-
   const handleLogout = () => {
     setShowProfileMenu(false);
     onLogout?.();
@@ -143,7 +136,6 @@ export function BottomNavigation({
         isVerifiedCreator={isVerifiedCreator}
         onViewProfile={handleViewProfile}
         onOpenStudio={handleOpenStudio}
-        onSettings={handleSettings}
         onLogout={handleLogout}
       />
 
@@ -339,13 +331,6 @@ export function BottomNavigation({
           </div>
         </div>
       </motion.div>
-
-      {/* Settings Drawer */}
-      <SettingsDrawer 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)}
-        onOpenStudio={onOpenStudio}
-      />
 
       {/* Creator Activation Modal */}
       <CreatorActivationModal

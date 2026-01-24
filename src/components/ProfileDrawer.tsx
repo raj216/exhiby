@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { X, User, LayoutDashboard, CreditCard, Settings, LogOut, Palette, Clock } from "lucide-react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import featureFlags from "@/lib/featureFlags";
@@ -15,7 +16,6 @@ interface ProfileDrawerProps {
   isVerifiedCreator: boolean;
   onViewProfile: () => void;
   onOpenStudio: () => void;
-  onSettings: () => void;
   onLogout: () => void;
 }
 
@@ -27,9 +27,9 @@ export function ProfileDrawer({
   isVerifiedCreator,
   onViewProfile,
   onOpenStudio,
-  onSettings,
   onLogout,
 }: ProfileDrawerProps) {
+  const navigate = useNavigate();
   useScrollLock(isOpen);
 
   const getInitials = (name: string) => {
@@ -47,6 +47,11 @@ export function ProfileDrawer({
   const handleAction = (action: () => void) => {
     onClose();
     action();
+  };
+
+  const handleSettings = () => {
+    onClose();
+    navigate("/settings");
   };
 
   return (
@@ -145,7 +150,10 @@ export function ProfileDrawer({
 
               {featureFlags.paymentsEnabled ? (
                 <button
-                  onClick={() => handleAction(onSettings)}
+                  onClick={() => {
+                    onClose();
+                    navigate("/settings");
+                  }}
                   className="w-full flex items-center gap-4 px-6 py-4 text-white hover:bg-muted/20 transition-colors"
                 >
                   <CreditCard className="w-5 h-5 text-muted-foreground" />
@@ -160,7 +168,7 @@ export function ProfileDrawer({
               )}
 
               <button
-                onClick={() => handleAction(onSettings)}
+                onClick={handleSettings}
                 className="w-full flex items-center gap-4 px-6 py-4 text-white hover:bg-muted/20 transition-colors"
               >
                 <Settings className="w-5 h-5 text-muted-foreground" />
