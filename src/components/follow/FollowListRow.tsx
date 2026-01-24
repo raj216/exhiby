@@ -5,6 +5,9 @@ export interface FollowUser {
   user_id?: string;
   id?: string;
   profile_id?: string;
+  // Some queries may nest profile rows
+  profiles?: { id?: string; user_id?: string } | null;
+  profile?: { id?: string; user_id?: string } | null;
   name: string;
   handle: string | null;
   avatar_url: string | null;

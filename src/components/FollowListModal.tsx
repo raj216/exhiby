@@ -24,6 +24,16 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   const location = useLocation();
   const { user: authUser } = useAuth();
 
+  const resolveProfileId = (u: FollowUser | null | undefined) =>
+    u?.id ??
+    u?.user_id ??
+    u?.profile_id ??
+    u?.profiles?.id ??
+    u?.profiles?.user_id ??
+    u?.profile?.id ??
+    u?.profile?.user_id ??
+    null;
+
   // Lock background scroll when modal is open
   useScrollLock(isOpen);
 
@@ -56,7 +66,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   };
 
   const handleUserClick = (followUser: FollowUser) => {
-    const targetId = followUser?.user_id || followUser?.id || followUser?.profile_id;
+    const targetId = resolveProfileId(followUser);
 
     if (import.meta.env.DEV) {
       // Temporary debugging aid (requested). Remove once confirmed stable.
@@ -65,7 +75,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
     }
 
     if (!targetId) {
-      toast.error("Unable to open profile — missing user id");
+      toast.error("Profile unavailable (missing id)");
       return;
     }
 
@@ -102,7 +112,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-auto"
           style={{ height: '100dvh' }}
         >
           {/* Backdrop */}
@@ -111,7 +121,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 z-0 bg-black/70 backdrop-blur-sm"
+              className="absolute inset-0 z-0 bg-black/70 backdrop-blur-sm pointer-events-auto"
           />
           
           {/* Modal Panel */}
@@ -121,7 +131,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative z-10 bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col pointer-events-auto"
+              className="relative z-10 bg-obsidian rounded-2xl shadow-2xl border border-border/30 flex flex-col pointer-events-auto"
             style={{ 
               width: "min(92vw, 420px)",
               maxHeight: "calc(70dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
