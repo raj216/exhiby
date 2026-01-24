@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AudienceProfile } from "./AudienceProfile";
 import { StudioDashboard } from "./StudioDashboard";
 import { CreatorVerificationFlow } from "./CreatorVerificationFlow";
+import { ProfilePageSkeleton } from "./ui/loading-skeletons";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useProfile } from "@/hooks/useProfile";
@@ -18,7 +19,7 @@ export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey
   const { mode, isVerifiedCreator, activateCreatorRole, toggleMode, setMode } = useUserMode();
   const [showVerification, setShowVerification] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
-  const { profile } = useProfile();
+  const { profile, isLoading: profileLoading } = useProfile();
 
   const handleSwitchMode = () => {
     // Always allow switching back to Audience. Only gate switching *into* Creator.
@@ -45,6 +46,11 @@ export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey
   const handleVerificationComplete = async () => {
     await activateCreatorRole();
   };
+
+  // Show skeleton while profile is loading
+  if (profileLoading && !profile) {
+    return <ProfilePageSkeleton />;
+  }
 
   return (
     <>

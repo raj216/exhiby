@@ -130,3 +130,183 @@ export function SearchResultsSkeleton({ count = 5 }: { count?: number }) {
     </div>
   );
 }
+
+/**
+ * HomeScreen skeleton - shows loading state for Live Now and Studio Schedule sections
+ */
+export function HomeScreenSkeleton() {
+  return (
+    <div className="space-y-8 animate-pulse">
+      {/* Live Now Section Skeleton */}
+      <section className="py-6">
+        <div className="px-4 lg:px-6 mb-4">
+          <Skeleton className="h-7 w-32 mb-2" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        
+        {/* Mobile: Horizontal scroll */}
+        <div className="px-4 lg:hidden">
+          <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0" style={{ width: 'min(65vw, 280px)' }}>
+                <Skeleton className="w-full aspect-[4/5] rounded-xl" />
+                <div className="pt-3 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Desktop: Grid */}
+        <div className="hidden lg:block px-6">
+          <div className="grid grid-cols-5 gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="w-full aspect-[4/5] rounded-xl" />
+                <div className="pt-3 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Studio Schedule Section Skeleton */}
+      <section className="py-6">
+        <div className="px-4 lg:px-6 mb-4">
+          <Skeleton className="h-7 w-40 mb-2" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        
+        {/* Mobile: Horizontal scroll */}
+        <div className="px-4 lg:hidden">
+          <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0" style={{ width: 'min(65vw, 280px)' }}>
+                {/* Artist header */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Skeleton className="w-8 h-8 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="w-full aspect-[4/5] rounded-xl" />
+                <div className="pt-3 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Desktop: Grid */}
+        <div className="hidden lg:block px-6">
+          <div className="grid grid-cols-5 gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Skeleton className="w-8 h-8 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="w-full aspect-[4/5] rounded-xl" />
+                <div className="pt-3 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Profile page skeleton - shows loading state for profile header and content
+ */
+export function ProfilePageSkeleton() {
+  return (
+    <div className="min-h-screen bg-carbon animate-pulse">
+      {/* Cover Photo */}
+      <Skeleton className="w-full h-48 sm:h-56 rounded-none" />
+      
+      {/* Profile Section */}
+      <div className="relative px-4 -mt-16">
+        {/* Avatar */}
+        <Skeleton className="w-28 h-28 rounded-full border-4 border-carbon" />
+        
+        {/* Name & Handle */}
+        <div className="mt-4 space-y-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </div>
+        
+        {/* Stats */}
+        <div className="flex gap-4 mt-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex gap-3 mt-4">
+          <Skeleton className="h-10 w-32 rounded-full" />
+          <Skeleton className="h-10 w-10 rounded-full" />
+        </div>
+        
+        {/* Passport Line */}
+        <Skeleton className="h-3 w-48 mt-4" />
+      </div>
+      
+      {/* Tabs */}
+      <div className="border-b border-border/30 mt-6">
+        <div className="flex max-w-2xl mx-auto px-4 gap-4">
+          <Skeleton className="h-12 flex-1" />
+          <Skeleton className="h-12 flex-1" />
+        </div>
+      </div>
+      
+      {/* Tab Content */}
+      <div className="p-4 space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex gap-3 p-3 bg-obsidian rounded-xl">
+            <Skeleton className="w-20 h-20 rounded-lg flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Upcoming event card skeleton - matches UpcomingEventCard layout
+ */
+export function UpcomingEventCardSkeleton() {
+  return (
+    <div className="w-full animate-pulse">
+      {/* Artist Header */}
+      <div className="flex items-center gap-2 mb-2 px-1">
+        <Skeleton className="w-8 h-8 rounded-full" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+      
+      {/* Image Container */}
+      <Skeleton className="w-full aspect-[4/5] rounded-xl" />
+      
+      {/* Info Section */}
+      <div className="pt-3 pb-1 px-1 space-y-2">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    </div>
+  );
+}

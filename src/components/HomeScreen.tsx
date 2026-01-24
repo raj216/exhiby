@@ -8,6 +8,7 @@ import { PaymentDrawer } from "./PaymentDrawer";
 import { DesktopHeader } from "./DesktopHeader";
 import { MobileHeader } from "./MobileHeader";
 import { LeftSidebar } from "./LeftSidebar";
+import { HomeScreenSkeleton } from "./ui/loading-skeletons";
 
 import { useUserMode } from "@/contexts/UserModeContext";
 import { ChevronRight, Clock, Calendar } from "lucide-react";
@@ -282,6 +283,10 @@ export function HomeScreen({
           <div className="flex">
             {/* Main Content Area */}
             <main className="flex-1 min-w-0 pb-24 lg:pb-8">
+              {/* Show skeleton during initial load */}
+              {(loadingLiveEvents || loadingEvents) && !hasAnyLiveContent && !hasUpcomingEvents ? (
+                <HomeScreenSkeleton />
+              ) : (
               <AnimatePresence mode="wait">
                 <motion.div key={selectedCategory} initial={{
                 opacity: 0,
@@ -490,6 +495,7 @@ export function HomeScreen({
                   </section>
                 </motion.div>
               </AnimatePresence>
+              )}
             </main>
 
           </div>
