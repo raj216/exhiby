@@ -64,8 +64,15 @@ export function PortfolioGrid({
   const handleUpload = async (imageBlob: Blob, title: string, description: string): Promise<boolean> => {
     setIsUploading(true);
     try {
-      const success = await addItem(imageBlob, title, description);
-      return success;
+      // Convert blob to File if needed
+      const file = imageBlob instanceof File 
+        ? imageBlob 
+        : new File([imageBlob], `upload-${Date.now()}.jpg`, { type: imageBlob.type || 'image/jpeg' });
+      await addItem(file, title, description);
+      return true;
+    } catch (error) {
+      console.error("Upload failed:", error);
+      return false;
     } finally {
       setIsUploading(false);
     }

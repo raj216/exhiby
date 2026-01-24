@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
 
 export interface PortfolioItem {
   id: string;
@@ -11,136 +11,137 @@ export interface PortfolioItem {
   created_at: string;
 }
 
-export function usePortfolioItems(targetUserId?: string) {
+export function usePortfolioItems(userId: string | undefined) {
   const { user } = useAuth();
-  const [items, setItems] = useState<PortfolioItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [profileId, setProfileId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [uploadingItem, setUploadingItem] = useState<PortfolioItem | null>(null);
 
-  // Fetch the profile ID for the target user
-  useEffect(() => {
-    const fetchProfileId = async () => {
-      const userId = targetUserId || user?.id;
-      if (!userId) {
-        setIsLoading(false);
-        return;
-      }
+  const isOwner = useMemo(() => user?.id === userId, [user?.id, userId]);
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
+  const { data: items = [], isLoading, refetch } = useQuery({
+    queryKey: ["portfolio-items", userId],
+    queryFn: async (): Promise<PortfolioItem[]> => {
+      if (!userId) return [];
 
-      if (data) {
-        setProfileId(data.id);
-      }
-    };
-
-    fetchProfileId();
-  }, [targetUserId, user?.id]);
-
-  const fetchItems = useCallback(async () => {
-    const userId = targetUserId || user?.id;
-    if (!userId) {
-      setItems([]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
       const { data, error } = await supabase.rpc("get_portfolio_items", {
         target_user_id: userId,
       });
 
       if (error) {
         console.error("Error fetching portfolio items:", error);
-        setItems([]);
-      } else {
-        setItems((data as PortfolioItem[]) || []);
+        return [];
       }
-    } catch (err) {
-      console.error("Portfolio fetch error:", err);
-      setItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [targetUserId, user?.id]);
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+      return (data || []).map((item) => ({
+        id: item.id,
+        image_url: item.image_url,
+        title: item.title,
+        description: item.description,
+        created_at: item.created_at,
+      }));
+    },
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-  const addItem = async (imageBlob: Blob, title: string, description: string) => {
-    if (!user || !profileId) {
-      toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
-      return false;
-    }
+  const deleteMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const itemToDelete = items.find((item) => item.id === itemId);
 
-    try {
-      // Upload to storage
-      const fileExt = "jpg";
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("portfolio")
-        .upload(fileName, imageBlob, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("portfolio")
-        .getPublicUrl(fileName);
-
-      // Insert into database
-      const { error: insertError } = await supabase
-        .from("portfolio_items")
-        .insert({
-          profile_id: profileId,
-          image_url: publicUrl,
-          title: title,
-          description: description,
-        });
-
-      if (insertError) throw insertError;
-
-      toast({ title: "Success", description: "Artwork added to portfolio!" });
-      await fetchItems();
-      return true;
-    } catch (error) {
-      console.error("Add portfolio item error:", error);
-      toast({ title: "Upload failed", description: "Please try again", variant: "destructive" });
-      return false;
-    }
-  };
-
-  const deleteItem = async (itemId: string) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from("portfolio_items")
-        .delete()
-        .eq("id", itemId);
-
+      const { error } = await supabase.from("portfolio_items").delete().eq("id", itemId);
       if (error) throw error;
 
-      toast({ title: "Deleted", description: "Artwork removed from portfolio" });
-      await fetchItems();
-      return true;
-    } catch (error) {
-      console.error("Delete portfolio item error:", error);
-      toast({ title: "Delete failed", description: "Please try again", variant: "destructive" });
-      return false;
-    }
-  };
+      // Clean up storage
+      if (itemToDelete?.image_url) {
+        try {
+          const url = new URL(itemToDelete.image_url);
+          const pathMatch = url.pathname.match(/\/portfolio\/(.+)$/);
+          if (pathMatch) {
+            await supabase.storage.from("portfolio").remove([pathMatch[1]]);
+          }
+        } catch {
+          // Ignore storage cleanup errors
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["portfolio-items", userId] });
+    },
+  });
+
+  const addItem = useCallback(
+    async (file: File, title?: string, description?: string) => {
+      if (!user) throw new Error("No authenticated user");
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError || !profileData) throw new Error("Could not find profile");
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage.from("portfolio").upload(fileName, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("portfolio").getPublicUrl(fileName);
+
+      const tempId = `temp-${Date.now()}`;
+      const optimisticItem: PortfolioItem = {
+        id: tempId,
+        image_url: urlData.publicUrl,
+        title: title || null,
+        description: description || null,
+        created_at: new Date().toISOString(),
+      };
+
+      setUploadingItem(optimisticItem);
+
+      const { data: insertedItem, error: insertError } = await supabase
+        .from("portfolio_items")
+        .insert({
+          profile_id: profileData.id,
+          image_url: urlData.publicUrl,
+          title: title || null,
+          description: description || null,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        setUploadingItem(null);
+        throw insertError;
+      }
+
+      setUploadingItem(null);
+      queryClient.invalidateQueries({ queryKey: ["portfolio-items", userId] });
+
+      return insertedItem;
+    },
+    [user, userId, queryClient]
+  );
+
+  const deleteItem = useCallback(
+    (itemId: string) => deleteMutation.mutateAsync(itemId),
+    [deleteMutation]
+  );
+
+  const allItems = useMemo(() => {
+    if (uploadingItem) return [uploadingItem, ...items];
+    return items;
+  }, [items, uploadingItem]);
 
   return {
-    items,
+    items: allItems,
     isLoading,
-    profileId,
+    isOwner,
     addItem,
     deleteItem,
-    refetch: fetchItems,
+    refetch,
+    isDeleting: deleteMutation.isPending,
   };
 }
