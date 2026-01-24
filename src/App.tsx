@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,10 +18,11 @@ import TicketsHistory from "./pages/TicketsHistory";
 import SessionResolver from "./pages/SessionResolver";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = () => {
+  const [queryClient] = useState(() => new QueryClient());
+  
+  return (
     <AuthProvider>
       <UserModeProvider>
         <TooltipProvider>
@@ -46,7 +48,7 @@ const App = () => (
         </TooltipProvider>
       </UserModeProvider>
     </AuthProvider>
-  </QueryClientProvider>
-);
+  );
+};
 
 export default App;
