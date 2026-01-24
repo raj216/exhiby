@@ -23,31 +23,33 @@ const App = () => {
   const [queryClient] = useState(() => new QueryClient());
   
   return (
-    <AuthProvider>
-      <UserModeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner position="top-center" />
-          <BrowserRouter>
-            <LiveNotificationToast />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/s/:sessionId" element={<SessionResolver />} />
-              <Route path="/profile/:userId" element={<PublicProfile />} />
-              <Route path="/live/:eventId" element={<LiveRoom />} />
-              <Route path="/explore" element={<ExploreStudios />} />
-              <Route path="/admin/feedback" element={<AdminFeedback />} />
-              <Route path="/earnings-history" element={<EarningsHistory />} />
-              <Route path="/tickets-history" element={<TicketsHistory />} />
-              <Route path="/settings" element={<Settings />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </UserModeProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <UserModeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner position="top-center" />
+            <BrowserRouter>
+              <LiveNotificationToast />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/s/:sessionId" element={<SessionResolver />} />
+                <Route path="/profile/:userId" element={<PublicProfile />} />
+                <Route path="/live/:eventId" element={<LiveRoom />} />
+                <Route path="/explore" element={<ExploreStudios />} />
+                <Route path="/admin/feedback" element={<AdminFeedback />} />
+                <Route path="/earnings-history" element={<EarningsHistory />} />
+                <Route path="/tickets-history" element={<TicketsHistory />} />
+                <Route path="/settings" element={<Settings />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </UserModeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 
