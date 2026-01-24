@@ -310,3 +310,19 @@ export function UpcomingEventCardSkeleton() {
     </div>
   );
 }
+
+/**
+ * Explore Studios page skeleton - shows loading grid for studio discovery
+ */
+export function ExploreStudiosSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-pulse">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} className="space-y-2">
+          {/* Card */}
+          <Skeleton className="aspect-[4/5] rounded-xl" />
+        </div>
+      ))}
+    </div>
+  );
+}
