@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,20 +11,23 @@ interface SavedSession {
   created_at: string;
 }
 
+// Cache key for saved sessions
+const SAVED_SESSIONS_KEY = "saved-sessions";
+
 export function useSavedSessions() {
   const { user } = useAuth();
-  const [savedSessions, setSavedSessions] = useState<SavedSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  // Fetch saved sessions
-  const fetchSavedSessions = useCallback(async () => {
-    if (!user) {
-      setSavedSessions([]);
-      setLoading(false);
-      return;
-    }
+  // React Query for fetching saved sessions with caching
+  const {
+    data: savedSessions = [],
+    isLoading: loading,
+    refetch,
+  } = useQuery({
+    queryKey: [SAVED_SESSIONS_KEY, user?.id],
+    queryFn: async (): Promise<SavedSession[]> => {
+      if (!user) return [];
 
-    try {
       const { data, error } = await supabase
         .from("saved_sessions")
         .select("*")
@@ -32,148 +36,215 @@ export function useSavedSessions() {
 
       if (error) {
         console.error("Error fetching saved sessions:", error);
-      } else {
-        setSavedSessions(data || []);
-      }
-    } catch (err) {
-      console.error("Error in useSavedSessions:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  // Check if an event is saved
-  const isEventSaved = useCallback((eventId: string) => {
-    return savedSessions.some((s) => s.event_id === eventId);
-  }, [savedSessions]);
-
-  // Save a session
-  const saveSession = useCallback(async (eventId: string, creatorId: string) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from("saved_sessions")
-        .insert({
-          user_id: user.id,
-          event_id: eventId,
-          creator_id: creatorId,
-          reminder_enabled: true,
-        });
-
-      if (error) {
-        if (error.code === "23505") {
-          // Already saved - unique constraint violation
-          return true;
-        }
-        console.error("Error saving session:", error);
-        return false;
+        return [];
       }
 
-      // Optimistically update local state
-      setSavedSessions((prev) => [
-        {
-          id: crypto.randomUUID(),
-          event_id: eventId,
-          creator_id: creatorId,
-          reminder_enabled: true,
-          created_at: new Date().toISOString(),
-        },
-        ...prev,
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // 2 minutes - stable data
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
+  });
+
+  // Check if an event is saved (memoized)
+  const isEventSaved = useCallback(
+    (eventId: string) => {
+      return savedSessions.some((s) => s.event_id === eventId);
+    },
+    [savedSessions]
+  );
+
+  // Save session mutation with optimistic update
+  const saveMutation = useMutation({
+    mutationFn: async ({
+      eventId,
+      creatorId,
+    }: {
+      eventId: string;
+      creatorId: string;
+    }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      const { error } = await supabase.from("saved_sessions").insert({
+        user_id: user.id,
+        event_id: eventId,
+        creator_id: creatorId,
+        reminder_enabled: true,
+      });
+
+      if (error && error.code !== "23505") {
+        throw error;
+      }
+
+      return { eventId, creatorId };
+    },
+    onMutate: async ({ eventId, creatorId }) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({
+        queryKey: [SAVED_SESSIONS_KEY, user?.id],
+      });
+
+      // Snapshot previous value
+      const previousSessions = queryClient.getQueryData<SavedSession[]>([
+        SAVED_SESSIONS_KEY,
+        user?.id,
       ]);
 
-      return true;
-    } catch (err) {
-      console.error("Error saving session:", err);
-      return false;
-    }
-  }, [user]);
+      // Optimistically add new session
+      queryClient.setQueryData<SavedSession[]>(
+        [SAVED_SESSIONS_KEY, user?.id],
+        (old = []) => [
+          {
+            id: crypto.randomUUID(),
+            event_id: eventId,
+            creator_id: creatorId,
+            reminder_enabled: true,
+            created_at: new Date().toISOString(),
+          },
+          ...old,
+        ]
+      );
 
-  // Remove a saved session
-  const removeSession = useCallback(async (eventId: string) => {
-    if (!user) return false;
+      return { previousSessions };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.previousSessions) {
+        queryClient.setQueryData(
+          [SAVED_SESSIONS_KEY, user?.id],
+          context.previousSessions
+        );
+      }
+    },
+  });
 
-    try {
+  // Remove session mutation with optimistic update
+  const removeMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      if (!user) throw new Error("User not authenticated");
+
       const { error } = await supabase
         .from("saved_sessions")
         .delete()
         .eq("user_id", user.id)
         .eq("event_id", eventId);
 
-      if (error) {
-        console.error("Error removing session:", error);
-        return false;
+      if (error) throw error;
+      return eventId;
+    },
+    onMutate: async (eventId) => {
+      await queryClient.cancelQueries({
+        queryKey: [SAVED_SESSIONS_KEY, user?.id],
+      });
+
+      const previousSessions = queryClient.getQueryData<SavedSession[]>([
+        SAVED_SESSIONS_KEY,
+        user?.id,
+      ]);
+
+      queryClient.setQueryData<SavedSession[]>(
+        [SAVED_SESSIONS_KEY, user?.id],
+        (old = []) => old.filter((s) => s.event_id !== eventId)
+      );
+
+      return { previousSessions };
+    },
+    onError: (_err, _eventId, context) => {
+      if (context?.previousSessions) {
+        queryClient.setQueryData(
+          [SAVED_SESSIONS_KEY, user?.id],
+          context.previousSessions
+        );
       }
+    },
+  });
 
-      // Optimistically update local state
-      setSavedSessions((prev) => prev.filter((s) => s.event_id !== eventId));
+  // Toggle reminder mutation
+  const toggleReminderMutation = useMutation({
+    mutationFn: async ({
+      eventId,
+      enabled,
+    }: {
+      eventId: string;
+      enabled: boolean;
+    }) => {
+      if (!user) throw new Error("User not authenticated");
 
-      return true;
-    } catch (err) {
-      console.error("Error removing session:", err);
-      return false;
-    }
-  }, [user]);
-
-  // Toggle reminder
-  const toggleReminder = useCallback(async (eventId: string, enabled: boolean) => {
-    if (!user) return false;
-
-    try {
       const { error } = await supabase
         .from("saved_sessions")
         .update({ reminder_enabled: enabled })
         .eq("user_id", user.id)
         .eq("event_id", eventId);
 
-      if (error) {
-        console.error("Error toggling reminder:", error);
-        return false;
-      }
+      if (error) throw error;
+      return { eventId, enabled };
+    },
+    onMutate: async ({ eventId, enabled }) => {
+      await queryClient.cancelQueries({
+        queryKey: [SAVED_SESSIONS_KEY, user?.id],
+      });
 
-      setSavedSessions((prev) =>
-        prev.map((s) =>
-          s.event_id === eventId ? { ...s, reminder_enabled: enabled } : s
-        )
+      const previousSessions = queryClient.getQueryData<SavedSession[]>([
+        SAVED_SESSIONS_KEY,
+        user?.id,
+      ]);
+
+      queryClient.setQueryData<SavedSession[]>(
+        [SAVED_SESSIONS_KEY, user?.id],
+        (old = []) =>
+          old.map((s) =>
+            s.event_id === eventId ? { ...s, reminder_enabled: enabled } : s
+          )
       );
 
-      return true;
-    } catch (err) {
-      console.error("Error toggling reminder:", err);
-      return false;
-    }
-  }, [user]);
+      return { previousSessions };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousSessions) {
+        queryClient.setQueryData(
+          [SAVED_SESSIONS_KEY, user?.id],
+          context.previousSessions
+        );
+      }
+    },
+  });
 
-  // Initial fetch
-  useEffect(() => {
-    fetchSavedSessions();
-  }, [fetchSavedSessions]);
+  // Wrapper functions for backwards compatibility
+  const saveSession = useCallback(
+    async (eventId: string, creatorId: string) => {
+      try {
+        await saveMutation.mutateAsync({ eventId, creatorId });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [saveMutation]
+  );
 
-  // Realtime subscription
-  useEffect(() => {
-    if (!user) return;
+  const removeSession = useCallback(
+    async (eventId: string) => {
+      try {
+        await removeMutation.mutateAsync(eventId);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [removeMutation]
+  );
 
-    const channel = supabase
-      .channel("saved-sessions-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "saved_sessions",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          // Refetch on any change
-          fetchSavedSessions();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, fetchSavedSessions]);
+  const toggleReminder = useCallback(
+    async (eventId: string, enabled: boolean) => {
+      try {
+        await toggleReminderMutation.mutateAsync({ eventId, enabled });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [toggleReminderMutation]
+  );
 
   return {
     savedSessions,
@@ -182,6 +253,6 @@ export function useSavedSessions() {
     saveSession,
     removeSession,
     toggleReminder,
-    refetch: fetchSavedSessions,
+    refetch,
   };
 }
