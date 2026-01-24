@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { SettingsDrawer } from "./SettingsDrawer";
 import { CreatorActivationModal } from "./CreatorActivationModal";
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
@@ -36,7 +35,6 @@ export function DesktopHeader({
   const { user } = useAuth();
   const { isVerifiedCreator } = useUserMode();
   const { unreadCount } = useNotifications();
-  const [showSettings, setShowSettings] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -162,10 +160,6 @@ export function DesktopHeader({
             setShowActivationModal(true);
           }
         }}
-        onSettings={() => {
-          setShowProfileDrawer(false);
-          setShowSettings(true);
-        }}
         onLogout={() => {
           setShowProfileDrawer(false);
           onLogout?.();
@@ -176,13 +170,6 @@ export function DesktopHeader({
       <NotificationsDrawer
         open={showNotifications}
         onClose={() => setShowNotifications(false)}
-      />
-
-      {/* Settings Drawer */}
-      <SettingsDrawer
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        onOpenStudio={onOpenStudio}
       />
 
       {/* Creator Activation Modal */}
