@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 // Status types for session state
@@ -22,9 +22,6 @@ export interface SavedUpcomingSession {
   attended: boolean;
 }
 
-/**
- * Compute session status based on time and attendance
- */
 function computeSessionStatus(
   scheduledAt: Date,
   endTime: Date,
@@ -37,111 +34,63 @@ function computeSessionStatus(
   const startTime = scheduledAt.getTime();
   const endTimeMs = endTime.getTime();
 
-  // If currently live
-  if (isLive && !liveEndedAt) {
-    return "live";
-  }
-
-  // If ended (either by time or explicitly)
-  if (liveEndedAt || currentTime > endTimeMs) {
-    return attended ? "ended" : "missed";
-  }
-
-  // If upcoming
+  if (isLive && !liveEndedAt) return "live";
+  if (liveEndedAt || currentTime > endTimeMs) return attended ? "ended" : "missed";
   if (currentTime < startTime) {
-    const msUntilStart = startTime - currentTime;
-    const minutesUntilStart = msUntilStart / (1000 * 60);
-    
-    // Starting soon (within 15 minutes)
-    if (minutesUntilStart <= 15) {
-      return "starting_soon";
-    }
-    return "upcoming";
+    const minutesUntilStart = (startTime - currentTime) / (1000 * 60);
+    return minutesUntilStart <= 15 ? "starting_soon" : "upcoming";
   }
-
-  // Between start and end time, not live yet
   return "starting_soon";
 }
 
 export function useUpcomingSessions(userId: string | undefined) {
-  const [sessions, setSessions] = useState<SavedUpcomingSession[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: sessions = [], isLoading, refetch } = useQuery({
+    queryKey: ["upcoming-sessions", userId],
+    queryFn: async (): Promise<SavedUpcomingSession[]> => {
+      if (!userId) return [];
 
-  const fetchSessions = useCallback(async () => {
-    if (!userId) {
-      setSessions([]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Fetch saved sessions with event details
+      // Fetch saved sessions
       const { data: savedSessions, error: savedError } = await supabase
         .from("saved_sessions")
-        .select("id, event_id, creator_id, reminder_enabled")
+        .select("id, event_id, creator_id")
         .eq("user_id", userId);
 
-      if (savedError) {
-        console.error("Error fetching saved sessions:", savedError);
-        setIsLoading(false);
-        return;
-      }
+      if (savedError || !savedSessions?.length) return [];
 
-      if (!savedSessions || savedSessions.length === 0) {
-        setSessions([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Fetch events for these saved sessions
       const eventIds = savedSessions.map((s) => s.event_id);
-      const { data: events, error: eventsError } = await supabase
-        .from("events")
-        .select(
-          "id, title, scheduled_at, end_time, duration_minutes, category, creator_id, is_live, live_ended_at, cover_url, price, is_free"
-        )
-        .in("id", eventIds);
 
-      if (eventsError) {
-        console.error("Error fetching events:", eventsError);
-        setIsLoading(false);
-        return;
-      }
+      // Parallel fetch: events, profiles, attendance
+      const [eventsResult, viewerResult, feedbackResult] = await Promise.all([
+        supabase
+          .from("events")
+          .select("id, title, scheduled_at, end_time, duration_minutes, category, creator_id, is_live, live_ended_at, cover_url, price, is_free")
+          .in("id", eventIds),
+        supabase
+          .from("live_viewers")
+          .select("event_id")
+          .eq("user_id", userId)
+          .in("event_id", eventIds),
+        supabase
+          .from("session_feedback")
+          .select("event_id")
+          .eq("audience_user_id", userId)
+          .in("event_id", eventIds),
+      ]);
 
-      // Get unique creator IDs
-      const creatorIds = [...new Set(events?.map((e) => e.creator_id) || [])];
+      const events = eventsResult.data || [];
+      if (!events.length) return [];
 
       // Fetch creator profiles
-      const { data: profiles, error: profilesError } = await supabase.rpc(
-        "get_creator_profiles",
-        { user_ids: creatorIds }
-      );
+      const creatorIds = [...new Set(events.map((e) => e.creator_id))];
+      const { data: profiles } = await supabase.rpc("get_creator_profiles", { user_ids: creatorIds });
 
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-      }
-
-      // Check attendance: user exists in live_viewers OR session_feedback for these events
-      const { data: viewerRecords } = await supabase
-        .from("live_viewers")
-        .select("event_id")
-        .eq("user_id", userId)
-        .in("event_id", eventIds);
-
-      const { data: feedbackRecords } = await supabase
-        .from("session_feedback")
-        .select("event_id")
-        .eq("audience_user_id", userId)
-        .in("event_id", eventIds);
-
-      // Build attendance set
-      const attendedEventIds = new Set<string>();
-      viewerRecords?.forEach((r) => attendedEventIds.add(r.event_id));
-      feedbackRecords?.forEach((r) => attendedEventIds.add(r.event_id));
-
-      // Create maps for quick lookup
-      const eventMap = new Map(events?.map((e) => [e.id, e]) || []);
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
+      // Build lookup maps
+      const eventMap = new Map(events.map((e) => [e.id, e]));
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+      const attendedEventIds = new Set([
+        ...(viewerResult.data || []).map((r) => r.event_id),
+        ...(feedbackResult.data || []).map((r) => r.event_id),
+      ]);
 
       const now = new Date();
       const result: SavedUpcomingSession[] = [];
@@ -152,27 +101,9 @@ export function useUpcomingSessions(userId: string | undefined) {
 
         const creator = profileMap.get(event.creator_id);
         const scheduledAt = new Date(event.scheduled_at);
-        
-        // Compute end_time: use stored value, or calculate from duration, or default 60 min
-        let endTime: Date;
-        if (event.end_time) {
-          endTime = new Date(event.end_time);
-        } else {
-          const durationMs = (event.duration_minutes || 60) * 60 * 1000;
-          endTime = new Date(scheduledAt.getTime() + durationMs);
-        }
-
-        const isLive = event.is_live || false;
-        const attended = attendedEventIds.has(event.id);
-        
-        const status = computeSessionStatus(
-          scheduledAt,
-          endTime,
-          isLive,
-          event.live_ended_at,
-          attended,
-          now
-        );
+        const endTime = event.end_time
+          ? new Date(event.end_time)
+          : new Date(scheduledAt.getTime() + (event.duration_minutes || 60) * 60 * 1000);
 
         result.push({
           id: saved.id,
@@ -183,48 +114,30 @@ export function useUpcomingSessions(userId: string | undefined) {
           scheduledAt,
           endTime,
           category: event.category,
-          isLive,
+          isLive: event.is_live || false,
           coverUrl: event.cover_url,
           price: event.price || 0,
           isFree: event.is_free,
           creatorId: event.creator_id,
-          status,
-          attended,
+          status: computeSessionStatus(scheduledAt, endTime, event.is_live || false, event.live_ended_at, attendedEventIds.has(event.id), now),
+          attended: attendedEventIds.has(event.id),
         });
       }
 
-      // Sort: live first, then starting_soon, then upcoming by time, then ended/missed
+      // Sort: live first, then starting_soon, then upcoming, then ended/missed
+      const statusOrder: Record<SessionStatus, number> = { live: 0, starting_soon: 1, upcoming: 2, ended: 3, missed: 4 };
       result.sort((a, b) => {
-        const statusOrder: Record<SessionStatus, number> = {
-          live: 0,
-          starting_soon: 1,
-          upcoming: 2,
-          ended: 3,
-          missed: 4,
-        };
-        
-        if (statusOrder[a.status] !== statusOrder[b.status]) {
-          return statusOrder[a.status] - statusOrder[b.status];
-        }
-        
+        if (statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status];
         return a.scheduledAt.getTime() - b.scheduledAt.getTime();
       });
 
-      setSessions(result);
-    } catch (err) {
-      console.error("Error in useUpcomingSessions:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
+      return result;
+    },
+    enabled: !!userId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 60000, // Refetch every minute for status updates
+  });
 
-  useEffect(() => {
-    fetchSessions();
-
-    // Refetch every minute to update statuses
-    const interval = setInterval(fetchSessions, 60000);
-    return () => clearInterval(interval);
-  }, [fetchSessions]);
-
-  return { sessions, isLoading, refetch: fetchSessions };
+  return { sessions, isLoading, refetch };
 }

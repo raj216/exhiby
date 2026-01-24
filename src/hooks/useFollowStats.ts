@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface FollowStats {
@@ -7,38 +7,26 @@ interface FollowStats {
 }
 
 export function useFollowStats(userId: string | undefined) {
-  const [stats, setStats] = useState<FollowStats>({
-    followersCount: 0,
-    followingCount: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: stats = { followersCount: 0, followingCount: 0 }, isLoading, refetch } = useQuery({
+    queryKey: ["follow-stats", userId],
+    queryFn: async (): Promise<FollowStats> => {
+      if (!userId) return { followersCount: 0, followingCount: 0 };
 
-  const fetchStats = useCallback(async () => {
-    if (!userId) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
+      // Parallel fetch for both counts
       const [followersResult, followingResult] = await Promise.all([
         supabase.rpc("get_follower_count", { target_user_id: userId }),
         supabase.rpc("get_following_count", { target_user_id: userId }),
       ]);
 
-      setStats({
+      return {
         followersCount: followersResult.data ?? 0,
         followingCount: followingResult.data ?? 0,
-      });
-    } catch (error) {
-      console.error("Error fetching follow stats:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
+      };
+    },
+    enabled: !!userId,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  return { stats, isLoading, refetch: fetchStats };
+  return { stats, isLoading, refetch };
 }

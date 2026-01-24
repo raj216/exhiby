@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CreatorStats {
@@ -9,56 +9,31 @@ export interface CreatorStats {
 }
 
 export function useCreatorStats(userId: string | undefined) {
-  const [stats, setStats] = useState<CreatorStats>({
-    sessionsHosted: 0,
-    followersCount: 0,
-    earnings: 0,
-    ticketsSold: 0,
+  const { data: stats = { sessionsHosted: 0, followersCount: 0, earnings: 0, ticketsSold: 0 }, isLoading: loading, refetch } = useQuery({
+    queryKey: ["creator-stats", userId],
+    queryFn: async (): Promise<CreatorStats> => {
+      if (!userId) return { sessionsHosted: 0, followersCount: 0, earnings: 0, ticketsSold: 0 };
+
+      // Parallel fetch
+      const [eventsResult, followersResult] = await Promise.all([
+        supabase
+          .from("events")
+          .select("*", { count: "exact", head: true })
+          .eq("creator_id", userId),
+        supabase.rpc("get_follower_count", { target_user_id: userId }),
+      ]);
+
+      return {
+        sessionsHosted: eventsResult.count || 0,
+        followersCount: followersResult.data ?? 0,
+        earnings: 0, // To be implemented
+        ticketsSold: 0, // To be implemented
+      };
+    },
+    enabled: !!userId,
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
-  const [loading, setLoading] = useState(true);
 
-  const fetchStats = useCallback(async () => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Count events hosted by this creator
-      const { count: eventsCount, error: eventsError } = await supabase
-        .from("events")
-        .select("*", { count: "exact", head: true })
-        .eq("creator_id", userId);
-
-      if (eventsError) {
-        console.error("Error fetching events count:", eventsError);
-      }
-
-      // Followers count - will be 0 until follows table exists
-      // For now, we don't have a follows table, so we return 0
-      const followersCount = 0;
-
-      // Earnings and tickets sold - will be 0 until purchases/tickets tables exist
-      const earnings = 0;
-      const ticketsSold = 0;
-
-      setStats({
-        sessionsHosted: eventsCount || 0,
-        followersCount,
-        earnings,
-        ticketsSold,
-      });
-    } catch (err) {
-      console.error("Error fetching creator stats:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  return { stats, loading, refetch: fetchStats };
+  return { stats, loading, refetch };
 }
