@@ -24,14 +24,17 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
   const location = useLocation();
   const { user: authUser } = useAuth();
 
+  // IMPORTANT: Search uses `profile.user_id` to navigate to `/profile/:userId`.
+  // Follow lists can sometimes include confusing `id` fields (e.g. follow row id),
+  // so we ALWAYS prefer `user_id` first.
   const resolveProfileId = (u: FollowUser | null | undefined) =>
-    u?.id ??
     u?.user_id ??
+    u?.profiles?.user_id ??
+    u?.profile?.user_id ??
     u?.profile_id ??
     u?.profiles?.id ??
-    u?.profiles?.user_id ??
     u?.profile?.id ??
-    u?.profile?.user_id ??
+    u?.id ??
     null;
 
   // Lock background scroll when modal is open
@@ -166,7 +169,7 @@ export function FollowListModal({ isOpen, onClose, userId, type }: FollowListMod
               ) : (
                 <div className="divide-y divide-border/20">
                   {users.map((user, idx) => {
-                    const key = user.user_id || user.id || user.profile_id || `${user.name}-${idx}`;
+                    const key = resolveProfileId(user) || `${user.name}-${idx}`;
                     return <FollowListRow key={key} user={user} onActivate={handleUserClick} />;
                   })}
                 </div>
