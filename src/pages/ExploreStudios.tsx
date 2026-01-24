@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/lib/categories";
 import { triggerHaptic } from "@/lib/haptics";
+import { ExploreStudiosSkeleton } from "@/components/ui/loading-skeletons";
 
 interface CreatorProfile {
   name: string;
@@ -247,14 +248,7 @@ export default function ExploreStudios() {
       {/* Content */}
       <main className="p-4 lg:p-6">
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="aspect-[4/5] rounded-xl bg-muted/20 animate-pulse"
-              />
-            ))}
-          </div>
+          <ExploreStudiosSkeleton />
         ) : filteredStudios.length === 0 ? (
           /* Empty State */
           <motion.div
