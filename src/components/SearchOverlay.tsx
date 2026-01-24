@@ -45,32 +45,38 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
 
   const SEARCH_STATE_KEY = "exhiby_search_state";
   const isHydratingRef = useRef(false);
+  
+  // Use refs to avoid dependency issues with persistSearchState
+  const queryRef = useRef(query);
+  const resultsRef = useRef(profileResults);
+  queryRef.current = query;
+  resultsRef.current = profileResults;
 
   const persistSearchState = useCallback(() => {
     try {
       sessionStorage.setItem(
         SEARCH_STATE_KEY,
         JSON.stringify({
-          query,
-          results: profileResults,
+          query: queryRef.current,
+          results: resultsRef.current,
           ts: Date.now(),
         })
       );
     } catch {
       // ignore
     }
-  }, [SEARCH_STATE_KEY, query, profileResults]);
+  }, []); // No dependencies - uses refs
   
   // Lock body scroll when overlay is open
   useScrollLock(isOpen);
 
-  // Auto-focus when opened
+  // Auto-focus when opened, persist on close
   useEffect(() => {
     if (isOpen && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
     if (!isOpen) {
-      // Keep state persisted even after closing; we clear local state for cleanliness.
+      // Persist before clearing
       persistSearchState();
       setQuery("");
       clearResults();
@@ -97,11 +103,15 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
     }
   }, [isOpen, hydrateResults]);
 
-  // Persist as user types / results change (only while open)
+  // Persist when query or results actually change (debounced to avoid loops)
   useEffect(() => {
     if (!isOpen) return;
-    persistSearchState();
-  }, [isOpen, query, profileResults, persistSearchState]);
+    // Use a small timeout to batch updates and prevent loops
+    const timeout = setTimeout(() => {
+      persistSearchState();
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [isOpen, query, profileResults.length, persistSearchState]);
 
   // Debounced search
   useEffect(() => {

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -15,7 +15,6 @@ import {
   Loader2,
   Mail,
   Smartphone,
-  FileText,
   Trash2
 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -24,6 +23,7 @@ import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Menu category types
 type SettingsCategory = 
@@ -57,45 +57,52 @@ const menuItems: MenuItem[] = [
   { id: "guidelines", label: "Community Guidelines", icon: BookOpen, group: "support" },
 ];
 
+// Memoized menu item groups - never changes
+const generalItems = menuItems.filter(item => item.group === "general");
+const studioItems = menuItems.filter(item => item.group === "studio");
+const supportItems = menuItems.filter(item => item.group === "support");
+
 export default function Settings() {
-  console.log("[Settings] Rendering Settings page");
+  console.log("[Settings] Component mounted at", Date.now());
   const navigate = useNavigate();
-  const location = useLocation();
   const { isVerifiedCreator } = useUserMode();
   const [activeCategory, setActiveCategory] = useState<SettingsCategory | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Check if mobile
+  // Check if mobile - stable callback
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Set default category on desktop
+  // Set default category on desktop - run only once after initial render
   useEffect(() => {
-    if (!isMobile && !activeCategory) {
-      setActiveCategory("account");
+    if (!isInitialized) {
+      if (!isMobile) {
+        setActiveCategory("account");
+      }
+      setIsInitialized(true);
+      console.log("[Settings] Initialized, isMobile:", isMobile);
     }
-  }, [isMobile, activeCategory]);
+  }, [isMobile, isInitialized]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (isMobile && activeCategory) {
       setActiveCategory(null);
     } else {
       navigate(-1);
     }
-  };
+  }, [isMobile, activeCategory, navigate]);
 
-  const handleCategoryClick = (category: SettingsCategory) => {
+  const handleCategoryClick = useCallback((category: SettingsCategory) => {
     triggerClickHaptic();
     setActiveCategory(category);
-  };
-
-  const generalItems = menuItems.filter(item => item.group === "general");
-  const studioItems = menuItems.filter(item => item.group === "studio");
-  const supportItems = menuItems.filter(item => item.group === "support");
+  }, []);
 
   // Mobile: Show menu list OR category content
   if (isMobile) {

@@ -50,8 +50,13 @@ export function ProfileDrawer({
   };
 
   const handleSettings = () => {
-    onClose();
+    console.log("[ProfileDrawer] Settings clicked - navigating first");
+    // Navigate FIRST, then close drawer with slight delay to ensure navigation completes
     navigate("/settings");
+    // Delay close to prevent race condition
+    setTimeout(() => {
+      onClose();
+    }, 50);
   };
 
   return (
@@ -151,8 +156,9 @@ export function ProfileDrawer({
               {featureFlags.paymentsEnabled ? (
                 <button
                   onClick={() => {
-                    onClose();
+                    console.log("[ProfileDrawer] Wallet clicked - navigating first");
                     navigate("/settings");
+                    setTimeout(() => onClose(), 50);
                   }}
                   className="w-full flex items-center gap-4 px-6 py-4 text-white hover:bg-muted/20 transition-colors"
                 >

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -20,18 +21,16 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 
 export function useNotificationPreferences() {
   const { user } = useAuth();
-  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchPreferences = useCallback(async () => {
-    if (!user) {
-      setPreferences(DEFAULT_PREFERENCES);
-      setLoading(false);
-      return;
-    }
+  const { data: preferences = DEFAULT_PREFERENCES, isLoading: loading, error, refetch } = useQuery({
+    queryKey: ["notification-preferences", user?.id],
+    queryFn: async () => {
+      if (!user) return DEFAULT_PREFERENCES;
+      
+      console.log("[useNotificationPreferences] Fetching preferences for user:", user.id);
+      const startTime = Date.now();
 
-    try {
       const { data, error } = await supabase
         .from("notification_preferences")
         .select("email_live, email_scheduled, email_reminders, inapp_live, inapp_scheduled")
@@ -40,65 +39,65 @@ export function useNotificationPreferences() {
 
       if (error) throw error;
 
+      console.log("[useNotificationPreferences] Fetch completed in", Date.now() - startTime, "ms");
+
       if (data) {
-        setPreferences({
+        return {
           email_live: data.email_live,
           email_scheduled: data.email_scheduled,
           email_reminders: data.email_reminders,
           inapp_live: data.inapp_live,
           inapp_scheduled: data.inapp_scheduled,
-        });
-      } else {
-        // Create default preferences if none exist
-        const { error: insertError } = await supabase
-          .from("notification_preferences")
-          .insert({ user_id: user.id });
-
-        if (insertError) {
-          console.error("Error creating notification preferences:", insertError);
-        }
-        setPreferences(DEFAULT_PREFERENCES);
+        };
       }
-    } catch (err) {
-      console.error("Error fetching notification preferences:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
 
-  const updatePreferences = useCallback(
-    async (updates: Partial<NotificationPreferences>) => {
-      if (!user) return;
+      // Create default preferences if none exist
+      const { error: insertError } = await supabase
+        .from("notification_preferences")
+        .insert({ user_id: user.id });
 
-      setSaving(true);
-      try {
-        const { error } = await supabase
-          .from("notification_preferences")
-          .update(updates)
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        setPreferences((prev) => ({ ...prev, ...updates }));
-      } catch (err) {
-        console.error("Error updating notification preferences:", err);
-        throw err;
-      } finally {
-        setSaving(false);
+      if (insertError) {
+        console.error("Error creating notification preferences:", insertError);
       }
+      return DEFAULT_PREFERENCES;
     },
-    [user]
-  );
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes - don't refetch if fresh
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
+    retry: 2,
+  });
 
-  useEffect(() => {
-    fetchPreferences();
-  }, [fetchPreferences]);
+  const { mutateAsync: updatePreferences, isPending: saving } = useMutation({
+    mutationFn: async (updates: Partial<NotificationPreferences>) => {
+      if (!user) throw new Error("No user");
+
+      console.log("[useNotificationPreferences] Updating preferences:", updates);
+      const { error } = await supabase
+        .from("notification_preferences")
+        .update(updates)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return updates;
+    },
+    onSuccess: (updates) => {
+      // Optimistically update cache
+      queryClient.setQueryData(
+        ["notification-preferences", user?.id],
+        (old: NotificationPreferences) => ({ ...old, ...updates })
+      );
+    },
+    onError: (err) => {
+      console.error("Error updating notification preferences:", err);
+    },
+  });
 
   return {
     preferences,
     loading,
     saving,
+    error,
     updatePreferences,
-    refetch: fetchPreferences,
+    refetch,
   };
 }
