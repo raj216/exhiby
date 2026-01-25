@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck, Heart, MessageCircle } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck, Heart, MessageCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -523,7 +523,10 @@ export default function PublicProfile() {
               <Edit2 className="w-4 h-4" />
               Edit Profile
             </Button> : user ? <Button onClick={handleFollow} disabled={isFollowLoading} variant={isFollowing ? "outline" : "default"} className="flex-1 gap-2">
-              {isFollowing ? <>
+              {isFollowLoading ? <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {isFollowing ? "Unfollowing..." : "Following..."}
+                </> : isFollowing ? <>
                   <UserCheck className="w-4 h-4" />
                   Following
                 </> : <>
