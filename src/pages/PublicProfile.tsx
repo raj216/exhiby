@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, UserPlus, UserCheck, Award, Users, BadgeCheck, Heart, MessageCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit2, Share2, Users, BadgeCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { safeExternalUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { FollowListModal } from "@/components/FollowListModal";
 import { PortfolioGrid } from "@/components/PortfolioGrid";
+import { ProfileActionBar } from "@/components/ProfileActionBar";
 import { LiveAccessCard } from "@/components/LiveAccessCard";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { usePublicCreatorStats } from "@/hooks/usePublicCreatorStats";
@@ -510,69 +511,37 @@ export default function PublicProfile() {
         </motion.div>
 
         {/* Action Buttons */}
-        <motion.div className="mt-6 flex gap-3" initial={{
-          y: 10,
-          opacity: 0
-        }} animate={{
-          y: 0,
-          opacity: 1
-        }} transition={{
-          delay: 0.3
-        }}>
-          {isOwnProfile ? <Button onClick={handleEditProfile} variant="outline" className="flex-1 gap-2">
+        {isOwnProfile ? (
+          <motion.div className="mt-6 flex gap-3" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+            <Button onClick={handleEditProfile} variant="outline" className="flex-1 gap-2">
               <Edit2 className="w-4 h-4" />
               Edit Profile
-            </Button> : user ? <Button onClick={handleFollow} disabled={isFollowLoading} variant={isFollowing ? "outline" : "default"} className="flex-1 gap-2">
-              {isFollowLoading ? <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {isFollowing ? "Unfollowing..." : "Following..."}
-                </> : isFollowing ? <>
-                  <UserCheck className="w-4 h-4" />
-                  Following
-                </> : <>
-                  <UserPlus className="w-4 h-4" />
-                  Follow
-                </>}
-            </Button> : <Button onClick={() => navigate("/auth")} variant="default" className="flex-1 gap-2">
-              <UserPlus className="w-4 h-4" />
+            </Button>
+          </motion.div>
+        ) : !user ? (
+          <motion.div className="mt-6 flex gap-3" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+            <Button onClick={() => navigate("/auth")} variant="default" className="flex-1 gap-2">
               Sign in to Follow
-            </Button>}
-        </motion.div>
-
-        {/* Message + Tip pills (creator-only, audience view) */}
-        {showTipMe && !isOwnProfile && <motion.div initial={{
-          opacity: 0,
-          scale: 0.9
-        }} animate={{
-          opacity: 1,
-          scale: 1
-        }} transition={{
-          delay: 0.32
-        }} className="mt-5">
-            <div className="flex items-center justify-center gap-3">
-              {/* Message (LEFT) */}
-              <motion.button whileTap={{
-              scale: 0.97
-            }} onClick={() => {
-              triggerHaptic("light");
-              setIsMessageOpen(true);
-            }} className="px-4 py-2 rounded-full border border-border/40 bg-carbon/60 backdrop-blur-sm flex items-center gap-2 hover:bg-muted/30 transition-colors">
-                <MessageCircle className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Message</span>
-              </motion.button>
-
-              {/* Tip / Support (RIGHT) */}
-              <motion.button whileTap={{
-              scale: 0.97
-            }} onClick={() => {
-              triggerHaptic("light");
-              setIsTipOpen(true);
-            }} className="px-4 py-2 rounded-full border border-border/40 bg-carbon/60 backdrop-blur-sm flex items-center gap-2 hover:bg-muted/30 transition-colors">
-                <Heart className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Tip / Support</span>
-              </motion.button>
-            </div>
-          </motion.div>}
+            </Button>
+          </motion.div>
+        ) : showTipMe ? (
+          /* Creator profile with Message + Tip buttons */
+          <ProfileActionBar
+            isFollowing={isFollowing}
+            isFollowLoading={isFollowLoading}
+            isLoading={isLoading}
+            onFollowClick={handleFollow}
+            onMessageClick={() => setIsMessageOpen(true)}
+            onSupportClick={() => setIsTipOpen(true)}
+          />
+        ) : (
+          /* Non-creator profile - just follow button */
+          <motion.div className="mt-6 flex gap-3" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+            <Button onClick={handleFollow} disabled={isFollowLoading} variant={isFollowing ? "outline" : "default"} className="flex-1 gap-2">
+              {isFollowing ? "Following" : "Follow"}
+            </Button>
+          </motion.div>
+        )}
 
         {/* Live Access Card - appears when creator is live */}
         {isLive && liveEvent && <motion.div initial={{
