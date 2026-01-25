@@ -26,6 +26,7 @@ import {
   ChatNotificationToast,
   StreamEndedScreen,
   ReconnectingBanner,
+  LiveCountdown,
 } from "@/components/live";
 import { DebugPanel } from "@/components/live/DebugPanel";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
@@ -914,13 +915,11 @@ export default function LiveRoom() {
                   </>
                 ) : (
                   <>
-                    <p className="text-sm text-muted-foreground">
-                      {isStartingSoon ? "Starts" : "Scheduled for"}
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {isStartingSoon ? "Starting in" : "Starts in"}
                     </p>
-                    <p className="text-lg text-electric font-semibold mt-1">
-                      {countdownText}
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">
+                    <LiveCountdown targetDate={scheduledDate} />
+                    <p className="text-xs text-muted-foreground/70 mt-3">
                       {formatScheduledTime(event.scheduled_at)}
                     </p>
                   </>
