@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface Material {
   id: string;
@@ -10,44 +11,55 @@ export interface Material {
   event_id: string;
 }
 
+// Polling interval for fallback sync (when realtime fails or for redundancy)
+const POLL_INTERVAL_MS = 5000;
+const MAX_SUBSCRIPTION_RETRIES = 3;
+
 export function useMaterials(eventId: string | null) {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const retryCountRef = useRef(0);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch materials for event
-  useEffect(() => {
-    if (!eventId) {
-      console.log("[useMaterials] No eventId, skipping fetch");
-      setMaterials([]);
-      setLoading(false);
-      return;
+  const fetchMaterials = useCallback(async (showLoading = false) => {
+    if (!eventId) return;
+    
+    if (showLoading) setLoading(true);
+    
+    const { data, error } = await supabase
+      .from("live_materials")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("[useMaterials] Error fetching:", error.message, error.code);
+    } else {
+      console.log("[useMaterials] Fetched materials:", data?.length || 0, "items");
+      setMaterials(data || []);
+    }
+    
+    if (showLoading) setLoading(false);
+  }, [eventId]);
+
+  // Setup realtime subscription with retry logic
+  const setupSubscription = useCallback(() => {
+    if (!eventId) return;
+
+    // Clean up existing channel
+    if (channelRef.current) {
+      console.log("[useMaterials] Removing existing channel before retry");
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
-    console.log("[useMaterials] Fetching materials for event:", eventId);
+    console.log("[useMaterials] Setting up subscription for event:", eventId, `(attempt ${retryCountRef.current + 1})`);
 
-    const fetchMaterials = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("live_materials")
-        .select("*")
-        .eq("event_id", eventId)
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        console.error("[useMaterials] Error fetching:", error);
-        console.error("[useMaterials] Fetch error details:", error.message, error.code);
-      } else {
-        console.log("[useMaterials] Fetched materials:", data?.length || 0, "items");
-        setMaterials(data || []);
-      }
-      setLoading(false);
-    };
-
-    fetchMaterials();
-
-    // Subscribe to realtime updates
     const channel = supabase
-      .channel(`materials-${eventId}`)
+      .channel(`materials-${eventId}-${Date.now()}`) // Unique channel name to avoid conflicts
       .on(
         "postgres_changes",
         {
@@ -57,22 +69,23 @@ export function useMaterials(eventId: string | null) {
           filter: `event_id=eq.${eventId}`,
         },
         (payload) => {
-          console.log("[useMaterials] Realtime event:", payload.eventType, payload);
+          console.log("[useMaterials] Realtime event received:", payload.eventType);
+          
           if (payload.eventType === "INSERT") {
-            // Only add if not already present (avoid duplicate from optimistic update)
             setMaterials((prev) => {
+              // Check if material already exists (optimistic update or duplicate)
               if (prev.some(m => m.id === payload.new.id)) {
-                console.log("[useMaterials] Skipping duplicate INSERT from realtime");
+                console.log("[useMaterials] Material already exists, skipping duplicate");
                 return prev;
               }
-              console.log("[useMaterials] Adding new material from realtime:", payload.new);
+              console.log("[useMaterials] ✅ Adding new material from realtime:", payload.new.name);
               return [...prev, payload.new as Material];
             });
           } else if (payload.eventType === "DELETE") {
-            console.log("[useMaterials] Removing material from realtime:", payload.old.id);
+            console.log("[useMaterials] ✅ Removing material from realtime:", payload.old.id);
             setMaterials((prev) => prev.filter((m) => m.id !== payload.old.id));
           } else if (payload.eventType === "UPDATE") {
-            console.log("[useMaterials] Updating material from realtime:", payload.new);
+            console.log("[useMaterials] ✅ Updating material from realtime:", payload.new.name);
             setMaterials((prev) =>
               prev.map((m) => (m.id === payload.new.id ? (payload.new as Material) : m))
             );
@@ -80,19 +93,106 @@ export function useMaterials(eventId: string | null) {
         }
       )
       .subscribe((status, err) => {
-        console.log("[useMaterials] Realtime subscription status:", status, err ? `Error: ${err}` : "");
+        console.log("[useMaterials] Subscription status:", status, err ? `Error: ${err}` : "");
+        
         if (status === "SUBSCRIBED") {
           console.log("[useMaterials] ✅ Successfully subscribed to materials channel");
+          setIsSubscribed(true);
+          retryCountRef.current = 0;
+          
+          // Stop polling once realtime is connected
+          if (pollIntervalRef.current) {
+            console.log("[useMaterials] Stopping fallback polling (realtime connected)");
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           console.error("[useMaterials] ❌ Subscription failed:", status, err);
+          setIsSubscribed(false);
+          
+          // Retry subscription
+          if (retryCountRef.current < MAX_SUBSCRIPTION_RETRIES) {
+            retryCountRef.current++;
+            console.log(`[useMaterials] Retrying subscription in 2s (attempt ${retryCountRef.current}/${MAX_SUBSCRIPTION_RETRIES})`);
+            setTimeout(() => setupSubscription(), 2000);
+          } else {
+            console.warn("[useMaterials] Max retries reached, falling back to polling");
+            // Start polling as fallback
+            if (!pollIntervalRef.current) {
+              pollIntervalRef.current = setInterval(() => {
+                console.log("[useMaterials] Polling for updates (fallback mode)");
+                fetchMaterials(false);
+              }, POLL_INTERVAL_MS);
+            }
+          }
+        } else if (status === "CLOSED") {
+          setIsSubscribed(false);
         }
       });
 
+    channelRef.current = channel;
+  }, [eventId, fetchMaterials]);
+
+  // Use ref for isSubscribed in interval to avoid stale closure
+  const isSubscribedRef = useRef(false);
+  useEffect(() => {
+    isSubscribedRef.current = isSubscribed;
+  }, [isSubscribed]);
+
+  // Main effect for fetching and subscription
+  useEffect(() => {
+    if (!eventId) {
+      console.log("[useMaterials] No eventId, clearing state");
+      setMaterials([]);
+      setLoading(false);
+      setIsSubscribed(false);
+      return;
+    }
+
+    console.log("[useMaterials] Initializing for event:", eventId);
+    retryCountRef.current = 0;
+
+    // Initial fetch
+    fetchMaterials(true);
+
+    // Small delay before subscription to ensure any viewer records are propagated
+    const subscribeTimer = setTimeout(() => {
+      setupSubscription();
+    }, 150);
+
+    // Also start a short-lived polling period for redundancy (catches any missed events)
+    // This runs for 30 seconds after load, then stops if realtime is working
+    const initialPollTimer = setInterval(() => {
+      // Use ref to avoid stale closure
+      if (!isSubscribedRef.current) {
+        console.log("[useMaterials] Initial redundancy poll");
+        fetchMaterials(false);
+      }
+    }, POLL_INTERVAL_MS);
+
+    const stopInitialPollTimer = setTimeout(() => {
+      clearInterval(initialPollTimer);
+    }, 30000);
+
     return () => {
-      console.log("[useMaterials] Cleaning up realtime channel for:", eventId);
-      supabase.removeChannel(channel);
+      console.log("[useMaterials] Cleaning up for event:", eventId);
+      clearTimeout(subscribeTimer);
+      clearInterval(initialPollTimer);
+      clearTimeout(stopInitialPollTimer);
+      
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+      
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      
+      setIsSubscribed(false);
     };
-  }, [eventId]);
+  }, [eventId, fetchMaterials, setupSubscription]);
 
   const addMaterial = useCallback(
     async (name: string, brand?: string, spec?: string): Promise<Material | null> => {
