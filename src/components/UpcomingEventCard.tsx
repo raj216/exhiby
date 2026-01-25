@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { useSavedSessions } from "@/hooks/useSavedSessions";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-
+import { useProfilePrefetch } from "@/hooks/useProfilePrefetch";
 interface UpcomingEventCardProps {
   id: string;
   coverImage: string;
@@ -45,10 +45,18 @@ export function UpcomingEventCard({
   const location = useLocation();
   const { user } = useAuth();
   const { isEventSaved, saveSession, removeSession } = useSavedSessions();
+  const { prefetchProfile } = useProfilePrefetch();
   const [isLoading, setIsLoading] = useState(false);
   
   // Check if this event is already saved
   const isSaved = isEventSaved(id);
+
+  // Prefetch profile on hover for instant navigation
+  const handleCreatorHover = () => {
+    if (creatorId) {
+      prefetchProfile(creatorId);
+    }
+  };
 
   const handleRemind = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -155,6 +163,7 @@ export function UpcomingEventCard({
         <div 
           className="flex items-center gap-2 mb-2 px-1 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={handleCreatorClick}
+          onMouseEnter={handleCreatorHover}
         >
           {artistAvatar ? (
             <img 
