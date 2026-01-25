@@ -2,18 +2,34 @@ import { motion } from "framer-motion";
 import { Bell, MessageCircle, Heart } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProfileActionBarProps {
   isFollowing: boolean;
   isFollowLoading?: boolean;
+  isLoading?: boolean;
   onFollowClick: () => void;
   onMessageClick: () => void;
   onSupportClick: () => void;
 }
 
+function ProfileActionBarSkeleton() {
+  return (
+    <div className="flex gap-3 px-4 mt-6 animate-fade-in">
+      {/* Follow button skeleton */}
+      <Skeleton className="flex-1 h-12 rounded-2xl" />
+      {/* Message button skeleton */}
+      <Skeleton className="flex-1 h-12 rounded-2xl" />
+      {/* Tip button skeleton */}
+      <Skeleton className="w-24 h-12 rounded-2xl" />
+    </div>
+  );
+}
+
 export function ProfileActionBar({
   isFollowing,
   isFollowLoading = false,
+  isLoading = false,
   onFollowClick,
   onMessageClick,
   onSupportClick,
@@ -33,6 +49,11 @@ export function ProfileActionBar({
     triggerClickHaptic();
     onSupportClick();
   };
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return <ProfileActionBarSkeleton />;
+  }
 
   return (
     <motion.div
@@ -84,3 +105,6 @@ export function ProfileActionBar({
     </motion.div>
   );
 }
+
+// Export skeleton for external use
+export { ProfileActionBarSkeleton };
