@@ -110,6 +110,137 @@ const ART_STUDIO_RECEIVE_SETTINGS = {
   },
 };
 
+// Pre-acquired audio track for fast mic warmup
+let preAcquiredAudioTrack: MediaStreamTrack | null = null;
+let preAcquirePromise: Promise<MediaStreamTrack | null> | null = null;
+
+/**
+ * Pre-acquire microphone BEFORE joining Daily room to eliminate 10-15s delay.
+ * This warms up the audio pipeline and ensures track is ready.
+ */
+async function preAcquireMicrophone(): Promise<MediaStreamTrack | null> {
+  // If already in progress, wait for it
+  if (preAcquirePromise) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Daily] Waiting for in-flight mic pre-acquisition");
+    }
+    return preAcquirePromise;
+  }
+
+  // If already acquired and still live, reuse it
+  if (preAcquiredAudioTrack && preAcquiredAudioTrack.readyState === "live") {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Daily] Reusing pre-acquired audio track, readyState:", preAcquiredAudioTrack.readyState);
+    }
+    return preAcquiredAudioTrack;
+  }
+
+  preAcquirePromise = (async () => {
+    try {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Daily] Pre-acquiring microphone...");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: ART_STUDIO_AUDIO_CONSTRAINTS,
+      });
+
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack) {
+        console.warn("[Daily] No audio track returned from getUserMedia");
+        return null;
+      }
+
+      // Wait for track to be live (not just created)
+      if (audioTrack.readyState !== "live") {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[Daily] Audio track readyState:", audioTrack.readyState, "- waiting for live...");
+        }
+        await new Promise<void>((resolve) => {
+          if (audioTrack.readyState === "live") {
+            resolve();
+            return;
+          }
+          const checkInterval = setInterval(() => {
+            if (audioTrack.readyState === "live") {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 50);
+          // Timeout after 3 seconds
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            resolve();
+          }, 3000);
+        });
+      }
+
+      // Verify track is enabled
+      if (!audioTrack.enabled) {
+        audioTrack.enabled = true;
+      }
+
+      // DEV-only: Log audio track settings
+      if (process.env.NODE_ENV === "development") {
+        const settings = audioTrack.getSettings();
+        console.log("[Daily] Pre-acquired audio track settings:", settings);
+        console.log("[Daily] Audio track enabled:", audioTrack.enabled);
+        console.log("[Daily] Audio track readyState:", audioTrack.readyState);
+        console.log("[Daily] Audio track muted:", audioTrack.muted);
+      }
+
+      // Check if track is silent (might need re-request)
+      if (audioTrack.muted) {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[Daily] Audio track is muted, stopping and re-requesting...");
+        }
+        audioTrack.stop();
+        
+        // Re-request audio
+        const retryStream = await navigator.mediaDevices.getUserMedia({
+          audio: ART_STUDIO_AUDIO_CONSTRAINTS,
+        });
+        const retryTrack = retryStream.getAudioTracks()[0];
+        if (retryTrack) {
+          preAcquiredAudioTrack = retryTrack;
+          if (process.env.NODE_ENV === "development") {
+            console.log("[Daily] Retry audio track acquired, readyState:", retryTrack.readyState);
+          }
+          return retryTrack;
+        }
+      }
+
+      preAcquiredAudioTrack = audioTrack;
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Daily] Microphone pre-acquired successfully");
+      }
+      return audioTrack;
+    } catch (err) {
+      console.error("[Daily] Failed to pre-acquire microphone:", err);
+      return null;
+    }
+  })();
+
+  preAcquirePromise.finally(() => {
+    preAcquirePromise = null;
+  });
+
+  return preAcquirePromise;
+}
+
+/**
+ * Release pre-acquired audio track
+ */
+function releasePreAcquiredAudio(): void {
+  if (preAcquiredAudioTrack) {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Daily] Releasing pre-acquired audio track");
+    }
+    preAcquiredAudioTrack.stop();
+    preAcquiredAudioTrack = null;
+  }
+}
+
 function getOrCreateCallObject(): Promise<DailyCall> {
   // Check for existing Daily instance first
   const existing = Daily.getCallInstance();
@@ -335,11 +466,30 @@ export function useDaily({
       updateStatus("creating");
 
       try {
+        // PRE-ACQUIRE MICROPHONE FOR HOST (eliminates 10-15s delay)
+        // This runs in parallel with Daily call object creation
+        let micPreAcquirePromise: Promise<MediaStreamTrack | null> | null = null;
+        if (isHost) {
+          if (process.env.NODE_ENV === "development") {
+            console.log("[useDaily] Host: Pre-acquiring microphone before joining...");
+          }
+          micPreAcquirePromise = preAcquireMicrophone();
+        }
+
         const call = await getOrCreateCallObject();
+
+        // Wait for mic pre-acquisition to complete (if host)
+        if (micPreAcquirePromise) {
+          const preAcquiredTrack = await micPreAcquirePromise;
+          if (process.env.NODE_ENV === "development") {
+            console.log("[useDaily] Host: Mic pre-acquisition complete, track:", preAcquiredTrack ? "ready" : "failed");
+          }
+        }
 
         // Check if this instance is still valid
         if (cancelled || !mountedRef.current || currentInstanceId !== instanceIdRef.current) {
           console.log("[useDaily] Init cancelled or stale instance");
+          releasePreAcquiredAudio();
           return;
         }
 
@@ -584,6 +734,9 @@ export function useDaily({
             if (isHost && mountedRef.current) {
               console.log("[useDaily] Host: enabling Art Studio HD camera + studio-grade audio");
               
+              // FAST MIC WARM-UP: Since we pre-acquired the mic, enabling should be instant
+              const warmupStart = performance.now();
+              
               // Apply art-studio camera constraints for 1080p@30fps
               try {
                 await call.setInputDevicesAsync({
@@ -615,8 +768,39 @@ export function useDaily({
                 console.warn("[useDaily] Could not enumerate audio devices:", e);
               }
               
+              // Enable video first (can be parallel with audio)
               await call.setLocalVideo(true);
+              
+              // Enable audio - should be fast since mic was pre-acquired
               await call.setLocalAudio(true);
+              
+              // Release the pre-acquired track since Daily now has its own
+              releasePreAcquiredAudio();
+              
+              const warmupTime = performance.now() - warmupStart;
+              if (process.env.NODE_ENV === "development") {
+                console.log(`[useDaily] Mic warm-up completed in ${warmupTime.toFixed(0)}ms`);
+              }
+              
+              // DEV: Verify audio is being sent after 2 seconds
+              if (process.env.NODE_ENV === "development") {
+                setTimeout(async () => {
+                  try {
+                    const participants = call.participants();
+                    const local = participants?.local;
+                    if (local?.tracks?.audio) {
+                      const audioTrack = local.tracks.audio;
+                      console.log("[useDaily] Mic warm-up check (2s):");
+                      console.log("  - Audio state:", audioTrack.state);
+                      console.log("  - Audio subscribed:", audioTrack.subscribed);
+                      console.log("  - Audio blocked:", audioTrack.blocked);
+                      console.log("  - Audio off:", audioTrack.off);
+                    }
+                  } catch (e) {
+                    console.warn("[useDaily] Warm-up check failed:", e);
+                  }
+                }, 2000);
+              }
               
               // Best-effort: broadcast current facing mode to others (default: front/user)
               try {

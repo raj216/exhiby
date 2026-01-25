@@ -174,12 +174,17 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
           filter: `event_id=eq.${eventId}`,
         },
         (payload) => {
-          console.log("[useLiveChat] New message received:", payload.new?.id);
           const newMessage = payload.new as LiveMessage;
+          
+          if (process.env.NODE_ENV === "development") {
+            console.log("[useLiveChat] New message received:", newMessage.id, "from:", newMessage.display_name);
+          }
           
           // Prevent duplicate processing by server ID
           if (processedServerIds.current.has(newMessage.id)) {
-            console.log("[useLiveChat] Skipping duplicate (server ID):", newMessage.id);
+            if (process.env.NODE_ENV === "development") {
+              console.log("[useLiveChat] Skipping duplicate (server ID):", newMessage.id);
+            }
             return;
           }
           
@@ -196,7 +201,9 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
             
             if (optimisticIndex !== -1) {
               // Replace optimistic message with server-confirmed one
-              console.log("[useLiveChat] Confirming optimistic message:", newMessage.id);
+              if (process.env.NODE_ENV === "development") {
+                console.log("[useLiveChat] Confirming optimistic message:", newMessage.id);
+              }
               const updated = [...prev];
               const optimisticMsg = updated[optimisticIndex];
               if (optimisticMsg._clientId) {
@@ -229,14 +236,29 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
             return updated;
           });
           
-          // Handle unread tracking (only if chat is closed and not own message)
+          // Handle unread tracking and toast notification
+          // Show toast for ANY message not from current user (creator or audience)
+          // Works on ALL platforms (mobile, tablet, desktop)
           const isOwnMessage = newMessage.user_id === user?.id;
+          
+          if (process.env.NODE_ENV === "development") {
+            console.log("[useLiveChat] Toast eligibility check:", {
+              isOwnMessage,
+              isChatOpen: isChatOpenRef.current,
+              messageFrom: newMessage.display_name,
+              messageRole: newMessage.role,
+            });
+          }
           
           if (!isOwnMessage && !isChatOpenRef.current) {
             setUnreadCount(prev => prev + 1);
             
-            // Set latest unread for toast
+            // Set latest unread for toast - this triggers the toast on ALL platforms
+            // No isMobile check - works on desktop, tablet, and mobile
             if (lastToastMessageId.current !== newMessage.id) {
+              if (process.env.NODE_ENV === "development") {
+                console.log("[useLiveChat] Setting toast for message:", newMessage.id);
+              }
               lastToastMessageId.current = newMessage.id;
               setLatestUnreadMessage({
                 id: newMessage.id,
