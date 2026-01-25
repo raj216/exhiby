@@ -346,14 +346,15 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
 
     // Set a timeout: if still "connecting" after 6 seconds, retry once
     subscriptionTimeoutRef.current = setTimeout(() => {
-      if (status === "connecting" && retryCountRef.current < 1) {
+      // Use a ref to check current status to avoid stale closure
+      if (retryCountRef.current < 1) {
         devLog("⏱️ Subscription timeout (6s) - retrying once...");
         retryCountRef.current++;
         toast.info("Chat reconnecting...");
         setupSubscription();
       }
     }, 6000);
-  }, [eventId, user?.id, canSubscribe, isCreator, isViewerReady, status]);
+  }, [eventId, user?.id, canSubscribe, isCreator, isViewerReady]);
 
   // Subscribe to realtime updates - waits for canSubscribe to be true
   useEffect(() => {
@@ -371,28 +372,46 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
     // For viewers, this waits until their live_viewers record is created
     if (canSubscribe) {
       devLog("canSubscribe is true - setting up subscription");
-      setupSubscription();
+      // Small delay to ensure viewer record is fully propagated in DB
+      const subscribeTimer = setTimeout(() => {
+        setupSubscription();
+      }, 100);
+      
+      return () => {
+        clearTimeout(subscribeTimer);
+        devLog("Cleaning up channel and timeouts");
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+        if (subscriptionTimeoutRef.current) {
+          clearTimeout(subscriptionTimeoutRef.current);
+          subscriptionTimeoutRef.current = null;
+        }
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        setStatus("disconnected");
+      };
     } else {
       devLog("canSubscribe is false - waiting for viewer record...");
       setStatus("connecting"); // Show "connecting" while waiting
+      return () => {
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+        if (subscriptionTimeoutRef.current) {
+          clearTimeout(subscriptionTimeoutRef.current);
+          subscriptionTimeoutRef.current = null;
+        }
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+      };
     }
-
-    return () => {
-      devLog("Cleaning up channel and timeouts");
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      if (subscriptionTimeoutRef.current) {
-        clearTimeout(subscriptionTimeoutRef.current);
-        subscriptionTimeoutRef.current = null;
-      }
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-      setStatus("disconnected");
-    };
   }, [eventId, loadMessages, setupSubscription, canSubscribe]);
 
   // When chat opens, reset unread count

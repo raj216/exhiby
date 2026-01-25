@@ -57,48 +57,39 @@ export function useMaterials(eventId: string | null) {
           filter: `event_id=eq.${eventId}`,
         },
         (payload) => {
-          if (process.env.NODE_ENV === "development") {
-            console.log("[useMaterials] Realtime event:", payload.eventType, payload);
-          }
+          console.log("[useMaterials] Realtime event:", payload.eventType, payload);
           if (payload.eventType === "INSERT") {
             // Only add if not already present (avoid duplicate from optimistic update)
             setMaterials((prev) => {
               if (prev.some(m => m.id === payload.new.id)) {
-                if (process.env.NODE_ENV === "development") {
-                  console.log("[useMaterials] Skipping duplicate INSERT from realtime");
-                }
+                console.log("[useMaterials] Skipping duplicate INSERT from realtime");
                 return prev;
               }
-              if (process.env.NODE_ENV === "development") {
-                console.log("[useMaterials] Adding new material from realtime:", payload.new);
-              }
+              console.log("[useMaterials] Adding new material from realtime:", payload.new);
               return [...prev, payload.new as Material];
             });
           } else if (payload.eventType === "DELETE") {
-            if (process.env.NODE_ENV === "development") {
-              console.log("[useMaterials] Removing material from realtime:", payload.old.id);
-            }
+            console.log("[useMaterials] Removing material from realtime:", payload.old.id);
             setMaterials((prev) => prev.filter((m) => m.id !== payload.old.id));
           } else if (payload.eventType === "UPDATE") {
-            if (process.env.NODE_ENV === "development") {
-              console.log("[useMaterials] Updating material from realtime:", payload.new);
-            }
+            console.log("[useMaterials] Updating material from realtime:", payload.new);
             setMaterials((prev) =>
               prev.map((m) => (m.id === payload.new.id ? (payload.new as Material) : m))
             );
           }
         }
       )
-      .subscribe((status) => {
-        if (process.env.NODE_ENV === "development") {
-          console.log("[useMaterials] Realtime subscription status:", status);
+      .subscribe((status, err) => {
+        console.log("[useMaterials] Realtime subscription status:", status, err ? `Error: ${err}` : "");
+        if (status === "SUBSCRIBED") {
+          console.log("[useMaterials] ✅ Successfully subscribed to materials channel");
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error("[useMaterials] ❌ Subscription failed:", status, err);
         }
       });
 
     return () => {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[useMaterials] Cleaning up realtime channel for:", eventId);
-      }
+      console.log("[useMaterials] Cleaning up realtime channel for:", eventId);
       supabase.removeChannel(channel);
     };
   }, [eventId]);
