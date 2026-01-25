@@ -1226,6 +1226,7 @@ export default function LiveRoom() {
               // Correct mirrored front camera for BOTH creator + audience
               isMirrored={hostParticipant.facingMode === "user"}
               useContain={!isMobile} // Mobile: cover (FaceTime style), Desktop: contain (no crop)
+              fallbackImageUrl={event.cover_url || event.creator?.avatar_url || null}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-black">
