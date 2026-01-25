@@ -10,9 +10,11 @@ interface StudioChatProps {
   eventId: string;
   creatorId: string;
   onClose: () => void;
+  /** For audience: pass true once they have joined as a viewer (live_viewers record exists) */
+  isViewerReady?: boolean;
 }
 
-export function StudioChat({ eventId, creatorId, onClose }: StudioChatProps) {
+export function StudioChat({ eventId, creatorId, onClose, isViewerReady = false }: StudioChatProps) {
   const { user } = useAuth();
   const {
     messages,
@@ -23,7 +25,7 @@ export function StudioChat({ eventId, creatorId, onClose }: StudioChatProps) {
     removeFailedMessage,
     openChat,
     closeChat,
-  } = useLiveChat({ eventId, creatorId });
+  } = useLiveChat({ eventId, creatorId, isViewerReady });
   
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);

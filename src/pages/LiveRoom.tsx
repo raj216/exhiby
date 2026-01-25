@@ -92,7 +92,7 @@ export default function LiveRoom() {
   
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  const { viewerCount, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId || null);
+  const { viewerCount, isJoined: isViewerJoined, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId || null);
   
   // Saved sessions for "Notify Me" button
   const { isEventSaved, saveSession, removeSession: removeSavedSession } = useSavedSessions();
@@ -112,6 +112,7 @@ export default function LiveRoom() {
   const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && event.price > 0 && !isCreator && !hasValidTicket;
 
   // Live chat from database with realtime
+  // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
   const {
     messages: chatMessages,
     status: chatStatus,
@@ -126,6 +127,7 @@ export default function LiveRoom() {
   } = useLiveChat({
     eventId: eventId || null,
     creatorId: event?.creator_id || null,
+    isViewerReady: isViewerJoined, // Audience chat waits until their viewer record exists
   });
 
   // Materials from database
@@ -314,17 +316,12 @@ export default function LiveRoom() {
     fetchEvent();
   }, [eventId]);
 
-  // Join as viewer when component mounts (for non-creators)
+  // Join as viewer EARLY (for non-creators) - don't wait for video to connect
+  // This is critical for chat RLS: the live_viewers record must exist before chat can subscribe
   useEffect(() => {
-    if (event && user && !isCreator && isJoined) {
-      console.log("[LiveRoom] Joining as viewer...");
+    if (event && user && !isCreator) {
+      console.log("[LiveRoom] Joining as viewer early (for chat RLS)...");
       joinAsViewer();
-      
-      // Mark ticket as attended for paid events
-      if (hasValidTicket) {
-        console.log("[LiveRoom] Marking ticket as attended");
-        markAttended();
-      }
     }
 
     return () => {
@@ -333,7 +330,15 @@ export default function LiveRoom() {
         leaveAsViewer();
       }
     };
-  }, [event, user, isCreator, isJoined, joinAsViewer, leaveAsViewer, hasValidTicket, markAttended]);
+  }, [event, user, isCreator, joinAsViewer, leaveAsViewer]);
+  
+  // Mark ticket as attended when video joins (separate from viewer record)
+  useEffect(() => {
+    if (event && user && !isCreator && isJoined && hasValidTicket) {
+      console.log("[LiveRoom] Marking ticket as attended");
+      markAttended();
+    }
+  }, [event, user, isCreator, isJoined, hasValidTicket, markAttended]);
 
   // Realtime subscription to detect when stream ends (backup for Daily events)
   useEffect(() => {

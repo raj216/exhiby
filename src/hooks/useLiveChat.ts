@@ -20,6 +20,8 @@ export interface LiveMessage {
 interface UseLiveChatOptions {
   eventId: string | null;
   creatorId: string | null;
+  /** For audience: pass true once they have joined as a viewer (live_viewers record exists) */
+  isViewerReady?: boolean;
 }
 
 type RealtimeStatus = "disconnected" | "connecting" | "connected";
@@ -35,7 +37,14 @@ function generateClientId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
+// DEV logging helper
+const devLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV === "development") {
+    console.log("[useLiveChat]", ...args);
+  }
+};
+
+export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLiveChatOptions) {
   const { user } = useAuth();
   const { profile } = useProfile();
   const [messages, setMessages] = useState<LiveMessage[]>([]);
@@ -61,8 +70,15 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const subscriptionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
 
   const isCreator = user?.id === creatorId;
+  
+  // Determine if subscription should be active:
+  // - Creators can always subscribe (they own the event)
+  // - Viewers must have their live_viewers record ready (for RLS)
+  const canSubscribe = Boolean(eventId && user && (isCreator || isViewerReady));
 
   // Load initial messages
   const loadMessages = useCallback(async () => {
@@ -144,22 +160,43 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
 
   // Setup realtime subscription with reconnection logic
   const setupSubscription = useCallback(() => {
-    if (!eventId) {
-      setStatus("disconnected");
+    // CRITICAL: Check canSubscribe - for viewers, this ensures their live_viewers record exists
+    // Without this, RLS will block the realtime subscription from receiving messages
+    if (!eventId || !canSubscribe) {
+      devLog("Skipping subscription setup:", { eventId, canSubscribe, isCreator, isViewerReady });
+      if (!canSubscribe && eventId) {
+        setStatus("connecting"); // Show connecting while waiting for viewer record
+      } else {
+        setStatus("disconnected");
+      }
       return;
+    }
+
+    // Clear any pending subscription timeout
+    if (subscriptionTimeoutRef.current) {
+      clearTimeout(subscriptionTimeoutRef.current);
+      subscriptionTimeoutRef.current = null;
     }
 
     // Clean up existing channel
     if (channelRef.current) {
+      devLog("Removing existing channel before re-subscribing");
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
     setStatus("connecting");
-    console.log("[useLiveChat] Setting up subscription for event:", eventId);
+    const channelName = `live_messages:${eventId}`;
+    devLog("Setting up subscription:", {
+      channelName,
+      eventId,
+      userId: user?.id,
+      isCreator,
+      isViewerReady,
+    });
 
     const channel = supabase
-      .channel(`live_messages:${eventId}`, {
+      .channel(channelName, {
         config: {
           broadcast: { self: false }, // Don't receive own broadcasts
           presence: { key: user?.id || "anonymous" },
@@ -176,15 +213,11 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
         (payload) => {
           const newMessage = payload.new as LiveMessage;
           
-          if (process.env.NODE_ENV === "development") {
-            console.log("[useLiveChat] New message received:", newMessage.id, "from:", newMessage.display_name);
-          }
+          devLog("New message received:", newMessage.id, "from:", newMessage.display_name, "role:", newMessage.role);
           
           // Prevent duplicate processing by server ID
           if (processedServerIds.current.has(newMessage.id)) {
-            if (process.env.NODE_ENV === "development") {
-              console.log("[useLiveChat] Skipping duplicate (server ID):", newMessage.id);
-            }
+            devLog("Skipping duplicate (server ID):", newMessage.id);
             return;
           }
           
@@ -201,9 +234,7 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
             
             if (optimisticIndex !== -1) {
               // Replace optimistic message with server-confirmed one
-              if (process.env.NODE_ENV === "development") {
-                console.log("[useLiveChat] Confirming optimistic message:", newMessage.id);
-              }
+              devLog("Confirming optimistic message:", newMessage.id);
               const updated = [...prev];
               const optimisticMsg = updated[optimisticIndex];
               if (optimisticMsg._clientId) {
@@ -241,14 +272,12 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
           // Works on ALL platforms (mobile, tablet, desktop)
           const isOwnMessage = newMessage.user_id === user?.id;
           
-          if (process.env.NODE_ENV === "development") {
-            console.log("[useLiveChat] Toast eligibility check:", {
-              isOwnMessage,
-              isChatOpen: isChatOpenRef.current,
-              messageFrom: newMessage.display_name,
-              messageRole: newMessage.role,
-            });
-          }
+          devLog("Toast eligibility check:", {
+            isOwnMessage,
+            isChatOpen: isChatOpenRef.current,
+            messageFrom: newMessage.display_name,
+            messageRole: newMessage.role,
+          });
           
           if (!isOwnMessage && !isChatOpenRef.current) {
             setUnreadCount(prev => prev + 1);
@@ -256,9 +285,7 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
             // Set latest unread for toast - this triggers the toast on ALL platforms
             // No isMobile check - works on desktop, tablet, and mobile
             if (lastToastMessageId.current !== newMessage.id) {
-              if (process.env.NODE_ENV === "development") {
-                console.log("[useLiveChat] Setting toast for message:", newMessage.id);
-              }
+              devLog("Setting toast for message:", newMessage.id);
               lastToastMessageId.current = newMessage.id;
               setLatestUnreadMessage({
                 id: newMessage.id,
@@ -270,18 +297,27 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
         }
       )
       .subscribe((subscriptionStatus, err) => {
-        console.log("[useLiveChat] Subscription status:", subscriptionStatus, err);
+        devLog("Subscription callback:", subscriptionStatus, err ? `Error: ${err}` : "");
         
         if (subscriptionStatus === "SUBSCRIBED") {
+          devLog("✅ SUBSCRIBED successfully to channel:", channelName);
           setStatus("connected");
-          reconnectAttempts.current = 0; // Reset on successful connection
+          reconnectAttempts.current = 0;
+          retryCountRef.current = 0;
+          
+          // Clear any pending timeout since we connected
+          if (subscriptionTimeoutRef.current) {
+            clearTimeout(subscriptionTimeoutRef.current);
+            subscriptionTimeoutRef.current = null;
+          }
         } else if (subscriptionStatus === "CLOSED" || subscriptionStatus === "CHANNEL_ERROR") {
+          devLog("❌ Channel error/closed:", subscriptionStatus, err);
           setStatus("disconnected");
           
           // Attempt reconnection with exponential backoff
           if (reconnectAttempts.current < maxReconnectAttempts) {
             const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-            console.log(`[useLiveChat] Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1})`);
+            devLog(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
             
             reconnectTimeoutRef.current = setTimeout(() => {
               reconnectAttempts.current++;
@@ -291,30 +327,65 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
             console.error("[useLiveChat] Max reconnection attempts reached");
             toast.error("Chat connection lost. Please refresh the page.");
           }
+        } else if (subscriptionStatus === "TIMED_OUT") {
+          devLog("⏱️ Subscription TIMED_OUT - will retry");
+          setStatus("disconnected");
+          
+          // Retry once on timeout
+          if (retryCountRef.current < 1) {
+            retryCountRef.current++;
+            devLog("Retrying subscription after timeout...");
+            setTimeout(() => setupSubscription(), 1000);
+          } else {
+            toast.error("Chat connection timed out. Please refresh.");
+          }
         }
       });
 
     channelRef.current = channel;
-  }, [eventId, user?.id]);
 
-  // Subscribe to realtime updates
+    // Set a timeout: if still "connecting" after 6 seconds, retry once
+    subscriptionTimeoutRef.current = setTimeout(() => {
+      if (status === "connecting" && retryCountRef.current < 1) {
+        devLog("⏱️ Subscription timeout (6s) - retrying once...");
+        retryCountRef.current++;
+        toast.info("Chat reconnecting...");
+        setupSubscription();
+      }
+    }, 6000);
+  }, [eventId, user?.id, canSubscribe, isCreator, isViewerReady, status]);
+
+  // Subscribe to realtime updates - waits for canSubscribe to be true
   useEffect(() => {
     if (!eventId) {
       setStatus("disconnected");
       return;
     }
 
-    // Load initial messages
+    devLog("Effect triggered:", { eventId, canSubscribe, isCreator, isViewerReady });
+
+    // Load initial messages (always attempt - RLS will filter appropriately)
     loadMessages();
 
-    // Set up realtime subscription
-    setupSubscription();
+    // Only set up realtime subscription when canSubscribe is true
+    // For viewers, this waits until their live_viewers record is created
+    if (canSubscribe) {
+      devLog("canSubscribe is true - setting up subscription");
+      setupSubscription();
+    } else {
+      devLog("canSubscribe is false - waiting for viewer record...");
+      setStatus("connecting"); // Show "connecting" while waiting
+    }
 
     return () => {
-      console.log("[useLiveChat] Cleaning up channel");
+      devLog("Cleaning up channel and timeouts");
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
+      }
+      if (subscriptionTimeoutRef.current) {
+        clearTimeout(subscriptionTimeoutRef.current);
+        subscriptionTimeoutRef.current = null;
       }
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -322,7 +393,7 @@ export function useLiveChat({ eventId, creatorId }: UseLiveChatOptions) {
       }
       setStatus("disconnected");
     };
-  }, [eventId, loadMessages, setupSubscription]);
+  }, [eventId, loadMessages, setupSubscription, canSubscribe]);
 
   // When chat opens, reset unread count
   useEffect(() => {
