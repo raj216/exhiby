@@ -8,6 +8,7 @@ interface DailyVideoTileProps {
   showName?: boolean;
   isMirrored?: boolean;
   useContain?: boolean; // true = contain (desktop), false = cover (mobile FaceTime style)
+  fallbackImageUrl?: string | null; // Session cover or creator avatar when camera is off
 }
 
 export function DailyVideoTile({
@@ -16,6 +17,7 @@ export function DailyVideoTile({
   showName = false,
   isMirrored = false,
   useContain = true, // Default to contain for teaching use-case
+  fallbackImageUrl,
 }: DailyVideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -73,12 +75,20 @@ export function DailyVideoTile({
       {/* Audio element for remote participants */}
       {!participant.isLocal && <audio ref={audioRef} autoPlay playsInline />}
 
-      {/* Fallback when no video */}
+      {/* Fallback when no video - show session cover or creator avatar */}
       {!participant.videoOn && (
         <div className="absolute inset-0 flex items-center justify-center bg-black">
-          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
-            <User className="w-10 h-10 text-muted-foreground" />
-          </div>
+          {fallbackImageUrl ? (
+            <img
+              src={fallbackImageUrl}
+              alt="Session cover"
+              className="w-full h-full object-cover opacity-70"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+              <User className="w-10 h-10 text-muted-foreground" />
+            </div>
+          )}
         </div>
       )}
 
