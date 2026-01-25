@@ -273,6 +273,7 @@ export function LiveStudioView({ room, onClose }: LiveStudioViewProps) {
             eventId={room.id}
             creatorId={room.id} // TODO: Pass actual creator ID when available
             onClose={() => setShowChat(false)}
+            isViewerReady={isJoined} // Pass viewer ready state for chat RLS
           />
         )}
       </AnimatePresence>
