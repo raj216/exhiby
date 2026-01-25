@@ -20,27 +20,42 @@ export function ChatNotificationToast({
 
   useEffect(() => {
     if (message && !isChatOpen) {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[ChatNotificationToast] Showing toast for message:", message.id, "from:", message.display_name);
+      }
       setIsVisible(true);
       
       // Auto-dismiss after 2.5 seconds
       const timer = setTimeout(() => {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[ChatNotificationToast] Auto-dismissing toast for:", message.id);
+        }
         setIsVisible(false);
         onDismiss();
       }, 2500);
 
       return () => clearTimeout(timer);
     } else {
+      if (process.env.NODE_ENV === "development" && message && isChatOpen) {
+        console.log("[ChatNotificationToast] Hiding toast - chat is open");
+      }
       setIsVisible(false);
     }
   }, [message, isChatOpen, onDismiss]);
 
   const handleView = () => {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[ChatNotificationToast] View clicked for:", message?.id);
+    }
     setIsVisible(false);
     onView();
   };
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (process.env.NODE_ENV === "development") {
+      console.log("[ChatNotificationToast] Dismiss clicked for:", message?.id);
+    }
     setIsVisible(false);
     onDismiss();
   };
@@ -60,7 +75,7 @@ export function ChatNotificationToast({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
           transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-          className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-xs z-50"
+          className="fixed top-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-xs z-[60]"
           style={{ 
             paddingTop: "max(0px, env(safe-area-inset-top))",
           }}
