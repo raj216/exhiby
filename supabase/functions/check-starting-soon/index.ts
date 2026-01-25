@@ -6,6 +6,53 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Default timezone for creators (New York / Eastern Time)
+const DEFAULT_CREATOR_TIMEZONE = "America/New_York";
+
+/**
+ * Format a date in the specified timezone with a human-friendly format.
+ * Uses Intl.DateTimeFormat for proper timezone handling.
+ * 
+ * @param isoDateString - ISO 8601 date string (with Z or offset)
+ * @param timezone - IANA timezone string (default: America/New_York)
+ * @returns Formatted string like "Sun, Jan 25, 2026 • 10:26 AM ET"
+ */
+function formatDateInTimezone(isoDateString: string, timezone: string = DEFAULT_CREATOR_TIMEZONE): string {
+  try {
+    const date = new Date(isoDateString);
+    
+    // Validate date
+    if (isNaN(date.getTime())) {
+      console.error(`[formatDateInTimezone] Invalid date: ${isoDateString}`);
+      return isoDateString; // Fallback to raw string
+    }
+    
+    // Format the date in the specified timezone
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZoneName: "short",
+    });
+    
+    const formatted = formatter.format(date);
+    
+    // Log for debugging
+    console.log(`[formatDateInTimezone] Input: ${isoDateString}, Timezone: ${timezone}, Output: ${formatted}`);
+    
+    return formatted;
+  } catch (err) {
+    console.error(`[formatDateInTimezone] Error formatting date:`, err);
+    // Fallback: try without timezone
+    return new Date(isoDateString).toLocaleString("en-US");
+  }
+}
+
 // This function handles:
 // 1. Sessions starting in ~15 minutes - send reminder to followers
 // 2. Sessions at start_time - send "Go Live Now" email + in-app to creator

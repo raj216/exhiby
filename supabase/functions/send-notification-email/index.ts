@@ -20,6 +20,53 @@ interface FollowerWithPrefs {
   email_reminders: boolean;
 }
 
+// Default timezone for creators (New York / Eastern Time)
+const DEFAULT_CREATOR_TIMEZONE = "America/New_York";
+
+/**
+ * Format a date in the specified timezone with a human-friendly format.
+ * Uses Intl.DateTimeFormat for proper timezone handling.
+ * 
+ * @param isoDateString - ISO 8601 date string (with Z or offset)
+ * @param timezone - IANA timezone string (default: America/New_York)
+ * @returns Formatted string like "Sun, Jan 25, 2026 • 10:26 AM ET"
+ */
+function formatDateInTimezone(isoDateString: string, timezone: string = DEFAULT_CREATOR_TIMEZONE): string {
+  try {
+    const date = new Date(isoDateString);
+    
+    // Validate date
+    if (isNaN(date.getTime())) {
+      console.error(`[formatDateInTimezone] Invalid date: ${isoDateString}`);
+      return isoDateString; // Fallback to raw string
+    }
+    
+    // Format the date in the specified timezone
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZoneName: "short",
+    });
+    
+    const formatted = formatter.format(date);
+    
+    // Log for debugging
+    console.log(`[formatDateInTimezone] Input: ${isoDateString}, Timezone: ${timezone}, Output: ${formatted}`);
+    
+    return formatted;
+  } catch (err) {
+    console.error(`[formatDateInTimezone] Error formatting date:`, err);
+    // Fallback: try without timezone
+    return new Date(isoDateString).toLocaleString("en-US");
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -170,16 +217,9 @@ const handler = async (req: Request): Promise<Response> => {
     const studioLink = `${domain}/live/${event_id}`;
     const settingsLink = `${domain}/?view=settings`;
     
-    // Format date/time for display
-    const scheduledDate = new Date(event.scheduled_at).toLocaleString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZoneName: "short",
-    });
+    // Format date/time for display in creator's timezone (America/New_York)
+    // This ensures email recipients see the time in the creator's local timezone
+    const scheduledDate = formatDateInTimezone(event.scheduled_at, DEFAULT_CREATOR_TIMEZONE);
 
     let subject = "";
     let bodyText = "";
