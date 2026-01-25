@@ -14,6 +14,7 @@ export interface UpcomingSessionRow {
   is_live: boolean;
   live_ended_at: string | null;
   status: UpcomingSessionStatus;
+  description: string | null;
 }
 
 export interface UpcomingSessionWithCreator extends UpcomingSessionRow {

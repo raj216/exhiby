@@ -733,6 +733,7 @@ export type Database = {
           category: string
           cover_url: string
           creator_id: string
+          description: string
           id: string
           is_free: boolean
           is_live: boolean

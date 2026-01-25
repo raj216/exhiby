@@ -16,6 +16,7 @@ interface UpcomingEventCardProps {
   price: number;
   isFree: boolean;
   category?: string;
+  description?: string;
   artistName?: string;
   artistAvatar?: string;
   artistIsVerified?: boolean;
@@ -33,6 +34,7 @@ export function UpcomingEventCard({
   price,
   isFree,
   category,
+  description,
   artistName,
   artistAvatar,
   artistIsVerified,
@@ -302,10 +304,12 @@ export function UpcomingEventCard({
           {title}
         </h3>
         
-        {/* Category */}
-        {category && (
+        {/* Category • Description */}
+        {(category || description) && (
           <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-            {category}
+            {category && <span>{category}</span>}
+            {category && description && <span className="mx-1">•</span>}
+            {description && <span>{description}</span>}
           </p>
         )}
       </div>
