@@ -624,6 +624,16 @@ export type Database = {
           website: string
         }[]
       }
+      get_creator_feedback: {
+        Args: { target_creator_id: string }
+        Returns: {
+          created_at: string
+          event_id: string
+          id: string
+          public_tags: string[]
+          rating: number
+        }[]
+      }
       get_creator_profiles: {
         Args: { user_ids: string[] }
         Returns: {
