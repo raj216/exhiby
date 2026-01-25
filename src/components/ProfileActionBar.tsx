@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Bell, MessageCircle, Heart, Loader2 } from "lucide-react";
+import { Bell, MessageCircle, Heart } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 interface ProfileActionBarProps {
   isFollowing: boolean;
@@ -41,26 +42,22 @@ export function ProfileActionBar({
       className="flex gap-3 px-4 mt-6"
     >
       {/* Follow Button - Electric Clay when not following */}
-      <motion.button
-        whileTap={isFollowLoading ? undefined : { scale: 0.95 }}
+      <LoadingButton
+        loading={isFollowLoading}
+        loadingText={isFollowing ? "Unfollowing..." : "Following..."}
         onClick={handleFollow}
-        disabled={isFollowLoading}
-        className={`flex-1 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-70 ${
+        className={`flex-1 py-3 rounded-2xl font-semibold transition-all ${
           isFollowing
-            ? "bg-obsidian border border-border text-foreground"
-            : "text-white shadow-electric"
+            ? "bg-obsidian border border-border text-foreground hover:bg-muted"
+            : "text-white shadow-electric hover:opacity-90"
         }`}
         style={!isFollowing ? {
           background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
         } : undefined}
       >
-        {isFollowLoading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : (
-          <Bell className={`w-5 h-5 ${isFollowing ? "fill-electric text-electric" : ""}`} />
-        )}
-        <span>{isFollowLoading ? (isFollowing ? "Unfollowing..." : "Following...") : (isFollowing ? "Following" : "Follow")}</span>
-      </motion.button>
+        <Bell className={`w-5 h-5 ${isFollowing ? "fill-electric text-electric" : ""}`} />
+        <span>{isFollowing ? "Following" : "Follow"}</span>
+      </LoadingButton>
 
       {/* Message Button */}
       <motion.button
