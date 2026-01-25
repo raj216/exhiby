@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { LiveBadge, useEndedLabel } from "./EventStatusBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfilePrefetch } from "@/hooks/useProfilePrefetch";
 
 interface LiveMarqueeCardProps {
   id: string;
@@ -57,9 +58,16 @@ export function LiveMarqueeCard({
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { prefetchProfile } = useProfilePrefetch();
   const isEnded = !!endedAt;
   const endedLabel = useEndedLabel(endedAt);
 
+  // Prefetch profile on hover for instant navigation
+  const handleCreatorHover = () => {
+    if (creatorId) {
+      prefetchProfile(creatorId);
+    }
+  };
   const handleJoin = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isEnded) return;
@@ -109,6 +117,7 @@ export function LiveMarqueeCard({
       <div 
         className="flex items-center gap-2 mb-2 px-1 cursor-pointer hover:opacity-80 transition-opacity"
         onClick={handleCreatorClick}
+        onMouseEnter={handleCreatorHover}
       >
         {artistAvatar ? (
           <img 
