@@ -136,6 +136,8 @@ export function CreatorProfile({ onBack }: CreatorProfileProps) {
       {/* Action Bar */}
       <ProfileActionBar
         isFollowing={isFollowing}
+        isFollowLoading={false}
+        isLoading={false}
         onFollowClick={handleFollowClick}
         onMessageClick={() => toast({ title: "Coming Soon", description: "Messaging feature coming soon!" })}
         onSupportClick={() => toast({ title: "Tip Sent!", description: "You sent a $5 tip to Elena" })}
