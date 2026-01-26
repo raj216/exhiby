@@ -89,14 +89,7 @@ export function LiveNotificationToast() {
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`
-              relative flex items-start gap-3 p-4 rounded-2xl shadow-2xl
-              backdrop-blur-xl border max-w-sm w-full cursor-pointer
-              ${isLive 
-                ? "bg-crimson/95 border-crimson/50 text-white" 
-                : "bg-obsidian/95 border-border/50 text-foreground"
-              }
-            `}
+            className="relative flex items-start gap-3 p-4 rounded-2xl shadow-2xl backdrop-blur-xl border max-w-sm w-full cursor-pointer bg-obsidian/95 border-border/50 text-foreground"
             onClick={() => {
               sonnerToast.dismiss(t);
               if (notification.link) {
@@ -104,29 +97,34 @@ export function LiveNotificationToast() {
               }
             }}
           >
-            {/* Live pulse indicator */}
+            {/* Live indicator - red dot with pulse */}
             {isLive && (
-              <div className="absolute top-4 left-4 w-2 h-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+              <div className="absolute top-4 left-4 flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-crimson opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-crimson" />
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-crimson">
+                  Live
+                </span>
               </div>
             )}
 
-            <div className={`flex-shrink-0 text-xl ${isLive ? "ml-4" : ""}`}>
+            <div className={`flex-shrink-0 text-xl ${isLive ? "ml-12" : ""}`}>
               {icon}
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className={`font-medium text-sm leading-snug ${isLive ? "text-white" : "text-foreground"}`}>
+              <p className="font-medium text-sm leading-snug text-foreground">
                 {notification.title}
               </p>
               {displayMessage && (
-                <p className={`text-xs mt-1 truncate ${isLive ? "text-white/80" : "text-muted-foreground"}`}>
+                <p className="text-xs mt-1 truncate text-muted-foreground">
                   {displayMessage}
                 </p>
               )}
               {notification.link && (
-                <p className={`text-xs mt-2 font-medium ${isLive ? "text-white/90" : "text-electric"}`}>
+                <p className={`text-xs mt-2 font-medium ${isLive ? "text-crimson" : "text-electric"}`}>
                   {isLive ? "Enter the Studio →" : "View →"}
                 </p>
               )}
@@ -137,21 +135,14 @@ export function LiveNotificationToast() {
                 e.stopPropagation();
                 sonnerToast.dismiss(t);
               }}
-              className={`
-                flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
-                transition-colors
-                ${isLive 
-                  ? "hover:bg-white/20 text-white/80" 
-                  : "hover:bg-muted text-muted-foreground"
-                }
-              `}
+              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:bg-muted text-muted-foreground"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </motion.div>
         ),
         {
-          duration: isLive ? 8000 : 5000, // Live notifications stay longer
+          duration: isLive ? 8000 : 5000,
           position: "top-center",
         }
       );
