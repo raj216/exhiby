@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { useMaterials } from "@/hooks/useMaterials";
+import { useLiveRoomRealtime } from "@/hooks/useLiveRoomRealtime";
 import { useHandRaises } from "@/hooks/useHandRaises";
 import { useDaily, DailyJoinStatus } from "@/hooks/useDaily";
 import { useLiveChat } from "@/hooks/useLiveChat";
@@ -134,13 +135,30 @@ export default function LiveRoom() {
     isViewerReady: isViewerJoined, // Audience chat waits until their viewer record exists
   });
 
-  // Materials from database
+  // Unified realtime connection manager
+  const {
+    status: realtimeStatus,
+    isConnected: isRealtimeConnected,
+    justReconnected,
+    clearReconnectedFlag,
+    reconnect: reconnectRealtime,
+  } = useLiveRoomRealtime({
+    eventId: eventId || null,
+    isViewerReady: isViewerJoined,
+    isCreator: isCreator,
+  });
+
+  // Materials from database with reconnect sync
   const {
     materials,
     addMaterial,
     updateMaterial,
     deleteMaterial,
-  } = useMaterials(eventId || null);
+  } = useMaterials({
+    eventId: eventId || null,
+    justReconnected,
+    onReconnectHandled: clearReconnectedFlag,
+  });
 
   // Hand raises from database with realtime
   const {
@@ -1308,14 +1326,15 @@ export default function LiveRoom() {
             onSwitchCamera={isCreator ? switchCamera : undefined}
           />
 
-          {/* Chat Overlay */}
+          {/* Chat Overlay - uses unified realtime status */}
           <LiveRoomChat
             isOpen={showChat}
             onClose={handleCloseChat}
             messages={chatMessages}
-            status={chatStatus}
+            status={realtimeStatus}
             messageCount={chatMessageCount}
             onSendMessage={handleSendMessage}
+            onReload={reconnectRealtime}
             isAuthenticated={!!user}
           />
 

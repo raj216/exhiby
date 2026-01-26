@@ -8,7 +8,7 @@ interface LiveRoomChatProps {
   isOpen: boolean;
   onClose: () => void;
   messages?: LiveMessage[];
-  status?: "disconnected" | "connecting" | "connected";
+  status?: "disconnected" | "connecting" | "connected" | "reconnecting" | "error";
   messageCount?: number;
   onSendMessage: (message: string) => Promise<boolean>;
   onRetryMessage?: (clientId: string) => Promise<boolean>;
@@ -121,6 +121,31 @@ export function LiveRoomChat({
         <div className="flex items-center gap-1.5 text-amber-400">
           <Loader2 className="w-3 h-3 animate-spin" />
           <span className="text-[10px] uppercase tracking-wider">Connecting…</span>
+        </div>
+      );
+    }
+    if (status === "reconnecting") {
+      return (
+        <div className="flex items-center gap-1.5 text-amber-400">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          <span className="text-[10px] uppercase tracking-wider">Reconnecting…</span>
+        </div>
+      );
+    }
+    if (status === "error") {
+      return (
+        <div className="flex items-center gap-1.5 text-red-400">
+          <WifiOff className="w-3 h-3" />
+          <span className="text-[10px] uppercase tracking-wider">Error</span>
+          {onReload && (
+            <button
+              onClick={onReload}
+              className="ml-1 p-1 rounded hover:bg-white/10 transition-colors"
+              title="Reconnect"
+            >
+              <RefreshCw className="w-3 h-3" />
+            </button>
+          )}
         </div>
       );
     }
