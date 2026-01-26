@@ -31,6 +31,7 @@ import {
 } from "@/components/live";
 import { HandRaisesDrawer } from "@/components/live/HandRaisesDrawer";
 import { DebugPanel } from "@/components/live/DebugPanel";
+import { VideoQualityBadge } from "@/components/live/VideoQualityBadge";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
 import { LiveRoomSkeleton } from "@/components/ui/loading-skeletons";
@@ -166,6 +167,7 @@ export default function LiveRoom() {
     error: dailyError,
     errorStack: dailyErrorStack,
     status,
+    qualityStats,
     join,
     leave,
     reset,
@@ -1286,6 +1288,14 @@ export default function LiveRoom() {
 
           {/* Reconnecting Banner */}
           <ReconnectingBanner isVisible={isReconnecting} />
+
+          {/* Dev-only Quality Badge */}
+          {!isCreator && (
+            <VideoQualityBadge 
+              qualityStats={qualityStats} 
+              className="absolute top-16 right-4 z-30"
+            />
+          )}
 
           {/* Header Overlay */}
           <LiveRoomHeader
