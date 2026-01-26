@@ -8,3 +8,4 @@ export { DebugPanel } from './DebugPanel';
 export { ChatNotificationToast } from './ChatNotificationToast';
 export { ReconnectingBanner } from './ReconnectingBanner';
 export { LiveCountdown } from './LiveCountdown';
+export { HandRaisesDrawer } from './HandRaisesDrawer';

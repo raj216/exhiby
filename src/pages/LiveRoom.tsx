@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
 import { useMaterials } from "@/hooks/useMaterials";
+import { useHandRaises } from "@/hooks/useHandRaises";
 import { useDaily, DailyJoinStatus } from "@/hooks/useDaily";
 import { useLiveChat } from "@/hooks/useLiveChat";
 import { useEventTicket } from "@/hooks/useEventTicket";
@@ -28,6 +29,7 @@ import {
   ReconnectingBanner,
   LiveCountdown,
 } from "@/components/live";
+import { HandRaisesDrawer } from "@/components/live/HandRaisesDrawer";
 import { DebugPanel } from "@/components/live/DebugPanel";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
@@ -70,7 +72,7 @@ export default function LiveRoom() {
   const [isUIVisible, setIsUIVisible] = useState(true);
   const [showChat, setShowChat] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
-  const [handRaised, setHandRaised] = useState(false);
+  const [showHandRaises, setShowHandRaises] = useState(false);
   
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -138,6 +140,20 @@ export default function LiveRoom() {
     updateMaterial,
     deleteMaterial,
   } = useMaterials(eventId || null);
+
+  // Hand raises from database with realtime
+  const {
+    handRaises,
+    handRaiseCount,
+    myHandRaised,
+    raiseHand,
+    lowerHand,
+    clearHandRaise,
+    clearAllHandRaises,
+  } = useHandRaises({
+    eventId: eventId || null,
+    isCreator: isCreator,
+  });
 
   // Daily SDK integration
   const {
@@ -598,10 +614,32 @@ export default function LiveRoom() {
   };
 
   // Other handlers
-  const handleRaiseHand = () => {
-    setHandRaised((prev) => !prev);
-    toast.success(handRaised ? "Hand lowered" : "Hand raised!");
-  };
+  const handleRaiseHand = useCallback(async () => {
+    triggerClickHaptic();
+    
+    if (myHandRaised) {
+      // Lower hand
+      const { success, error } = await lowerHand();
+      if (success) {
+        toast.success("Hand lowered");
+      } else if (error) {
+        toast.error(error);
+      }
+    } else {
+      // Raise hand
+      const { success, error } = await raiseHand();
+      if (success) {
+        toast.success("🖐️ Hand raised!");
+      } else if (error) {
+        toast.error(error);
+      }
+    }
+  }, [myHandRaised, raiseHand, lowerHand]);
+
+  const handleOpenHandRaises = useCallback(() => {
+    triggerClickHaptic();
+    setShowHandRaises(true);
+  }, []);
 
   const handleSwipeToPay = () => {
     toast.success("Payment initiated!");
@@ -1298,9 +1336,22 @@ export default function LiveRoom() {
             onRaiseHand={handleRaiseHand}
             onOpenMaterials={handleOpenMaterials}
             onSwipeToPay={handleSwipeToPay}
-            handRaised={handRaised}
+            handRaised={myHandRaised}
             unreadChatCount={showChat ? 0 : chatUnreadCount}
+            handRaiseCount={handRaiseCount}
+            onOpenHandRaises={handleOpenHandRaises}
           />
+
+          {/* Hand Raises Drawer (Creator Only) */}
+          {isCreator && (
+            <HandRaisesDrawer
+              isOpen={showHandRaises}
+              onClose={() => setShowHandRaises(false)}
+              handRaises={handRaises}
+              onClearSingle={clearHandRaise}
+              onClearAll={clearAllHandRaises}
+            />
+          )}
 
           {/* Chat Notification Toast */}
           <ChatNotificationToast
