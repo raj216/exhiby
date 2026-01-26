@@ -36,6 +36,9 @@ interface LiveRoomControlsProps {
   onSwipeToPay: () => void;
   handRaised: boolean;
   unreadChatCount?: number;
+  // Hand raises for creator
+  handRaiseCount?: number;
+  onOpenHandRaises?: () => void;
 }
 
 export function LiveRoomControls({
@@ -55,6 +58,8 @@ export function LiveRoomControls({
   onSwipeToPay,
   handRaised,
   unreadChatCount = 0,
+  handRaiseCount = 0,
+  onOpenHandRaises,
 }: LiveRoomControlsProps) {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -230,7 +235,30 @@ export function LiveRoomControls({
                   </TooltipContent>
                 </Tooltip>
 
-                {/* VIEWER-ONLY Controls */}
+                {/* Hand Raises - Host Only */}
+                {isHost && onOpenHandRaises && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={onOpenHandRaises}
+                        disabled={isEnding}
+                        className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                      >
+                        <Hand className="w-5 h-5" />
+                        {/* Badge for raised hands count */}
+                        {handRaiseCount > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-gold text-[10px] font-bold text-background border-2 border-black/40">
+                            {handRaiseCount > 9 ? "9+" : handRaiseCount}
+                          </span>
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>Raised Hands</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+
                 {!isHost && (
                   <>
                     {/* Raise Hand */}
