@@ -9,3 +9,4 @@ export { ChatNotificationToast } from './ChatNotificationToast';
 export { ReconnectingBanner } from './ReconnectingBanner';
 export { LiveCountdown } from './LiveCountdown';
 export { HandRaisesDrawer } from './HandRaisesDrawer';
+export { VideoQualityBadge } from './VideoQualityBadge';
