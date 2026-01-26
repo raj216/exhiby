@@ -163,6 +163,24 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Validate cron secret for scheduled job authentication
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const authHeader = req.headers.get("x-cron-secret");
+  
+  // If CRON_SECRET is configured, require it for all requests
+  if (cronSecret) {
+    if (!authHeader || authHeader !== cronSecret) {
+      console.error("Unauthorized: Invalid or missing x-cron-secret header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+  } else {
+    // Log warning if CRON_SECRET is not configured (for development/transition period)
+    console.warn("Warning: CRON_SECRET not configured. Function is running without authentication.");
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
