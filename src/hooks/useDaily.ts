@@ -4,6 +4,7 @@ import Daily, {
   DailyEventObjectParticipantLeft,
 } from "@daily-co/daily-js";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createQualityMonitor, type QualityStats } from "@/lib/dailyQualityMonitor";
 
 export type DailyJoinStatus =
   | "idle"
@@ -101,11 +102,21 @@ const ART_STUDIO_SEND_SETTINGS = {
   },
 };
 
-// Viewer receive settings - request highest quality for art detail
+// Viewer receive settings - request highest quality with art-optimized strategy
+// Layer 2 = highest simulcast layer for maximum detail visibility
 const ART_STUDIO_RECEIVE_SETTINGS = {
   base: { 
     video: { 
-      layer: 2,  // Request highest simulcast layer
+      layer: 2,  // Request highest simulcast layer (1080p)
+    } 
+  },
+};
+
+// Intermediate layer for medium bandwidth situations
+const MEDIUM_QUALITY_RECEIVE_SETTINGS = {
+  base: { 
+    video: { 
+      layer: 1,  // Request medium layer (720p)
     } 
   },
 };
@@ -372,6 +383,7 @@ export function useDaily({
   const mountedRef = useRef(true);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const instanceIdRef = useRef(0);
+  const qualityMonitorRef = useRef<ReturnType<typeof createQualityMonitor> | null>(null);
 
   // State
   const [participants, setParticipants] = useState<DailyParticipantInfo[]>([]);
@@ -383,6 +395,7 @@ export function useDaily({
   const [errorStack, setErrorStack] = useState<string | null>(null);
   const [status, setStatus] = useState<DailyJoinStatus>("idle");
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [qualityStats, setQualityStats] = useState<QualityStats | null>(null);
 
   // Callbacks stored in refs to avoid effect re-runs
   const callbacksRef = useRef({ onJoined, onLeft, onError, onStatusChange, onHostLeft, onMeetingEnded, onNetworkQualityChange });
@@ -522,6 +535,17 @@ export function useDaily({
           updateStatus("joined");
           updateParticipants(call);
           callbacksRef.current.onJoined?.();
+          
+          // Start quality monitor for viewers (monitors and auto-recovers quality)
+          if (!isHost) {
+            console.log("[useDaily] Starting art-optimized quality monitor for viewer");
+            qualityMonitorRef.current = createQualityMonitor(call, isHost, (stats) => {
+              if (mountedRef.current) {
+                setQualityStats(stats);
+              }
+            });
+            qualityMonitorRef.current.start();
+          }
         };
 
         const handleLeftMeeting = () => {
@@ -534,6 +558,12 @@ export function useDaily({
           setParticipants([]);
           updateStatus("idle");
           callbacksRef.current.onLeft?.();
+          
+          // Stop quality monitor
+          if (qualityMonitorRef.current) {
+            qualityMonitorRef.current.stop();
+            qualityMonitorRef.current = null;
+          }
         };
 
         const handleParticipantJoined = (event: DailyEventObjectParticipant | undefined) => {
@@ -599,7 +629,8 @@ export function useDaily({
           console.warn("[useDaily] Audio error (non-blocking):", errorMessage);
         };
 
-        // Network quality handler - prioritize audio stability and notify UI
+        // Network quality handler - art-optimized: prioritize resolution over framerate
+        // Uses smooth degradation (1080→720→540→360) without getting stuck
         const handleNetworkQualityChange = (event: any) => {
           const { threshold, quality } = event || {};
           console.log("[useDaily] Network quality:", quality, "threshold:", threshold);
@@ -611,37 +642,65 @@ export function useDaily({
             callbacksRef.current.onNetworkQualityChange?.('good');
           }
           
-          // On poor network, reduce video quality but maintain audio
-          if (quality === 'low' || quality === 'very-low') {
-            console.log("[useDaily] Poor network detected - prioritizing audio stability");
-            try {
-              // Request lower video layer to save bandwidth for audio
-              call.updateReceiveSettings({
-                base: { video: { layer: 0 } } // Request lowest video layer
-              });
-              // Update send settings to reduce video bitrate but maintain audio
-              if (isHost) {
+          // For viewers, the quality monitor handles adaptive receive settings
+          // We only need to handle host send settings here
+          if (isHost) {
+            if (quality === 'low' || quality === 'very-low') {
+              console.log("[useDaily] Host: Poor network - reducing send quality while maintaining audio");
+              try {
+                // Step down send quality but don't drop to lowest immediately
+                const sendQuality = quality === 'very-low' ? 'low' : 'medium';
                 call.updateSendSettings({
                   video: {
-                    maxQuality: 'low' as const,
+                    maxQuality: sendQuality as 'low' | 'medium' | 'high',
                     allowAdaptiveLayers: true,
                   },
-                  // Audio settings are kept at high quality via the initial config
+                  // Audio always stays at high quality
+                  audio: {
+                    maxQuality: 'high' as const,
+                    maxBitrate: 128000,
+                  },
                 } as any);
+              } catch (e) {
+                console.warn("[useDaily] Could not adjust send settings for poor network:", e);
               }
-            } catch (e) {
-              console.warn("[useDaily] Could not adjust for poor network:", e);
-            }
-          } else if (quality === 'good') {
-            // Restore high quality when network improves
-            console.log("[useDaily] Good network - restoring high quality");
-            try {
-              call.updateReceiveSettings(ART_STUDIO_RECEIVE_SETTINGS);
-              if (isHost) {
+            } else if (quality === 'good') {
+              // Restore high quality when network improves
+              console.log("[useDaily] Host: Good network - restoring max quality");
+              try {
                 call.updateSendSettings(ART_STUDIO_SEND_SETTINGS);
+              } catch (e) {
+                console.warn("[useDaily] Could not restore send settings:", e);
               }
-            } catch (e) {
-              console.warn("[useDaily] Could not restore quality settings:", e);
+            }
+          } else {
+            // For viewers, trigger immediate quality boost on good network
+            // The quality monitor will handle ongoing adjustments
+            if (quality === 'good') {
+              console.log("[useDaily] Viewer: Good network - requesting highest layer");
+              try {
+                call.updateReceiveSettings(ART_STUDIO_RECEIVE_SETTINGS);
+              } catch (e) {
+                console.warn("[useDaily] Could not request high quality:", e);
+              }
+            } else if (quality === 'very-low') {
+              // Only drop to low on very-low, medium on low (preserve art detail)
+              console.log("[useDaily] Viewer: Very poor network - accepting lower quality");
+              try {
+                call.updateReceiveSettings({
+                  base: { video: { layer: 0 } }
+                });
+              } catch (e) {
+                console.warn("[useDaily] Could not request lower quality:", e);
+              }
+            } else if (quality === 'low') {
+              // On moderate degradation, try medium layer (720p) to preserve art detail
+              console.log("[useDaily] Viewer: Degraded network - requesting medium quality");
+              try {
+                call.updateReceiveSettings(MEDIUM_QUALITY_RECEIVE_SETTINGS);
+              } catch (e) {
+                console.warn("[useDaily] Could not request medium quality:", e);
+              }
             }
           }
         };
@@ -863,6 +922,12 @@ export function useDaily({
       mountedRef.current = false;
       clearJoinTimeout();
       console.log("[useDaily] Cleanup, instanceId:", currentInstanceId);
+      
+      // Stop quality monitor
+      if (qualityMonitorRef.current) {
+        qualityMonitorRef.current.stop();
+        qualityMonitorRef.current = null;
+      }
       
       // Reset init flag so next mount can re-init
       hasInitializedRef.current = false;
@@ -1139,6 +1204,7 @@ export function useDaily({
     errorStack,
     audioError,
     status,
+    qualityStats, // Exposed for debugging/monitoring
     join: () => {}, // Auto-join is handled internally
     leave,
     reset,
