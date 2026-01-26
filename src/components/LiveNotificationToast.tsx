@@ -5,6 +5,7 @@ import { X, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast as sonnerToast } from "sonner";
+import { triggerNotificationHaptic } from "@/lib/haptics";
 
 interface NotificationPayload {
   id: string;
@@ -80,6 +81,11 @@ export function LiveNotificationToast() {
         } catch {
           displayMessage = notification.message;
         }
+      }
+
+      // Trigger haptic feedback for LIVE notifications
+      if (isLive) {
+        triggerNotificationHaptic();
       }
 
       // Show sonner toast with custom styling
