@@ -5,3 +5,4 @@ export { PassportStamp } from "./PassportStamp";
 export { LogoutOverlay } from "./LogoutOverlay";
 export { PassportModal } from "./PassportModal";
 export { ResetPassword } from "./ResetPassword";
+export { RequireAuth, getAndClearReturnUrl } from "./RequireAuth";

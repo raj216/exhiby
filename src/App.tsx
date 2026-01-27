@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UserModeProvider } from "@/contexts/UserModeContext";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { LiveNotificationToast } from "@/components/LiveNotificationToast";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -38,8 +39,17 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/s/:sessionId" element={<SessionResolver />} />
-                <Route path="/profile/:userId" element={<PublicProfile />} />
-                <Route path="/user/:identifier" element={<ProfileResolver />} />
+                {/* Protected Profile Routes - Auth Gate */}
+                <Route path="/profile/:userId" element={
+                  <RequireAuth>
+                    <PublicProfile />
+                  </RequireAuth>
+                } />
+                <Route path="/user/:identifier" element={
+                  <RequireAuth>
+                    <ProfileResolver />
+                  </RequireAuth>
+                } />
                 <Route path="/live/:eventId" element={<LiveRoom />} />
                 <Route path="/explore" element={<ExploreStudios />} />
                 <Route path="/admin/feedback" element={<AdminFeedback />} />
