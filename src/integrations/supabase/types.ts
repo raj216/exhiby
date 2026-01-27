@@ -639,6 +639,22 @@ export type Database = {
         Returns: string
       }
       get_active_viewer_count: { Args: { event_uuid: string }; Returns: number }
+      get_all_feedback_admin: {
+        Args: never
+        Returns: {
+          audience_user_id: string
+          created_at: string
+          creator_id: string
+          event_id: string
+          id: string
+          improvement_category: string
+          left_early: boolean
+          left_early_reason: string
+          private_feedback_text: string
+          public_tags: string[]
+          rating: number
+        }[]
+      }
       get_all_public_profiles: {
         Args: never
         Returns: {
