@@ -8,6 +8,8 @@ export interface PublicCreatorStats {
   isCreator: boolean;
 }
 
+const DEBUG_STATS = import.meta.env.DEV && localStorage.getItem("debug_creator_stats") === "1";
+
 export function usePublicCreatorStats(userId: string | undefined) {
   const { data: stats = { sessionsHosted: 0, averageRating: 0, totalGuests: 0, isCreator: false }, isLoading: loading, refetch } = useQuery({
     queryKey: ["public-creator-stats", userId],
@@ -24,36 +26,51 @@ export function usePublicCreatorStats(userId: string | undefined) {
         return { sessionsHosted: 0, averageRating: 0, totalGuests: 0, isCreator: false };
       }
 
-      // Fetch all data in parallel instead of waterfall
-      const [sessionsResult, ratingResult] = await Promise.all([
-        // Count completed sessions
-        supabase
-          .from("events")
-          .select("*", { count: "exact", head: true })
-          .eq("creator_id", userId)
-          .not("live_ended_at", "is", null),
-        // Get rating stats (includes total_guests)
+      // Fetch all data in parallel
+      const [sessionStatsResult, ratingResult] = await Promise.all([
+        // Use new RPC for accurate session stats (completed sessions + unique guests from live_viewers)
+        supabase.rpc("get_creator_session_stats", { target_creator_id: userId }),
+        // Get rating stats (averageRating and totalRatings)
         supabase.rpc("get_creator_rating_stats", { target_creator_id: userId }),
       ]);
 
-      const sessionsCount = sessionsResult.count || 0;
-      let averageRating = 0;
+      let sessionsHosted = 0;
       let totalGuests = 0;
+      let averageRating = 0;
 
+      // Extract session stats from new RPC
+      if (sessionStatsResult.data && sessionStatsResult.data.length > 0) {
+        sessionsHosted = sessionStatsResult.data[0].sessions_hosted || 0;
+        totalGuests = sessionStatsResult.data[0].unique_guests || 0;
+      }
+
+      // Extract rating from existing RPC
       if (ratingResult.data && ratingResult.data.length > 0) {
         averageRating = Number(ratingResult.data[0].average_rating) || 0;
-        totalGuests = ratingResult.data[0].total_guests || 0;
+      }
+
+      if (DEBUG_STATS) {
+        console.log("[PublicCreatorStats] userId:", userId);
+        console.log("[PublicCreatorStats] sessionsHosted:", sessionsHosted, "(from get_creator_session_stats RPC - counts events with live_ended_at IS NOT NULL)");
+        console.log("[PublicCreatorStats] totalGuests:", totalGuests, "(from get_creator_session_stats RPC - counts DISTINCT user_id from live_viewers)");
+        console.log("[PublicCreatorStats] averageRating:", averageRating, "(from get_creator_rating_stats RPC)");
+        if (sessionStatsResult.error) {
+          console.error("[PublicCreatorStats] sessionStatsResult error:", sessionStatsResult.error);
+        }
+        if (ratingResult.error) {
+          console.error("[PublicCreatorStats] ratingResult error:", ratingResult.error);
+        }
       }
 
       return {
-        sessionsHosted: sessionsCount,
+        sessionsHosted,
         averageRating,
         totalGuests,
         isCreator: true,
       };
     },
     enabled: !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 30 * 1000, // 30 seconds - more responsive updates
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
