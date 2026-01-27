@@ -50,7 +50,11 @@ const App = () => {
                     <ProfileResolver />
                   </RequireAuth>
                 } />
-                <Route path="/live/:eventId" element={<LiveRoom />} />
+                <Route path="/live/:eventId" element={
+                  <RequireAuth>
+                    <LiveRoom />
+                  </RequireAuth>
+                } />
                 <Route path="/explore" element={<ExploreStudios />} />
                 <Route path="/admin/feedback" element={<AdminFeedback />} />
                 <Route path="/earnings-history" element={<EarningsHistory />} />
