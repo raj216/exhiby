@@ -9,12 +9,16 @@ import { getUpcomingSessions, UpcomingSessionWithCreator } from "@/data/getUpcom
 import { triggerHaptic } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Schedule() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get("category") || "all";
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   
   const [sessions, setSessions] = useState<UpcomingSessionWithCreator[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,8 +153,32 @@ export default function Schedule() {
     navigate(`/live/${sessionId}`);
   };
 
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    await fetchSessions();
+  }, [fetchSessions]);
+
+  const { pullDistance, isRefreshing, containerRef, indicatorStyle } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    disabled: !isMobile,
+  });
+
   return (
-    <div className="min-h-screen bg-carbon">
+    <div 
+      ref={containerRef as React.RefObject<HTMLDivElement>}
+      className="min-h-screen bg-carbon overflow-y-auto"
+    >
+      {/* Pull to Refresh Indicator - Mobile only */}
+      {isMobile && (pullDistance > 0 || isRefreshing) && (
+        <PullToRefreshIndicator
+          pullDistance={pullDistance}
+          isRefreshing={isRefreshing}
+          threshold={80}
+          style={indicatorStyle}
+        />
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/20">
         <div className="flex items-center gap-4 px-4 lg:px-6 py-4">
