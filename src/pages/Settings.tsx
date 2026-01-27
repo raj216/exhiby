@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
+import { navigateBack } from "@/lib/navigation";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Switch } from "@/components/ui/switch";
@@ -104,7 +105,8 @@ export default function Settings() {
     if (isMobile && activeCategory) {
       setActiveCategory(null);
     } else {
-      navigate(-1);
+      // Use navigateBack with fallback to profile (not home)
+      navigateBack(navigate, "/profile");
     }
   }, [isMobile, activeCategory, navigate]);
   const handleCategoryClick = useCallback((category: SettingsCategory) => {
