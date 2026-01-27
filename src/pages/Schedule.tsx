@@ -1,18 +1,20 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, CalendarPlus } from "lucide-react";
 import { UpcomingEventCard } from "@/components/UpcomingEventCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORIES, getCategoryId, getCategoryName } from "@/lib/categories";
 import { getUpcomingSessions, UpcomingSessionWithCreator } from "@/data/getUpcomingSessions";
 import { triggerHaptic } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Schedule() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryParam = searchParams.get("category") || "all";
+  const { user } = useAuth();
   
   const [sessions, setSessions] = useState<UpcomingSessionWithCreator[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +23,11 @@ export default function Schedule() {
     if (categoryParam === "all") return "All";
     return getCategoryName(categoryParam);
   });
+
+  // Toast state for new session notification
+  const [showNewSessionToast, setShowNewSessionToast] = useState(false);
+  const isInitialLoad = useRef(true);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch sessions function (reusable for initial load + realtime updates)
   const fetchSessions = useCallback(async () => {
@@ -40,8 +47,37 @@ export default function Schedule() {
 
   // Initial fetch
   useEffect(() => {
-    fetchSessions();
+    fetchSessions().then(() => {
+      // Mark initial load as complete after a short delay
+      setTimeout(() => {
+        isInitialLoad.current = false;
+      }, 1000);
+    });
   }, [fetchSessions]);
+
+  // Show toast notification (with debounce to prevent multiple toasts)
+  const showToast = useCallback(() => {
+    // Clear any existing timeout
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    
+    setShowNewSessionToast(true);
+    
+    // Auto-dismiss after 2.5 seconds
+    toastTimeoutRef.current = setTimeout(() => {
+      setShowNewSessionToast(false);
+    }, 2500);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Realtime subscription for events table changes
   useEffect(() => {
@@ -54,6 +90,17 @@ export default function Schedule() {
           if (process.env.NODE_ENV === "development") {
             console.log("[Schedule] Realtime event:", payload.eventType, payload);
           }
+          
+          // Check if this is an INSERT from another creator
+          if (payload.eventType === "INSERT" && !isInitialLoad.current) {
+            const newRecord = payload.new as { creator_id?: string };
+            
+            // Only show toast if it's not the current user's session
+            if (newRecord.creator_id && newRecord.creator_id !== user?.id) {
+              showToast();
+            }
+          }
+          
           // Refetch sessions on any event change (INSERT, UPDATE, DELETE)
           fetchSessions();
         }
@@ -67,7 +114,7 @@ export default function Schedule() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchSessions]);
+  }, [fetchSessions, user?.id, showToast]);
 
   // Sync URL param with selected category
   useEffect(() => {
@@ -220,6 +267,26 @@ export default function Schedule() {
           </motion.div>
         )}
       </main>
+
+      {/* Subtle New Session Toast */}
+      <AnimatePresence>
+        {showNewSessionToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed bottom-20 lg:bottom-6 left-1/2 lg:left-auto lg:right-6 -translate-x-1/2 lg:translate-x-0 z-50"
+          >
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-obsidian/95 border border-border/40 shadow-lg backdrop-blur-sm">
+              <CalendarPlus className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-foreground/90 font-medium whitespace-nowrap">
+                New session added
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
