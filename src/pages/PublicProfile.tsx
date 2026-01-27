@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Edit2, Share2, Users, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Edit2, Users, BadgeCheck, Share } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -263,29 +263,21 @@ export default function PublicProfile() {
 
     // HARD FIX: prefer explicit return context so back works even if browser history
     // was reset (new tab, full reload, replace(), etc.).
-    const state = (location.state && typeof location.state === "object"
-      ? (location.state as Record<string, unknown>)
-      : {}) as Record<string, unknown>;
-
-    const returnTo = state.returnTo as
-      | {
-          pathname: string;
-          search?: string;
-          state?: Record<string, unknown>;
-        }
-      | undefined;
-
+    const state = (location.state && typeof location.state === "object" ? location.state as Record<string, unknown> : {}) as Record<string, unknown>;
+    const returnTo = state.returnTo as {
+      pathname: string;
+      search?: string;
+      state?: Record<string, unknown>;
+    } | undefined;
     if (returnTo?.pathname) {
-      navigate(
-        {
-          pathname: returnTo.pathname,
-          search: returnTo.search ?? "",
-        },
-        { state: returnTo.state ?? undefined }
-      );
+      navigate({
+        pathname: returnTo.pathname,
+        search: returnTo.search ?? ""
+      }, {
+        state: returnTo.state ?? undefined
+      });
       return;
     }
-
     try {
       const raw = sessionStorage.getItem("exhiby_return_to");
       if (raw) {
@@ -295,10 +287,12 @@ export default function PublicProfile() {
           state?: Record<string, unknown>;
         };
         if (parsed?.pathname) {
-          navigate(
-            { pathname: parsed.pathname, search: parsed.search ?? "" },
-            { state: parsed.state ?? undefined }
-          );
+          navigate({
+            pathname: parsed.pathname,
+            search: parsed.search ?? ""
+          }, {
+            state: parsed.state ?? undefined
+          });
           return;
         }
       }
@@ -313,7 +307,12 @@ export default function PublicProfile() {
     }
 
     // Fallback: go to the user's own internal profile view (NOT home)
-    navigate("/", { state: { openProfile: true }, replace: true });
+    navigate("/", {
+      state: {
+        openProfile: true
+      },
+      replace: true
+    });
   };
   const handleEditProfile = () => {
     triggerHaptic("light");
@@ -408,7 +407,7 @@ export default function PublicProfile() {
         }} whileTap={{
           scale: 0.95
         }}>
-            <Share2 className="w-5 h-5 text-foreground" />
+            <Share className="w-5 h-5 text-foreground" />
           </motion.button>
         </div>
 
@@ -504,31 +503,34 @@ export default function PublicProfile() {
         </motion.div>
 
         {/* Action Buttons */}
-        {isOwnProfile ? (
-          <motion.div className="mt-6 flex gap-3" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+        {isOwnProfile ? <motion.div className="mt-6 flex gap-3" initial={{
+          y: 10,
+          opacity: 0
+        }} animate={{
+          y: 0,
+          opacity: 1
+        }} transition={{
+          delay: 0.3
+        }}>
             <Button onClick={handleEditProfile} variant="outline" className="flex-1 gap-2">
               <Edit2 className="w-4 h-4" />
               Edit Profile
             </Button>
-          </motion.div>
-        ) : showTipMe ? (
-          /* Creator profile with Message + Tip buttons */
-          <ProfileActionBar
-            isFollowing={isFollowing}
-            isFollowLoading={isFollowLoading}
-            isLoading={isLoading}
-            onFollowClick={handleFollow}
-            onMessageClick={() => setIsMessageOpen(true)}
-            onSupportClick={() => setIsTipOpen(true)}
-          />
-        ) : (
-          /* Non-creator profile - just follow button */
-          <motion.div className="mt-6 flex gap-3" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+          </motion.div> : showTipMe ? (/* Creator profile with Message + Tip buttons */
+        <ProfileActionBar isFollowing={isFollowing} isFollowLoading={isFollowLoading} isLoading={isLoading} onFollowClick={handleFollow} onMessageClick={() => setIsMessageOpen(true)} onSupportClick={() => setIsTipOpen(true)} />) : (/* Non-creator profile - just follow button */
+        <motion.div className="mt-6 flex gap-3" initial={{
+          y: 10,
+          opacity: 0
+        }} animate={{
+          y: 0,
+          opacity: 1
+        }} transition={{
+          delay: 0.3
+        }}>
             <Button onClick={handleFollow} disabled={isFollowLoading} variant={isFollowing ? "outline" : "default"} className="flex-1 gap-2">
               {isFollowing ? "Following" : "Follow"}
             </Button>
-          </motion.div>
-        )}
+          </motion.div>)}
 
         {/* Live Access Card - appears when creator is live */}
         {isLive && liveEvent && <motion.div initial={{
@@ -599,11 +601,6 @@ export default function PublicProfile() {
       </Dialog>
 
       {/* Share Profile Modal */}
-      <ShareProfileModal
-        isOpen={isShareOpen}
-        onClose={() => setIsShareOpen(false)}
-        handle={profile?.handle ?? null}
-        userId={profile?.user_id}
-      />
+      <ShareProfileModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} handle={profile?.handle ?? null} userId={profile?.user_id} />
     </div>;
 }
