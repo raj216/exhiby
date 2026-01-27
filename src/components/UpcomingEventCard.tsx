@@ -24,6 +24,8 @@ interface UpcomingEventCardProps {
   onClick?: () => void;
   onRemind?: () => void;
   desktopSize?: boolean;
+  /** Compact variant for grid layouts */
+  variant?: "default" | "compact";
 }
 
 export function UpcomingEventCard({
@@ -42,6 +44,7 @@ export function UpcomingEventCard({
   onClick,
   onRemind,
   desktopSize = false,
+  variant = "default",
 }: UpcomingEventCardProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -150,9 +153,114 @@ export function UpcomingEventCard({
   // Format the scheduled date
   const formatEventDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return format(date, "MMM d • h:mm a");
+    return variant === "compact" 
+      ? format(date, "MMM d")
+      : format(date, "MMM d • h:mm a");
   };
 
+  const isCompact = variant === "compact";
+
+  // Compact variant for grid layouts
+  if (isCompact) {
+    return (
+      <motion.div
+        className="w-full flex flex-col cursor-pointer"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={handleCardTap}
+      >
+        {/* Image Container - Portrait aspect ratio */}
+        <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden">
+          <img
+            src={coverImage}
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+
+          {/* Date Badge - Top Left */}
+          <div className="absolute top-2 left-2">
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-obsidian/80 backdrop-blur-sm border border-border/30">
+              <Calendar className="w-3 h-3 text-muted-foreground" />
+              <span className="text-xs font-medium text-foreground">
+                {formatEventDate(scheduledAt)}
+              </span>
+            </div>
+          </div>
+
+          {/* Price Badge - Top Right */}
+          <div className="absolute top-2 right-2">
+            <div className={`inline-flex items-center px-2 py-1 rounded-full ${
+              isFree 
+                ? 'bg-muted/80 border border-border/40' 
+                : 'bg-accent/15 border border-accent/40'
+            }`}>
+              <span className={`text-xs font-semibold ${
+                isFree ? 'text-muted-foreground' : 'text-accent'
+              }`}>
+                {isFree ? "Free" : `$${price}`}
+              </span>
+            </div>
+          </div>
+
+          {/* Bell icon overlay - Bottom Right */}
+          <button 
+            onClick={handleRemind}
+            disabled={isLoading}
+            className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+              isSaved 
+                ? 'bg-electric/20 border border-electric/50' 
+                : 'bg-obsidian/70 backdrop-blur-sm border border-border/40 hover:bg-obsidian/90'
+            }`}
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+            ) : isSaved ? (
+              <BellRing className="w-4 h-4 text-electric" />
+            ) : (
+              <Bell className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+        </div>
+
+        {/* Info Section - below image */}
+        <div className="pt-2 px-0.5">
+          {/* Artist row */}
+          {artistName && (
+            <div 
+              className="flex items-center gap-1.5 mb-1 cursor-pointer"
+              onClick={handleCreatorClick}
+              onMouseEnter={handleCreatorHover}
+            >
+              {artistAvatar ? (
+                <img 
+                  src={artistAvatar} 
+                  alt={artistName}
+                  className="w-5 h-5 rounded-full object-cover border border-border/30"
+                />
+              ) : (
+                <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center border border-border/30">
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    {artistName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <span className="text-xs text-muted-foreground truncate">{artistName}</span>
+              {artistIsVerified === true && (
+                <BadgeCheck className="w-3 h-3 text-gold fill-gold/20 flex-shrink-0" />
+              )}
+            </div>
+          )}
+          
+          {/* Title */}
+          <h3 className="font-display text-sm text-foreground font-semibold line-clamp-2 leading-tight">
+            {title}
+          </h3>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Default variant
   return (
     <motion.div
       className="w-full flex-shrink-0 snap-center flex flex-col cursor-pointer"
