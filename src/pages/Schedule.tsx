@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Calendar } from "lucide-react";
@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORIES, getCategoryId, getCategoryName } from "@/lib/categories";
 import { getUpcomingSessions, UpcomingSessionWithCreator } from "@/data/getUpcomingSessions";
 import { triggerHaptic } from "@/lib/haptics";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Schedule() {
   const navigate = useNavigate();
@@ -21,21 +22,52 @@ export default function Schedule() {
     return getCategoryName(categoryParam);
   });
 
-  // Fetch all upcoming sessions once
-  useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        const data = await getUpcomingSessions({ limit: 100 });
-        setSessions(data);
-      } catch (err) {
-        console.error("[Schedule] Error fetching sessions:", err);
-        setSessions([]);
-      } finally {
-        setLoading(false);
+  // Fetch sessions function (reusable for initial load + realtime updates)
+  const fetchSessions = useCallback(async () => {
+    try {
+      const data = await getUpcomingSessions({ limit: 100 });
+      setSessions(data);
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Schedule] Sessions fetched:", data.length);
       }
-    };
-    fetchSessions();
+    } catch (err) {
+      console.error("[Schedule] Error fetching sessions:", err);
+      setSessions([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  // Realtime subscription for events table changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("schedule_events_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
+        (payload) => {
+          if (process.env.NODE_ENV === "development") {
+            console.log("[Schedule] Realtime event:", payload.eventType, payload);
+          }
+          // Refetch sessions on any event change (INSERT, UPDATE, DELETE)
+          fetchSessions();
+        }
+      )
+      .subscribe((status) => {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[Schedule] Realtime subscription status:", status);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchSessions]);
 
   // Sync URL param with selected category
   useEffect(() => {
