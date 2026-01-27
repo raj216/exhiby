@@ -74,17 +74,16 @@ export default function AdminFeedback() {
     checkAdmin();
   }, [user]);
 
-  // Fetch all feedback (admin only)
+  // Fetch all feedback using server-side admin-validated RPC
   const fetchFeedback = useCallback(async () => {
     if (!isAdmin) return;
 
     setIsLoading(true);
     try {
-      // First get all feedback
+      // Use SECURITY DEFINER RPC that validates admin status server-side
+      // This prevents bypassing client-side admin checks
       const { data: feedbackData, error: feedbackError } = await supabase
-        .from("session_feedback")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .rpc("get_all_feedback_admin");
 
       if (feedbackError) {
         console.error("Error fetching feedback:", feedbackError);
