@@ -749,6 +749,23 @@ export type Database = {
           website: string
         }[]
       }
+      get_public_profile_by_handle: {
+        Args: { target_handle: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          cover_url: string
+          created_at: string
+          founding_number: number
+          handle: string
+          is_founding_member: boolean
+          is_verified: boolean
+          name: string
+          user_id: string
+          verified_at: string
+          website: string
+        }[]
+      }
       get_public_profile_by_profile_id: {
         Args: { profile_id: string }
         Returns: {
