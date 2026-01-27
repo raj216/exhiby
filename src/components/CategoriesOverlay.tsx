@@ -1,13 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
 import { useScrollLock } from "@/hooks/useScrollLock";
-
-interface Category {
-  id: string;
-  name: string;
-  tag: string;
-}
+import { GO_LIVE_CATEGORIES } from "@/lib/categories";
 
 interface CategoriesOverlayProps {
   isOpen: boolean;
@@ -15,24 +11,18 @@ interface CategoriesOverlayProps {
   onSelectCategory: (tag: string) => void;
 }
 
-const categories: Category[] = [
-  { id: "1", name: "Pencil Art", tag: "pencil" },
-  { id: "2", name: "Watercolor", tag: "watercolor" },
-  { id: "3", name: "Oil Painting", tag: "oil" },
-  { id: "4", name: "Acrylic", tag: "acrylic" },
-  { id: "5", name: "Handmade Art", tag: "handmade" },
-  { id: "6", name: "Pottery", tag: "pottery" },
-  { id: "7", name: "Jewelry", tag: "jewelry" },
-];
-
 export function CategoriesOverlay({ isOpen, onClose, onSelectCategory }: CategoriesOverlayProps) {
+  const navigate = useNavigate();
+  
   // Lock body scroll when overlay is open
   useScrollLock(isOpen);
 
-  const handleCategoryClick = (category: Category) => {
+  const handleCategoryClick = (category: typeof GO_LIVE_CATEGORIES[number]) => {
     triggerHaptic("light");
-    onSelectCategory(category.tag);
+    // Close the modal first
     onClose();
+    // Navigate to Browse page with category pre-selected
+    navigate(`/browse?category=${category.id}`);
   };
 
   return (
@@ -90,7 +80,7 @@ export function CategoriesOverlay({ isOpen, onClose, onSelectCategory }: Categor
                   Browse studios by medium
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  {categories.map((cat, index) => (
+                  {GO_LIVE_CATEGORIES.map((cat, index) => (
                     <motion.button
                       key={cat.id}
                       onClick={() => handleCategoryClick(cat)}
