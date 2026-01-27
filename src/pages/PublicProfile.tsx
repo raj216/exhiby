@@ -518,12 +518,6 @@ export default function PublicProfile() {
               Edit Profile
             </Button>
           </motion.div>
-        ) : !user ? (
-          <motion.div className="mt-6 flex gap-3" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
-            <Button onClick={() => navigate("/auth")} variant="default" className="flex-1 gap-2">
-              Sign in to Follow
-            </Button>
-          </motion.div>
         ) : showTipMe ? (
           /* Creator profile with Message + Tip buttons */
           <ProfileActionBar

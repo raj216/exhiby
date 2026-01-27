@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { NightAdmission } from "@/components/auth";
 import { ResetPassword } from "@/components/auth/ResetPassword";
+import { getAndClearReturnUrl } from "@/components/auth/RequireAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+
+const RETURN_URL_KEY = "exhiby_return_url";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -51,21 +54,40 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [searchParams]);
 
-  // Get redirect path from query params
-  const redirectPath = searchParams.get("redirect");
+  // Get redirect path from query params OR localStorage
+  const getReturnDestination = (): string => {
+    // Priority 1: localStorage (set by RequireAuth)
+    const storedUrl = getAndClearReturnUrl();
+    if (storedUrl) {
+      console.log("[Auth] Found return URL in localStorage:", storedUrl);
+      return storedUrl;
+    }
+
+    // Priority 2: Query param (fallback)
+    const redirectParam = searchParams.get("redirect");
+    if (redirectParam) {
+      console.log("[Auth] Found redirect in query param:", redirectParam);
+      // Also clear from localStorage in case it was set
+      localStorage.removeItem(RETURN_URL_KEY);
+      return redirectParam;
+    }
+
+    // Default: home
+    return "/";
+  };
 
   useEffect(() => {
     // Only redirect if not in password reset mode and user is logged in
     if (!isLoading && user && !isPasswordReset && !checkingReset) {
-      // Use redirect param if available, otherwise go home
-      const destination = redirectPath || "/";
+      const destination = getReturnDestination();
+      console.log("[Auth] User logged in - redirecting to:", destination);
       navigate(destination, { replace: true });
     }
-  }, [user, isLoading, navigate, isPasswordReset, checkingReset, redirectPath]);
+  }, [user, isLoading, navigate, isPasswordReset, checkingReset, searchParams]);
 
   const handleComplete = () => {
-    // Use redirect param if available, otherwise go home
-    const destination = redirectPath || "/";
+    const destination = getReturnDestination();
+    console.log("[Auth] Login complete - navigating to:", destination);
     navigate(destination, { replace: true });
   };
 
