@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, MessageCircle, Heart } from "lucide-react";
+import { MessageCircle, Heart, UserPlus, Check } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,13 +15,10 @@ interface ProfileActionBarProps {
 
 function ProfileActionBarSkeleton() {
   return (
-    <div className="flex gap-3 px-4 mt-6 animate-fade-in">
-      {/* Follow button skeleton */}
-      <Skeleton className="flex-1 h-12 rounded-2xl" />
-      {/* Message button skeleton */}
-      <Skeleton className="flex-1 h-12 rounded-2xl" />
-      {/* Tip button skeleton */}
-      <Skeleton className="w-24 h-12 rounded-2xl" />
+    <div className="grid grid-cols-3 gap-3 px-4 mt-6 animate-fade-in">
+      <Skeleton className="h-11 rounded-2xl" />
+      <Skeleton className="h-11 rounded-2xl" />
+      <Skeleton className="h-11 rounded-2xl" />
     </div>
   );
 }
@@ -60,23 +57,24 @@ export function ProfileActionBar({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="flex gap-3 px-4 mt-6"
+      className="grid grid-cols-3 gap-3 px-4 mt-6"
     >
-      {/* Follow Button - Electric Clay when not following */}
+      {/* Follow Button */}
       <LoadingButton
         loading={isFollowLoading}
-        loadingText={isFollowing ? "Unfollowing..." : "Following..."}
+        loadingText={isFollowing ? "..." : "..."}
         onClick={handleFollow}
-        className={`flex-1 py-3 rounded-2xl font-semibold transition-all ${
+        className={`h-11 rounded-2xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
           isFollowing
-            ? "bg-obsidian border border-border text-foreground hover:bg-muted"
-            : "text-white shadow-electric hover:opacity-90"
+            ? "bg-white/10 text-white hover:bg-white/15"
+            : "bg-white text-carbon hover:bg-white/90"
         }`}
-        style={!isFollowing ? {
-          background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))"
-        } : undefined}
       >
-        <Bell className={`w-5 h-5 ${isFollowing ? "fill-electric text-electric" : ""}`} />
+        {isFollowing ? (
+          <Check className="w-4 h-4" />
+        ) : (
+          <UserPlus className="w-4 h-4" />
+        )}
         <span>{isFollowing ? "Following" : "Follow"}</span>
       </LoadingButton>
 
@@ -84,9 +82,9 @@ export function ProfileActionBar({
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={handleMessage}
-        className="flex-1 py-3 rounded-2xl bg-obsidian border border-border font-semibold flex items-center justify-center gap-2 text-foreground hover:bg-muted transition-colors"
+        className="h-11 rounded-2xl bg-white/10 text-sm font-medium flex items-center justify-center gap-2 text-white hover:bg-white/15 transition-colors"
       >
-        <MessageCircle className="w-5 h-5" />
+        <MessageCircle className="w-4 h-4" />
         <span>Message</span>
       </motion.button>
 
@@ -94,12 +92,9 @@ export function ProfileActionBar({
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={handleSupport}
-        className="py-3 px-5 rounded-2xl font-semibold flex items-center justify-center gap-2 text-carbon shadow-gold"
-        style={{
-          background: "linear-gradient(135deg, hsl(43 72% 52%), hsl(38 80% 45%))"
-        }}
+        className="h-11 rounded-2xl bg-yellow-500 text-sm font-medium flex items-center justify-center gap-2 text-carbon hover:bg-yellow-400 transition-colors"
       >
-        <Heart className="w-5 h-5" />
+        <Heart className="w-4 h-4" />
         <span>Tip</span>
       </motion.button>
     </motion.div>
