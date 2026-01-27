@@ -319,13 +319,15 @@ export default function Browse() {
                 ) : (
                   // Schedule Grid
                   hasUpcomingContent ? (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-stretch gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4">
                       {filteredUpcomingSessions.map((session, index) => (
                         <motion.div
                           key={session.id}
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: index * 0.03 }}
+                          className="snap-start flex-shrink-0"
+                          style={{ width: 'min(65vw, 280px)' }}
                         >
                           <UpcomingEventCard
                             id={session.id}
@@ -341,7 +343,7 @@ export default function Browse() {
                             artistAvatar={session.creator?.avatar_url || undefined}
                             artistIsVerified={session.creator?.is_verified}
                             onClick={() => handleUpcomingCardTap(session.id)}
-                            variant="compact"
+                            variant="default"
                           />
                         </motion.div>
                       ))}
