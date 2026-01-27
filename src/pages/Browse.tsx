@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Clock, Calendar } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { LiveMarqueeCard } from "@/components/LiveMarqueeCard";
 import { UpcomingEventCard } from "@/components/UpcomingEventCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +34,8 @@ export default function Browse() {
     }
   }, [categorySlug]);
 
+  const queryClient = useQueryClient();
+
   // Fetch live events
   const { liveEvents, loading: loadingLive } = useLiveEvents();
 
@@ -43,6 +46,32 @@ export default function Browse() {
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });
+
+  // Realtime subscription for events table changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("browse_events_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
+        (payload) => {
+          if (process.env.NODE_ENV === "development") {
+            console.log("[Browse] Realtime event:", payload.eventType, payload);
+          }
+          // Invalidate upcoming sessions query to refetch
+          queryClient.invalidateQueries({ queryKey: ["browse-upcoming-sessions"] });
+        }
+      )
+      .subscribe((status) => {
+        if (process.env.NODE_ENV === "development") {
+          console.log("[Browse] Realtime subscription status:", status);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Convert live events to display format
   const liveStreams = useMemo(() => {
