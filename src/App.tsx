@@ -20,6 +20,7 @@ import Settings from "./pages/Settings";
 import Schedule from "./pages/Schedule";
 import Browse from "./pages/Browse";
 import NotFound from "./pages/NotFound";
+import ProfileResolver from "./pages/ProfileResolver";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
@@ -38,6 +39,7 @@ const App = () => {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/s/:sessionId" element={<SessionResolver />} />
                 <Route path="/profile/:userId" element={<PublicProfile />} />
+                <Route path="/user/:identifier" element={<ProfileResolver />} />
                 <Route path="/live/:eventId" element={<LiveRoom />} />
                 <Route path="/explore" element={<ExploreStudios />} />
                 <Route path="/admin/feedback" element={<AdminFeedback />} />

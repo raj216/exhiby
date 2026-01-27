@@ -20,13 +20,16 @@ export function ShareProfileModal({ isOpen, onClose, handle, userId }: ShareProf
   useScrollLock(isOpen);
 
   // Generate profile URL - use handle if available, otherwise fallback to userId
+  // Canonical route: /user/:identifier (handles both handles and userIds)
   const getProfileUrl = () => {
     const baseUrl = window.location.origin;
-    if (handle) {
-      return `${baseUrl}/user/${handle}`;
-    }
-    if (userId) {
-      return `${baseUrl}/user/id/${userId}`;
+    const identifier = handle || userId;
+    if (identifier) {
+      const url = `${baseUrl}/user/${identifier}`;
+      if (import.meta.env.DEV) {
+        console.log("[ShareProfileModal] Generated share URL:", url);
+      }
+      return url;
     }
     return baseUrl;
   };
