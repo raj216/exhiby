@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Heart } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -81,12 +82,13 @@ export function ProfileActionBar({
         Message
       </motion.button>
 
-      {/* Tip Button - Text only, Gold accent */}
+      {/* Tip Button - With icon, Gold accent */}
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={handleSupport}
-        className="h-11 rounded-2xl bg-yellow-500 text-sm font-medium flex items-center justify-center text-carbon hover:bg-yellow-400 transition-colors"
+        className="h-11 rounded-2xl bg-yellow-500 text-sm font-medium flex items-center justify-center gap-2 text-carbon hover:bg-yellow-400 transition-colors"
       >
+        <Heart className="w-4 h-4" />
         Tip
       </motion.button>
     </motion.div>
