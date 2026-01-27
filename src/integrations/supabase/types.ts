@@ -683,6 +683,13 @@ export type Database = {
           total_ratings: number
         }[]
       }
+      get_creator_session_stats: {
+        Args: { target_creator_id: string }
+        Returns: {
+          sessions_hosted: number
+          unique_guests: number
+        }[]
+      }
       get_event_room_url: { Args: { event_id: string }; Returns: string }
       get_event_viewers: {
         Args: { p_event_id: string }
