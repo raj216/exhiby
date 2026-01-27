@@ -17,6 +17,7 @@ import EarningsHistory from "./pages/EarningsHistory";
 import TicketsHistory from "./pages/TicketsHistory";
 import SessionResolver from "./pages/SessionResolver";
 import Settings from "./pages/Settings";
+import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -42,6 +43,7 @@ const App = () => {
                 <Route path="/earnings-history" element={<EarningsHistory />} />
                 <Route path="/tickets-history" element={<TicketsHistory />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/schedule" element={<Schedule />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

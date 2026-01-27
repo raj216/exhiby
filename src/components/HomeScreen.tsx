@@ -128,6 +128,24 @@ export function HomeScreen({
     return liveStreams.filter(stream => stream.category === categoryId || stream.category === selectedCategory);
   }, [liveStreams, selectedCategory]);
 
+  // Filter upcoming events by selected category (same logic as Live Now)
+  const filteredUpcomingEvents = useMemo(() => {
+    if (selectedCategory === "All") {
+      if (process.env.NODE_ENV === "development") {
+        console.log("[HomeScreen][StudioSchedule] Filter:", { selectedCategory, scheduledResultsCount: upcomingEvents.length });
+      }
+      return upcomingEvents;
+    }
+    const categoryId = getCategoryId(selectedCategory);
+    const filtered = upcomingEvents.filter(event => 
+      event.category === categoryId || event.category === selectedCategory
+    );
+    if (process.env.NODE_ENV === "development") {
+      console.log("[HomeScreen][StudioSchedule] Filter:", { selectedCategory, categoryId, scheduledResultsCount: filtered.length });
+    }
+    return filtered;
+  }, [upcomingEvents, selectedCategory]);
+
   // Fetch upcoming events from database with creator info
   useEffect(() => {
     const fetchUpcomingEvents = async () => {
@@ -173,7 +191,8 @@ export function HomeScreen({
   const liveNowStreams = filteredLiveStreams;
   const hasLiveContent = liveNowStreams.length > 0;
   const hasAnyLiveContent = liveStreams.length > 0; // For showing empty state vs nothing
-  const hasUpcomingEvents = upcomingEvents.length > 0;
+  const hasUpcomingEvents = filteredUpcomingEvents.length > 0;
+  const hasAnyUpcomingEvents = upcomingEvents.length > 0; // For showing empty state vs nothing
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     window.scrollTo({
@@ -389,7 +408,10 @@ export function HomeScreen({
                           <h2 className="font-display text-xl lg:text-2xl text-foreground">Studio Schedule</h2>
                           <p className="text-sm text-muted-foreground">Upcoming sessions</p>
                         </div>
-                        <button className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors">
+                        <button 
+                          onClick={() => navigate(`/schedule?category=${getCategoryId(selectedCategory)}`)}
+                          className="hidden lg:flex items-center gap-1 text-sm text-muted-foreground hover:text-electric transition-colors"
+                        >
                           See all <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -397,7 +419,7 @@ export function HomeScreen({
                       {/* Mobile & Tablet: Horizontal scroll carousel */}
                       <div className="px-4 lg:hidden">
                         <div className="flex items-stretch gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide min-h-[300px]">
-                          {upcomingEvents.map((event, index) => <motion.div key={event.id} initial={{
+                          {filteredUpcomingEvents.map((event, index) => <motion.div key={event.id} initial={{
                         opacity: 0,
                         scale: 0.9
                       }} animate={{
@@ -416,7 +438,7 @@ export function HomeScreen({
                       {/* Desktop: 5-column grid matching Live Now */}
                       <div className="hidden lg:block px-6">
                         <div className="grid grid-cols-5 gap-4">
-                          {upcomingEvents.map((event, index) => <motion.div key={event.id} initial={{
+                          {filteredUpcomingEvents.map((event, index) => <motion.div key={event.id} initial={{
                         opacity: 0,
                         scale: 0.9
                       }} animate={{
@@ -432,7 +454,23 @@ export function HomeScreen({
                     </section>}
 
                   {/* Empty Studio Schedule State */}
-                  {!hasUpcomingEvents && !loadingEvents && <section className="py-6 px-4 lg:px-6">
+                  {!hasUpcomingEvents && hasAnyUpcomingEvents && !loadingEvents && <section className="py-6 px-4 lg:px-6">
+                      <div className="mb-4">
+                        <h2 className="font-display text-xl lg:text-2xl text-foreground">Studio Schedule</h2>
+                        <p className="text-sm text-muted-foreground">Upcoming sessions</p>
+                      </div>
+                      <div className="relative text-center py-10 px-6 rounded-2xl bg-gradient-to-br from-obsidian/50 to-carbon/30 border border-border/20 overflow-hidden">
+                        {/* Subtle ambient glow */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--muted)/0.1)_0%,transparent_70%)]" />
+                        <Calendar className="relative w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                        <p className="relative text-sm text-muted-foreground/80">
+                          {selectedCategory === "All" ? "The studio is quiet." : `No ${selectedCategory} sessions scheduled`}
+                        </p>
+                      </div>
+                    </section>}
+                  
+                  {/* No upcoming events at all */}
+                  {!hasAnyUpcomingEvents && !loadingEvents && <section className="py-6 px-4 lg:px-6">
                       <div className="mb-4">
                         <h2 className="font-display text-xl lg:text-2xl text-foreground">Studio Schedule</h2>
                         <p className="text-sm text-muted-foreground">Upcoming sessions</p>
