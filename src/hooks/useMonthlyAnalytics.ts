@@ -87,10 +87,13 @@ export function useMonthlyAnalytics(userId: string | undefined) {
       // Tickets are only inserted for:
       //   - Free events: via direct client insert (RLS allows)
       //   - Paid events: via purchase-ticket edge function after successful payment
-      // So the presence of a ticket row for a paid event = successful purchase
+      // 
+      // CRITICAL: The edge function allows creators to bypass payment for their OWN events
+      // (for testing). These self-tickets are NOT sales and must be excluded.
+      // A real "sale" = ticket where user_id != event.creator_id
       const { data: tickets, error: ticketsError } = await supabase
         .from("tickets")
-        .select("id, event_id, purchased_at")
+        .select("id, event_id, purchased_at, user_id")
         .in("event_id", eventIds)
         .gte("purchased_at", monthStart)
         .lte("purchased_at", monthEnd);
@@ -102,11 +105,13 @@ export function useMonthlyAnalytics(userId: string | undefined) {
       }
 
       if (DEBUG_TICKETS) {
-        console.log("[MonthlyAnalytics] Tickets found for paid events this month:", tickets?.length || 0);
+        console.log("[MonthlyAnalytics] Raw tickets found for paid events this month:", tickets?.length || 0);
       }
 
       // Calculate per-session breakdown (only for paid sessions)
+      // CRITICAL: Exclude self-tickets (creator buying their own event = not a real sale)
       const breakdownMap = new Map<string, SessionBreakdown>();
+      let skippedSelfTickets = 0;
 
       if (tickets) {
         for (const ticket of tickets) {
@@ -118,6 +123,17 @@ export function useMonthlyAnalytics(userId: string | undefined) {
           if (event.is_free || price <= 0) {
             if (DEBUG_TICKETS) {
               console.log("[MonthlyAnalytics] Skipping ticket for free/zero-price event:", ticket.event_id);
+            }
+            continue;
+          }
+
+          // CRITICAL: Skip self-tickets - creator purchasing their own event is NOT a sale
+          // The edge function allows creators to bypass payment for testing, but these
+          // should never count as "Tickets Sold"
+          if (ticket.user_id === userId) {
+            skippedSelfTickets++;
+            if (DEBUG_TICKETS) {
+              console.log("[MonthlyAnalytics] Skipping self-ticket (creator=buyer):", ticket.id);
             }
             continue;
           }
@@ -136,6 +152,10 @@ export function useMonthlyAnalytics(userId: string | undefined) {
             });
           }
         }
+      }
+
+      if (DEBUG_TICKETS) {
+        console.log("[MonthlyAnalytics] Self-tickets skipped (not counted as sales):", skippedSelfTickets);
       }
 
       const sessionBreakdowns = Array.from(breakdownMap.values()).sort(
