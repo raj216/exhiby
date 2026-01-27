@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Radio, Calendar, Palette } from "lucide-react";
@@ -13,6 +13,8 @@ import { CATEGORIES, getCategoryId, getCategoryName } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
 
 type ViewMode = "live" | "schedule";
 
@@ -45,14 +47,38 @@ export default function Browse() {
   const queryClient = useQueryClient();
 
   // Fetch live events
-  const { liveEvents, loading: loadingLive } = useLiveEvents();
+  const { liveEvents, loading: loadingLive, refetch: refetchLive } = useLiveEvents();
 
   // Fetch upcoming sessions
-  const { data: upcomingSessions = [], isLoading: loadingUpcoming } = useQuery({
+  const { data: upcomingSessions = [], isLoading: loadingUpcoming, refetch: refetchUpcoming } = useQuery({
     queryKey: ["browse-upcoming-sessions"],
     queryFn: () => getUpcomingSessions({ limit: 50 }),
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
+  });
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Browse] Pull-to-refresh triggered");
+    }
+    
+    await Promise.all([
+      refetchLive(),
+      refetchUpcoming(),
+    ]);
+  }, [refetchLive, refetchUpcoming]);
+
+  // Pull-to-refresh hook (mobile only)
+  const {
+    pullDistance,
+    isRefreshing,
+    containerRef,
+    indicatorStyle,
+  } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    threshold: 80,
+    disabled: !isMobile,
   });
 
   // Realtime subscription for events table changes
@@ -230,9 +256,19 @@ export default function Browse() {
 
       {/* Scrollable Content */}
       <main 
-        className="flex-1 overflow-y-auto overscroll-contain"
+        ref={containerRef}
+        className="flex-1 overflow-y-auto overscroll-contain relative"
         style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom, 2rem))" }}
       >
+        {/* Pull-to-refresh indicator (mobile only) */}
+        {isMobile && (pullDistance > 0 || isRefreshing) && (
+          <PullToRefreshIndicator
+            pullDistance={pullDistance}
+            isRefreshing={isRefreshing}
+            threshold={80}
+            style={indicatorStyle}
+          />
+        )}
         {isLoading ? (
           <BrowseSkeleton />
         ) : (
