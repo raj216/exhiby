@@ -5,7 +5,7 @@ import { ArrowLeft, Image as ImageIcon, ShoppingBag, Ticket, ChevronRight, Penci
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import { FollowListModal } from "./FollowListModal";
-import { ShareProfileModal } from "./ShareProfileModal";
+import { ShareStudioModal } from "./ShareStudioModal";
 import { SessionEndedScreen } from "./SessionEndedScreen";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -596,7 +596,13 @@ export function AudienceProfile({
       {user && <FollowListModal isOpen={showFollowList !== null} onClose={() => setShowFollowList(null)} userId={user.id} type={showFollowList || "followers"} />}
 
       {/* Share Profile Modal */}
-      <ShareProfileModal isOpen={showShareProfile} onClose={() => setShowShareProfile(false)} handle={localProfile?.handle || null} userId={user?.id} />
+      <ShareStudioModal 
+        isOpen={showShareProfile} 
+        onClose={() => setShowShareProfile(false)} 
+        handle={localProfile?.handle || null} 
+        userId={user?.id}
+        creatorName={localProfile?.name}
+      />
 
       {/* Session Ended Screen */}
       <AnimatePresence>
