@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Pencil, Award, Zap, Calendar, Check, Clock, Share } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Pencil, Award, Zap, Calendar, Check, Clock, Share, Star } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import { UpcomingEventsList } from "./UpcomingEventsList";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { useFollowStats } from "@/hooks/useFollowStats";
+import { useCreatorRatings } from "@/hooks/useCreatorRatings";
 import featureFlags from "@/lib/featureFlags";
 import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface ScheduledEvent {
@@ -70,6 +71,9 @@ export function StudioDashboard({
   const {
     stats: followStats
   } = useFollowStats(user?.id);
+  const {
+    ratings
+  } = useCreatorRatings(user?.id);
   const [showEarnings, setShowEarnings] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
@@ -270,6 +274,20 @@ export function StudioDashboard({
             <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
           </button>
         </motion.div>
+
+        {/* Ratings Row - Only visible on creator's own profile */}
+        {ratings.totalRatings > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+            className="flex items-center gap-1.5 mt-2 text-sm"
+          >
+            <Star className="w-4 h-4 text-gold fill-gold" />
+            <span className="text-foreground font-medium">{ratings.averageRating.toFixed(1)}</span>
+            <span className="text-muted-foreground">({ratings.totalRatings} {ratings.totalRatings === 1 ? 'rating' : 'ratings'})</span>
+          </motion.div>
+        )}
 
         {/* Action Buttons (matches Audience) */}
         <motion.div initial={{
