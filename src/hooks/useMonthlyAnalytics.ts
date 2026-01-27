@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const DEBUG_TICKETS = import.meta.env.DEV && localStorage.getItem("debug_tickets") === "1";
+
 export interface SessionBreakdown {
   eventId: string;
   title: string;
@@ -42,11 +44,12 @@ export function useMonthlyAnalytics(userId: string | undefined) {
 
     setLoading(true);
     try {
-      // First, get all events created by this user
+      // First, get all PAID events created by this user (is_free = false AND price > 0)
       const { data: events, error: eventsError } = await supabase
         .from("events")
         .select("id, title, price, scheduled_at, is_free")
-        .eq("creator_id", userId);
+        .eq("creator_id", userId)
+        .eq("is_free", false);
 
       if (eventsError) {
         console.error("Error fetching events:", eventsError);
@@ -54,7 +57,19 @@ export function useMonthlyAnalytics(userId: string | undefined) {
         return;
       }
 
-      if (!events || events.length === 0) {
+      // Filter to only include events with price > 0
+      const paidEvents = (events || []).filter(e => Number(e.price) > 0);
+
+      if (DEBUG_TICKETS) {
+        console.log("[MonthlyAnalytics] creatorId:", userId);
+        console.log("[MonthlyAnalytics] Total events (is_free=false):", events?.length || 0);
+        console.log("[MonthlyAnalytics] Paid events (price > 0):", paidEvents.length);
+      }
+
+      if (paidEvents.length === 0) {
+        if (DEBUG_TICKETS) {
+          console.log("[MonthlyAnalytics] No paid events found, returning 0 tickets");
+        }
         setAnalytics({
           totalEarnings: 0,
           totalTickets: 0,
@@ -64,10 +79,15 @@ export function useMonthlyAnalytics(userId: string | undefined) {
         return;
       }
 
-      const eventIds = events.map((e) => e.id);
-      const eventMap = new Map(events.map((e) => [e.id, e]));
+      const eventIds = paidEvents.map((e) => e.id);
+      const eventMap = new Map(paidEvents.map((e) => [e.id, e]));
 
-      // Get all tickets for these events purchased this month
+      // Get all tickets for PAID events purchased this month
+      // Note: Currently the tickets table doesn't have a payment_status field.
+      // Tickets are only inserted for:
+      //   - Free events: via direct client insert (RLS allows)
+      //   - Paid events: via purchase-ticket edge function after successful payment
+      // So the presence of a ticket row for a paid event = successful purchase
       const { data: tickets, error: ticketsError } = await supabase
         .from("tickets")
         .select("id, event_id, purchased_at")
@@ -81,7 +101,11 @@ export function useMonthlyAnalytics(userId: string | undefined) {
         return;
       }
 
-      // Calculate per-session breakdown
+      if (DEBUG_TICKETS) {
+        console.log("[MonthlyAnalytics] Tickets found for paid events this month:", tickets?.length || 0);
+      }
+
+      // Calculate per-session breakdown (only for paid sessions)
       const breakdownMap = new Map<string, SessionBreakdown>();
 
       if (tickets) {
@@ -89,7 +113,14 @@ export function useMonthlyAnalytics(userId: string | undefined) {
           const event = eventMap.get(ticket.event_id);
           if (!event) continue;
 
-          const price = event.is_free ? 0 : Number(event.price) || 0;
+          // Double-check: only count if event is paid (is_free=false AND price > 0)
+          const price = Number(event.price) || 0;
+          if (event.is_free || price <= 0) {
+            if (DEBUG_TICKETS) {
+              console.log("[MonthlyAnalytics] Skipping ticket for free/zero-price event:", ticket.event_id);
+            }
+            continue;
+          }
 
           if (breakdownMap.has(ticket.event_id)) {
             const existing = breakdownMap.get(ticket.event_id)!;
@@ -113,6 +144,12 @@ export function useMonthlyAnalytics(userId: string | undefined) {
 
       const totalEarnings = sessionBreakdowns.reduce((sum, s) => sum + s.earnings, 0);
       const totalTickets = sessionBreakdowns.reduce((sum, s) => sum + s.ticketCount, 0);
+
+      if (DEBUG_TICKETS) {
+        console.log("[MonthlyAnalytics] Final ticketsCount:", totalTickets);
+        console.log("[MonthlyAnalytics] Qualifying paid ticket purchases:", totalTickets);
+        console.log("[MonthlyAnalytics] Session breakdowns:", sessionBreakdowns);
+      }
 
       setAnalytics({
         totalEarnings,
@@ -139,12 +176,12 @@ export function useMonthlyAnalytics(userId: string | undefined) {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*", // Listen to INSERT, UPDATE, DELETE
           schema: "public",
           table: "tickets",
         },
         () => {
-          // Refetch analytics when a new ticket is inserted
+          // Refetch analytics when tickets change
           fetchAnalytics();
         }
       )
