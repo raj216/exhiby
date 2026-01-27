@@ -27,7 +27,7 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
   const shareTitle = `Exhiby Studio — ${creatorName || handle || "Artist"}`;
   const shareText = "Step into my studio on Exhiby. Live sessions + scheduled drops.";
 
-  // Generate studio URL
+  // Generate studio URL using canonical /user/:identifier route
   useEffect(() => {
     if (!isOpen) {
       setCopied(false);
@@ -36,18 +36,37 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
       return;
     }
 
-    // Generate the URL based on handle or userId
-    const baseUrl = "https://joinexhiby.com";
+    // Use window.location.origin for correct domain (works in preview + production)
+    const baseUrl = window.location.origin;
     
-    if (handle) {
-      setStudioUrl(`${baseUrl}/studio/${handle}`);
+    // Canonical route: /user/:identifier (handles both handles and userIds)
+    // Prefer handle if available, fallback to userId
+    const identifier = handle || userId;
+    
+    if (identifier) {
+      const url = `${baseUrl}/user/${identifier}`;
+      setStudioUrl(url);
       setUrlError(false);
-    } else if (userId) {
-      setStudioUrl(`${baseUrl}/studio/id/${userId}`);
-      setUrlError(false);
+      
+      // Dev logging for debugging
+      if (import.meta.env.DEV) {
+        console.log("[ShareStudioModal] Generated share URL:", {
+          handle,
+          userId,
+          identifier,
+          finalUrl: url
+        });
+      }
     } else {
       setStudioUrl(null);
       setUrlError(true);
+      
+      if (import.meta.env.DEV) {
+        console.warn("[ShareStudioModal] No identifier available for share URL", {
+          handle,
+          userId
+        });
+      }
     }
   }, [isOpen, handle, userId]);
 
