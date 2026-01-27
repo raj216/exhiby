@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { MessageCircle, Heart, UserPlus, Check } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,43 +58,36 @@ export function ProfileActionBar({
       transition={{ delay: 0.3 }}
       className="grid grid-cols-3 gap-3 px-4 mt-6"
     >
-      {/* Follow Button */}
+      {/* Follow Button - Text only */}
       <LoadingButton
         loading={isFollowLoading}
-        loadingText={isFollowing ? "..." : "..."}
+        loadingText="..."
         onClick={handleFollow}
-        className={`h-11 rounded-2xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+        className={`h-11 rounded-2xl text-sm font-medium transition-all flex items-center justify-center ${
           isFollowing
             ? "bg-white/10 text-white hover:bg-white/15"
             : "bg-white text-carbon hover:bg-white/90"
         }`}
       >
-        {isFollowing ? (
-          <Check className="w-4 h-4" />
-        ) : (
-          <UserPlus className="w-4 h-4" />
-        )}
-        <span>{isFollowing ? "Following" : "Follow"}</span>
+        {isFollowing ? "Following" : "Follow"}
       </LoadingButton>
 
-      {/* Message Button */}
+      {/* Message Button - Text only */}
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={handleMessage}
-        className="h-11 rounded-2xl bg-white/10 text-sm font-medium flex items-center justify-center gap-2 text-white hover:bg-white/15 transition-colors"
+        className="h-11 rounded-2xl bg-white/10 text-sm font-medium flex items-center justify-center text-white hover:bg-white/15 transition-colors"
       >
-        <MessageCircle className="w-4 h-4" />
-        <span>Message</span>
+        Message
       </motion.button>
 
-      {/* Tip Button - Gold accent */}
+      {/* Tip Button - Text only, Gold accent */}
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={handleSupport}
-        className="h-11 rounded-2xl bg-yellow-500 text-sm font-medium flex items-center justify-center gap-2 text-carbon hover:bg-yellow-400 transition-colors"
+        className="h-11 rounded-2xl bg-yellow-500 text-sm font-medium flex items-center justify-center text-carbon hover:bg-yellow-400 transition-colors"
       >
-        <Heart className="w-4 h-4" />
-        <span>Tip</span>
+        Tip
       </motion.button>
     </motion.div>
   );
