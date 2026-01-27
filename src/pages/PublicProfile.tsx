@@ -18,6 +18,7 @@ import { usePublicCreatorStats } from "@/hooks/usePublicCreatorStats";
 import { CreatorReputationStats } from "@/components/CreatorReputationStats";
 import { UpcomingSessionsPreview } from "@/components/UpcomingSessionsPreview";
 import { TipCreatorModal } from "@/components/TipCreatorModal";
+import { ShareProfileModal } from "@/components/ShareProfileModal";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 interface LiveEventData {
   id: string;
@@ -63,6 +64,7 @@ export default function PublicProfile() {
   const [liveEvent, setLiveEvent] = useState<LiveEventData | null>(null);
   const [isTipOpen, setIsTipOpen] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const isOwnProfile = user?.id === profile?.user_id;
 
   // Real-time viewer count for the live event
@@ -321,18 +323,9 @@ export default function PublicProfile() {
       }
     });
   };
-  const handleShare = async () => {
+  const handleShare = () => {
     triggerHaptic("light");
-    const url = window.location.href;
-    if (navigator.share) {
-      await navigator.share({
-        title: profile?.name || "Profile",
-        url
-      });
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard");
-    }
+    setIsShareOpen(true);
   };
 
   // Format member since date
@@ -604,5 +597,13 @@ export default function PublicProfile() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Share Profile Modal */}
+      <ShareProfileModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        handle={profile?.handle ?? null}
+        userId={profile?.user_id}
+      />
     </div>;
 }
