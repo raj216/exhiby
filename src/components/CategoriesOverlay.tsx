@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { triggerHaptic } from "@/lib/haptics";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { GO_LIVE_CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, Category } from "@/lib/categories";
 
 interface CategoriesOverlayProps {
   isOpen: boolean;
@@ -17,12 +17,16 @@ export function CategoriesOverlay({ isOpen, onClose, onSelectCategory }: Categor
   // Lock body scroll when overlay is open
   useScrollLock(isOpen);
 
-  const handleCategoryClick = (category: typeof GO_LIVE_CATEGORIES[number]) => {
+  const handleCategoryClick = (category: Category) => {
     triggerHaptic("light");
     // Close the modal first
     onClose();
-    // Navigate to Browse page with category pre-selected
-    navigate(`/browse?category=${category.id}`);
+    // Navigate to Browse page - "all" means no filter, others get category param
+    if (category.id === "all") {
+      navigate("/browse");
+    } else {
+      navigate(`/browse?category=${category.id}`);
+    }
   };
 
   return (
@@ -80,11 +84,15 @@ export function CategoriesOverlay({ isOpen, onClose, onSelectCategory }: Categor
                   Browse studios by medium
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  {GO_LIVE_CATEGORIES.map((cat, index) => (
+                  {CATEGORIES.map((cat, index) => (
                     <motion.button
                       key={cat.id}
                       onClick={() => handleCategoryClick(cat)}
-                      className="p-4 rounded-xl bg-obsidian border border-border/30 text-left hover:border-gold/50 hover:bg-obsidian/80 transition-all"
+                      className={`p-4 rounded-xl border text-left transition-all ${
+                        cat.id === "all"
+                          ? "bg-primary/10 border-primary/40 hover:bg-primary/20"
+                          : "bg-obsidian border-border/30 hover:border-gold/50 hover:bg-obsidian/80"
+                      }`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
