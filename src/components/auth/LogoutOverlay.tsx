@@ -36,7 +36,8 @@ export function LogoutOverlay({ isActive, onComplete }: LogoutOverlayProps) {
     // Phase 3: Reveal logo and navigate (after 300ms more)
     const revealTimer = setTimeout(() => {
       setPhase("done");
-      navigate("/auth", { replace: true });
+      // Navigate to auth with logged_out=1 to prevent auto-redirect back
+      navigate("/auth?logged_out=1", { replace: true });
       onComplete();
     }, 1200);
 
