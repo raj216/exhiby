@@ -87,11 +87,22 @@
     display: none;
   }
 
+  html,
   body {
     min-height: 100dvh;
     position: relative;
     @apply bg-background text-foreground antialiased font-sans;
     overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  /* Utility class for hiding scrollbar */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 
   /* Headings use Clash Display with premium tracking */
