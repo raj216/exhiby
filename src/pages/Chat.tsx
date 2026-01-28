@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck, Plus } from "lucide-react";
+import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useConversations } from "@/hooks/useConversations";
@@ -11,6 +11,8 @@ import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { triggerHaptic } from "@/lib/haptics";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteConversationModal } from "@/components/DeleteConversationModal";
+import { toast } from "sonner";
 
 interface OtherUser {
   user_id: string;
@@ -244,6 +246,8 @@ export default function Chat() {
   // For new chats, we need to track if we've found an existing conversation
   const [activeConversationId, setActiveConversationId] = useState<string | null>(paramConversationId || null);
   const [isNewChat, setIsNewChat] = useState(Boolean(targetUserId && !paramConversationId));
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -431,6 +435,39 @@ export default function Chat() {
     }
   };
 
+  const handleDeleteClick = () => {
+    triggerHaptic("light");
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!activeConversationId || !user) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error: updateError } = await supabase
+        .from("conversation_participants")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("conversation_id", activeConversationId)
+        .eq("user_id", user.id);
+
+      if (updateError) {
+        console.error("[Chat] Delete error:", updateError);
+        toast.error("Failed to delete conversation");
+        return;
+      }
+
+      toast.success("Conversation deleted");
+      setDeleteModalOpen(false);
+      navigate("/messages", { replace: true });
+    } catch (err) {
+      console.error("[Chat] Unexpected delete error:", err);
+      toast.error("Failed to delete conversation");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!inputValue.trim() || isSending || isCreatingConversation) return;
     if (!user) return;
@@ -538,60 +575,74 @@ export default function Chat() {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/30">
         <div
-          className="flex items-center gap-3 px-4 py-3"
+          className="flex items-center justify-between gap-3 px-4 py-3"
           style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
         >
-          <motion.button
-            onClick={handleBack}
-            className="p-2 -ml-2 rounded-full hover:bg-white/5"
-            whileTap={{ scale: 0.95 }}
-          >
-            <ArrowLeft className="w-5 h-5 text-foreground" />
-          </motion.button>
-
-          {isLoadingUser ? (
-            <div className="flex items-center gap-2">
-              <Skeleton className="w-10 h-10 rounded-full" />
-              <div className="space-y-1">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-16" />
-              </div>
-            </div>
-          ) : otherUser ? (
-            <button
-              onClick={() => {
-                triggerHaptic("light");
-                navigate(`/profile/${otherUser.user_id}`);
-              }}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <motion.button
+              onClick={handleBack}
+              className="p-2 -ml-2 rounded-full hover:bg-white/5 flex-shrink-0"
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="w-10 h-10 rounded-full bg-obsidian overflow-hidden">
-                {otherUser.avatar_url ? (
-                  <img
-                    src={otherUser.avatar_url}
-                    alt={otherUser.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-lg font-display text-muted-foreground">
-                    {otherUser.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </motion.button>
+
+            {isLoadingUser ? (
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-10 h-10 rounded-full" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
               </div>
-              <div className="text-left">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium text-sm text-foreground">{otherUser.name}</span>
-                  {otherUser.is_verified && (
-                    <BadgeCheck className="w-4 h-4 text-gold fill-gold/20" />
+            ) : otherUser ? (
+              <button
+                onClick={() => {
+                  triggerHaptic("light");
+                  navigate(`/profile/${otherUser.user_id}`);
+                }}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0"
+              >
+                <div className="w-10 h-10 rounded-full bg-obsidian overflow-hidden flex-shrink-0">
+                  {otherUser.avatar_url ? (
+                    <img
+                      src={otherUser.avatar_url}
+                      alt={otherUser.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-lg font-display text-muted-foreground">
+                      {otherUser.name.charAt(0).toUpperCase()}
+                    </div>
                   )}
                 </div>
-                {otherUser.handle && (
-                  <p className="text-xs text-muted-foreground">@{otherUser.handle}</p>
-                )}
-              </div>
-            </button>
-          ) : (
-            <span className="text-foreground font-medium">Chat</span>
+                <div className="text-left min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-sm text-foreground truncate">{otherUser.name}</span>
+                    {otherUser.is_verified && (
+                      <BadgeCheck className="w-4 h-4 text-gold fill-gold/20 flex-shrink-0" />
+                    )}
+                  </div>
+                  {otherUser.handle && (
+                    <p className="text-xs text-muted-foreground truncate">@{otherUser.handle}</p>
+                  )}
+                </div>
+              </button>
+            ) : (
+              <span className="text-foreground font-medium">Chat</span>
+            )}
+          </div>
+
+          {/* Delete button - only show for existing conversations */}
+          {activeConversationId && !isNewChat && (
+            <motion.button
+              onClick={handleDeleteClick}
+              className="p-2 rounded-full hover:bg-white/10 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+              whileTap={{ scale: 0.95 }}
+              aria-label="Delete conversation"
+            >
+              <Trash2 className="w-5 h-5" />
+            </motion.button>
           )}
         </div>
       </div>
@@ -654,6 +705,14 @@ export default function Chat() {
           </motion.button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConversationModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
