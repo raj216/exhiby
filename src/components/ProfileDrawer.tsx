@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { X, User, LayoutDashboard, CreditCard, Settings, LogOut, Palette, Clock, MessageSquare } from "lucide-react";
+import { X, User, LayoutDashboard, CreditCard, Settings, LogOut, Palette } from "lucide-react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import featureFlags from "@/lib/featureFlags";
 
@@ -133,17 +133,6 @@ export function ProfileDrawer({
               >
                 <User className="w-5 h-5 text-muted-foreground" />
                 <span className="text-base font-medium">View Profile</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  navigate("/messages");
-                  setTimeout(() => onClose(), 50);
-                }}
-                className="w-full flex items-center gap-4 px-6 py-4 text-white hover:bg-muted/20 transition-colors"
-              >
-                <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                <span className="text-base font-medium">Messages</span>
               </button>
 
               {isVerifiedCreator ? (
