@@ -510,7 +510,7 @@ export default function PublicProfile() {
             </button>
           </motion.div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Show Follow + Message for ALL profiles (creators and audience) */}
           {isOwnProfile ? (
             <motion.div
               className="mt-6 flex gap-3"
@@ -523,7 +523,7 @@ export default function PublicProfile() {
                 Edit Profile
               </Button>
             </motion.div>
-          ) : showTipMe ? (
+          ) : (
             <ProfileActionBar
               isFollowing={isFollowing}
               isFollowLoading={isFollowLoading}
@@ -531,23 +531,8 @@ export default function PublicProfile() {
               onFollowClick={handleFollow}
               onMessageClick={handleMessage}
               onSupportClick={() => setIsTipOpen(true)}
+              showTipButton={showTipMe}
             />
-          ) : (
-            <motion.div
-              className="mt-6 flex gap-3"
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Button
-                onClick={handleFollow}
-                disabled={isFollowLoading}
-                variant={isFollowing ? "outline" : "default"}
-                className="flex-1 gap-2"
-              >
-                {isFollowing ? "Following" : "Follow"}
-              </Button>
-            </motion.div>
           )}
 
           {/* Live Access Card */}
