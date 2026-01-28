@@ -11,14 +11,16 @@ interface ProfileActionBarProps {
   onFollowClick: () => void;
   onMessageClick: () => void;
   onSupportClick: () => void;
+  /** Show the Tip button (only for creators). Defaults to true. */
+  showTipButton?: boolean;
 }
 
-function ProfileActionBarSkeleton() {
+function ProfileActionBarSkeleton({ showTipButton = true }: { showTipButton?: boolean }) {
   return (
-    <div className="grid grid-cols-3 gap-3 px-4 mt-6 animate-fade-in">
+    <div className={`grid gap-3 px-4 mt-6 animate-fade-in ${showTipButton ? "grid-cols-3" : "grid-cols-2"}`}>
       <Skeleton className="h-11 rounded-2xl" />
       <Skeleton className="h-11 rounded-2xl" />
-      <Skeleton className="h-11 rounded-2xl" />
+      {showTipButton && <Skeleton className="h-11 rounded-2xl" />}
     </div>
   );
 }
@@ -30,6 +32,7 @@ export function ProfileActionBar({
   onFollowClick,
   onMessageClick,
   onSupportClick,
+  showTipButton = true,
 }: ProfileActionBarProps) {
   const handleFollow = () => {
     if (isFollowLoading) return;
@@ -49,7 +52,7 @@ export function ProfileActionBar({
 
   // Show skeleton while loading
   if (isLoading) {
-    return <ProfileActionBarSkeleton />;
+    return <ProfileActionBarSkeleton showTipButton={showTipButton} />;
   }
 
   return (
@@ -57,7 +60,7 @@ export function ProfileActionBar({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="grid grid-cols-3 gap-3 px-4 mt-6"
+      className={`grid gap-3 px-4 mt-6 ${showTipButton ? "grid-cols-3" : "grid-cols-2"}`}
     >
       {/* Follow Button - Text only */}
       <LoadingButton
@@ -82,15 +85,17 @@ export function ProfileActionBar({
         Message
       </motion.button>
 
-      {/* Tip Button - With icon, Gold accent */}
-      <motion.button
-        whileTap={{ scale: 0.95 }}
-        onClick={handleSupport}
-        className="h-11 rounded-2xl bg-yellow-500 text-sm font-medium flex items-center justify-center gap-2 text-carbon hover:bg-yellow-400 transition-colors"
-      >
-        <Heart className="w-4 h-4" />
-        Tip
-      </motion.button>
+      {/* Tip Button - With icon, Gold accent (only for creators) */}
+      {showTipButton && (
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handleSupport}
+          className="h-11 rounded-2xl bg-gold text-sm font-medium flex items-center justify-center gap-2 text-carbon hover:bg-gold/90 transition-colors"
+        >
+          <Heart className="w-4 h-4" />
+          Tip
+        </motion.button>
+      )}
     </motion.div>
   );
 }
