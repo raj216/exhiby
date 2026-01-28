@@ -35,19 +35,18 @@ interface ReactionPickerPosition {
   left: number;
 }
 
-import React from "react";
+import React, { forwardRef } from "react";
 import { createPortal } from "react-dom";
 
 // Fixed-position reaction picker with calculated positioning
-function ReactionPickerPortal({
-  position,
-  onSelect,
-  onClose,
-}: {
-  position: ReactionPickerPosition;
-  onSelect: (emoji: string) => void;
-  onClose: () => void;
-}) {
+const ReactionPickerPortal = forwardRef<
+  HTMLDivElement,
+  {
+    position: ReactionPickerPosition;
+    onSelect: (emoji: string) => void;
+    onClose: () => void;
+  }
+>(({ position, onSelect, onClose }, _ref) => {
   const pickerRef = useRef<HTMLDivElement>(null);
   const [adjustedLeft, setAdjustedLeft] = useState(position.left);
 
@@ -99,7 +98,9 @@ function ReactionPickerPortal({
     </>,
     document.body
   );
-}
+});
+
+ReactionPickerPortal.displayName = "ReactionPickerPortal";
 
 function ReactionsDisplay({ 
   reactions, 
