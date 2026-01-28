@@ -330,7 +330,12 @@ export default function Chat() {
 
   const handleBack = () => {
     triggerHaptic("light");
-    navigate("/messages");
+    // Use history-based navigation, fallback to /messages if no history
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/messages");
+    }
   };
 
   const handleSend = async () => {
