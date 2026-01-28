@@ -27,9 +27,15 @@ interface MessageBubbleProps {
   onReact: (emoji: string) => void;
 }
 
-function ReactionPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void; onClose: () => void }) {
+import React from "react";
+
+const ReactionPicker = React.forwardRef<
+  HTMLDivElement,
+  { onSelect: (emoji: string) => void; onClose: () => void }
+>(({ onSelect, onClose }, ref) => {
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, scale: 0.8, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -49,7 +55,9 @@ function ReactionPicker({ onSelect, onClose }: { onSelect: (emoji: string) => vo
       ))}
     </motion.div>
   );
-}
+});
+
+ReactionPicker.displayName = "ReactionPicker";
 
 function ReactionsDisplay({ 
   reactions, 
