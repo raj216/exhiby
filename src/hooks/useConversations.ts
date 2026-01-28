@@ -54,7 +54,7 @@ export function useConversations() {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Real-time subscription for new messages
+  // Real-time subscription for message changes
   useEffect(() => {
     if (!user) return;
 
@@ -69,7 +69,23 @@ export function useConversations() {
         },
         () => {
           // Refetch conversations when new message arrives
+          console.log("[useConversations] New message - refetching");
           fetchConversations();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          // Refetch when messages are marked as read (read_at changes)
+          if (payload.new && (payload.new as { read_at: string | null }).read_at) {
+            console.log("[useConversations] Message marked read - refetching");
+            fetchConversations();
+          }
         }
       )
       .subscribe();

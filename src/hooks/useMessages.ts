@@ -16,13 +16,14 @@ export interface Message {
 
 interface UseMessagesOptions {
   conversationId: string | null;
+  onMessagesMarkedRead?: () => void;
 }
 
 function generateClientId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-export function useMessages({ conversationId }: UseMessagesOptions) {
+export function useMessages({ conversationId, onMessagesMarkedRead }: UseMessagesOptions) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,7 +101,7 @@ export function useMessages({ conversationId }: UseMessagesOptions) {
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        async (payload) => {
           const newMessage = payload.new as Message;
 
           // Skip if already processed
@@ -133,6 +134,29 @@ export function useMessages({ conversationId }: UseMessagesOptions) {
 
             return [...prev, { ...newMessage, _status: "sent" }];
           });
+
+          // Auto-mark incoming messages as read since user is viewing this conversation
+          // Only mark if it's from someone else (not our own message)
+          if (newMessage.sender_id !== user.id && !newMessage.read_at) {
+            console.log("[useMessages] Auto-marking new incoming message as read");
+            try {
+              await supabase
+                .from("messages")
+                .update({ read_at: new Date().toISOString() })
+                .eq("id", newMessage.id);
+              
+              // Update local state
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === newMessage.id
+                    ? { ...m, read_at: new Date().toISOString() }
+                    : m
+                )
+              );
+            } catch (err) {
+              console.error("[useMessages] Failed to auto-mark as read:", err);
+            }
+          }
         }
       )
       .on(
@@ -256,16 +280,39 @@ export function useMessages({ conversationId }: UseMessagesOptions) {
     if (!conversationId || !user) return;
 
     try {
-      await supabase
+      const { data, error } = await supabase
         .from("messages")
         .update({ read_at: new Date().toISOString() })
         .eq("conversation_id", conversationId)
         .neq("sender_id", user.id)
-        .is("read_at", null);
+        .is("read_at", null)
+        .select("id");
+
+      if (error) {
+        console.error("[useMessages] Mark as read error:", error);
+        return;
+      }
+
+      // If we marked any messages as read, notify parent to refresh unread counts
+      if (data && data.length > 0) {
+        console.log(`[useMessages] Marked ${data.length} messages as read`);
+        
+        // Update local state optimistically
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.sender_id !== user.id && !m.read_at
+              ? { ...m, read_at: new Date().toISOString() }
+              : m
+          )
+        );
+
+        // Notify parent hook to refresh conversation list unread counts
+        onMessagesMarkedRead?.();
+      }
     } catch (err) {
       console.error("[useMessages] Mark as read error:", err);
     }
-  }, [conversationId, user]);
+  }, [conversationId, user, onMessagesMarkedRead]);
 
   return {
     messages,
