@@ -135,6 +135,27 @@ export function useMessages({ conversationId }: UseMessagesOptions) {
           });
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const updatedMessage = payload.new as Message;
+
+          // Update the message in state (for read receipts)
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === updatedMessage.id
+                ? { ...m, read_at: updatedMessage.read_at }
+                : m
+            )
+          );
+        }
+      )
       .subscribe();
 
     channelRef.current = channel;

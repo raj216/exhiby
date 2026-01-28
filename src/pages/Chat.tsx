@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, BadgeCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessages, Message } from "@/hooks/useMessages";
@@ -17,13 +17,14 @@ interface OtherUser {
   is_verified: boolean;
 }
 
-function MessageBubble({ message, isOwn }: { message: Message; isOwn: boolean }) {
+function MessageBubble({ message, isOwn, isLastRead }: { message: Message; isOwn: boolean; isLastRead?: boolean }) {
   const timeStr = format(new Date(message.created_at), "h:mm a");
   const isFailed = message._status === "failed";
   const isSending = message._status === "sending";
+  const isRead = Boolean(message.read_at);
 
   return (
-    <div className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-2`}>
+    <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} mb-2`}>
       <div
         className={`max-w-[75%] px-4 py-2 rounded-2xl ${
           isOwn
@@ -32,12 +33,25 @@ function MessageBubble({ message, isOwn }: { message: Message; isOwn: boolean })
         } ${isFailed ? "opacity-60" : ""}`}
       >
         <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-        <div className={`flex items-center gap-1 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}>
+        <div className={`flex items-center gap-1.5 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}>
           <span className="text-[10px] opacity-60">{timeStr}</span>
+          {isOwn && !isFailed && !isSending && (
+            isRead ? (
+              <CheckCheck className="w-3.5 h-3.5 text-accent" />
+            ) : (
+              <Check className="w-3.5 h-3.5 opacity-60" />
+            )
+          )}
           {isSending && <Loader2 className="w-3 h-3 animate-spin opacity-60" />}
           {isFailed && <span className="text-[10px] text-destructive">Failed</span>}
         </div>
       </div>
+      {/* "Seen" label under the last read message */}
+      {isOwn && isLastRead && isRead && (
+        <span className="text-[10px] text-muted-foreground mt-1 mr-1">
+          Seen
+        </span>
+      )}
     </div>
   );
 }
@@ -196,10 +210,16 @@ export default function Chat() {
     }
   };
 
-  // Group messages by date
+  // Group messages by date and find last read message
   const renderMessages = () => {
     const elements: React.ReactNode[] = [];
     let lastDate: Date | null = null;
+
+    // Find the last read message sent by the current user
+    const ownMessages = messages.filter((m) => m.sender_id === user?.id);
+    const lastReadOwnMessage = [...ownMessages]
+      .reverse()
+      .find((m) => m.read_at !== null);
 
     messages.forEach((msg, index) => {
       const msgDate = new Date(msg.created_at);
@@ -209,11 +229,15 @@ export default function Chat() {
         lastDate = msgDate;
       }
 
+      const isOwn = msg.sender_id === user?.id;
+      const isLastRead = isOwn && lastReadOwnMessage?.id === msg.id;
+
       elements.push(
         <MessageBubble
           key={msg.id}
           message={msg}
-          isOwn={msg.sender_id === user?.id}
+          isOwn={isOwn}
+          isLastRead={isLastRead}
         />
       );
     });
