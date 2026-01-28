@@ -81,7 +81,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    console.log("[AuthContext] signOut called - session before:", { hasSession: !!session, userId: user?.id });
+    
+    try {
+      // Clear local state immediately to prevent UI flicker
+      setUser(null);
+      setSession(null);
+      
+      // Sign out from Supabase (local scope to avoid server-side issues)
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      
+      if (error) {
+        console.error("[AuthContext] signOut error:", error);
+      } else {
+        console.log("[AuthContext] signOut successful - session cleared");
+      }
+    } catch (err) {
+      console.error("[AuthContext] signOut exception:", err);
+    }
+    
+    // Double-check session is cleared
+    const { data } = await supabase.auth.getSession();
+    console.log("[AuthContext] signOut complete - session after:", { hasSession: !!data.session });
   };
 
   return (

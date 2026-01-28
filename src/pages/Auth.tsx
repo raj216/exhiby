@@ -10,10 +10,40 @@ const RETURN_URL_KEY = "exhiby_return_url";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { user, isLoading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, isLoading, signOut } = useAuth();
   const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [checkingReset, setCheckingReset] = useState(true);
+  const [forceLogoutInProgress, setForceLogoutInProgress] = useState(false);
+
+  // Check if user just logged out (logged_out=1 param)
+  const isLoggedOutMode = searchParams.get("logged_out") === "1";
+
+  // Handle force logout when arriving with logged_out=1 but session still exists
+  useEffect(() => {
+    const handleForceLogout = async () => {
+      if (isLoggedOutMode && user && !forceLogoutInProgress) {
+        console.log("[Auth] logged_out=1 detected but session exists - forcing local signOut");
+        setForceLogoutInProgress(true);
+        
+        try {
+          // Force clear the session
+          await supabase.auth.signOut({ scope: "local" });
+          console.log("[Auth] Force signOut complete");
+        } catch (err) {
+          console.error("[Auth] Force signOut error:", err);
+        }
+        
+        // Clear the logged_out param after forcing logout
+        setSearchParams({}, { replace: true });
+        setForceLogoutInProgress(false);
+      }
+    };
+
+    if (!isLoading) {
+      handleForceLogout();
+    }
+  }, [isLoggedOutMode, user, isLoading, forceLogoutInProgress, setSearchParams]);
 
   useEffect(() => {
     // Check for password recovery from URL hash or query params
@@ -77,21 +107,36 @@ export default function Auth() {
   };
 
   useEffect(() => {
-    // Only redirect if not in password reset mode and user is logged in
-    if (!isLoading && user && !isPasswordReset && !checkingReset) {
+    // DO NOT redirect if:
+    // - logged_out=1 is present (user just logged out)
+    // - in password reset mode
+    // - still checking reset state
+    // - force logout in progress
+    if (isLoggedOutMode || isPasswordReset || checkingReset || forceLogoutInProgress) {
+      console.log("[Auth] Skipping auto-redirect:", { isLoggedOutMode, isPasswordReset, checkingReset, forceLogoutInProgress });
+      return;
+    }
+
+    // Only redirect if user is logged in
+    if (!isLoading && user) {
       const destination = getReturnDestination();
       console.log("[Auth] User logged in - redirecting to:", destination);
       navigate(destination, { replace: true });
     }
-  }, [user, isLoading, navigate, isPasswordReset, checkingReset, searchParams]);
+  }, [user, isLoading, navigate, isPasswordReset, checkingReset, searchParams, isLoggedOutMode, forceLogoutInProgress]);
 
   const handleComplete = () => {
+    // Clear logged_out param if present
+    if (isLoggedOutMode) {
+      setSearchParams({}, { replace: true });
+    }
+    
     const destination = getReturnDestination();
     console.log("[Auth] Login complete - navigating to:", destination);
     navigate(destination, { replace: true });
   };
 
-  if (isLoading || checkingReset) {
+  if (isLoading || checkingReset || forceLogoutInProgress) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -104,7 +149,8 @@ export default function Auth() {
     return <ResetPassword />;
   }
 
-  if (user) {
+  // If user is logged in but NOT in logged_out mode, show nothing (will redirect)
+  if (user && !isLoggedOutMode) {
     return null;
   }
 
