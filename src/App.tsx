@@ -20,6 +20,8 @@ import SessionResolver from "./pages/SessionResolver";
 import Settings from "./pages/Settings";
 import Schedule from "./pages/Schedule";
 import Browse from "./pages/Browse";
+import Messages from "./pages/Messages";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import ProfileResolver from "./pages/ProfileResolver";
 
@@ -53,6 +55,17 @@ const App = () => {
                 <Route path="/live/:eventId" element={
                   <RequireAuth>
                     <LiveRoom />
+                  </RequireAuth>
+                } />
+                {/* Messages Routes - Protected */}
+                <Route path="/messages" element={
+                  <RequireAuth>
+                    <Messages />
+                  </RequireAuth>
+                } />
+                <Route path="/messages/:conversationId" element={
+                  <RequireAuth>
+                    <Chat />
                   </RequireAuth>
                 } />
                 <Route path="/explore" element={<ExploreStudios />} />
