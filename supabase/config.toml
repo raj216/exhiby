@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.notify-reschedule]
 verify_jwt = false
+
+[functions.get-vapid-key]
+verify_jwt = false
+
+[functions.send-dm-push]
+verify_jwt = false

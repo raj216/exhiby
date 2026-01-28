@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { navigateBack } from "@/lib/navigation";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -348,6 +349,15 @@ function NotificationsContent() {
     saving,
     updatePreferences
   } = useNotificationPreferences();
+  
+  const {
+    isSupported: pushSupported,
+    isSubscribed: pushSubscribed,
+    isLoading: pushLoading,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+  } = usePushNotifications();
+
   const handleToggle = async (key: keyof typeof preferences) => {
     triggerClickHaptic();
     try {
@@ -362,12 +372,56 @@ function NotificationsContent() {
       });
     }
   };
+
+  const handlePushToggle = async () => {
+    triggerClickHaptic();
+    try {
+      if (pushSubscribed) {
+        await unsubscribePush();
+        toast({ title: "Push notifications disabled" });
+      } else {
+        const success = await subscribePush();
+        if (success) {
+          toast({ title: "Push notifications enabled!" });
+        }
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update push notifications",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 animate-spin text-electric" />
       </div>;
   }
   return <div className="space-y-6">
+      {/* Push Notifications */}
+      {pushSupported && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <BellRing className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Push Notifications</span>
+          </div>
+          <div className="space-y-3">
+            <ToggleCard 
+              title="Enable Push Notifications" 
+              description="Get notified about new messages even when the app is closed" 
+              checked={pushSubscribed} 
+              onToggle={handlePushToggle} 
+              disabled={pushLoading} 
+            />
+            <p className="text-xs text-muted-foreground px-1">
+              On iPhone, notifications require installing Exhiby to Home Screen (PWA).
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Email Notifications */}
       <div>
         <div className="flex items-center gap-2 mb-3">
