@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck } from "lucide-react";
+import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessages, Message } from "@/hooks/useMessages";
+import { useMessageReactions, REACTION_EMOJIS, ReactionCount } from "@/hooks/useMessageReactions";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { triggerHaptic } from "@/lib/haptics";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+
 interface OtherUser {
   user_id: string;
   name: string;
@@ -17,37 +19,142 @@ interface OtherUser {
   is_verified: boolean;
 }
 
-function MessageBubble({ message, isOwn, isLastRead }: { message: Message; isOwn: boolean; isLastRead?: boolean }) {
+interface MessageBubbleProps {
+  message: Message;
+  isOwn: boolean;
+  isLastRead?: boolean;
+  reactions: ReactionCount[];
+  onReact: (emoji: string) => void;
+}
+
+function ReactionPicker({ onSelect, onClose }: { onSelect: (emoji: string) => void; onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.8, y: 10 }}
+      className="absolute bottom-full mb-2 left-0 z-50 bg-obsidian border border-border/50 rounded-full px-2 py-1.5 flex items-center gap-1 shadow-lg"
+    >
+      {REACTION_EMOJIS.map((emoji) => (
+        <button
+          key={emoji}
+          onClick={() => {
+            onSelect(emoji);
+            onClose();
+          }}
+          className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-colors"
+        >
+          {emoji}
+        </button>
+      ))}
+    </motion.div>
+  );
+}
+
+function ReactionsDisplay({ 
+  reactions, 
+  onReact, 
+  isOwn 
+}: { 
+  reactions: ReactionCount[]; 
+  onReact: (emoji: string) => void; 
+  isOwn: boolean;
+}) {
+  if (reactions.length === 0) return null;
+
+  return (
+    <div className={`flex flex-wrap gap-1 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}>
+      {reactions.map(({ emoji, count, hasReacted }) => (
+        <button
+          key={emoji}
+          onClick={() => onReact(emoji)}
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors ${
+            hasReacted
+              ? "bg-primary/20 border border-primary/40"
+              : "bg-obsidian/80 border border-border/30 hover:bg-muted/30"
+          }`}
+        >
+          <span>{emoji}</span>
+          {count > 1 && <span className="text-muted-foreground">{count}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MessageBubble({ message, isOwn, isLastRead, reactions, onReact }: MessageBubbleProps) {
+  const [showPicker, setShowPicker] = useState(false);
   const timeStr = format(new Date(message.created_at), "h:mm a");
   const isFailed = message._status === "failed";
   const isSending = message._status === "sending";
   const isRead = Boolean(message.read_at);
 
   return (
-    <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} mb-2`}>
-      <div
-        className={`max-w-[75%] px-4 py-2 rounded-2xl ${
-          isOwn
-            ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-obsidian text-foreground rounded-bl-md"
-        } ${isFailed ? "opacity-60" : ""}`}
-      >
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-        <div className={`flex items-center gap-1.5 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}>
-          <span className="text-[10px] opacity-60">{timeStr}</span>
-          {isOwn && !isFailed && !isSending && (
-            isRead ? (
-              <CheckCheck className="w-3.5 h-3.5 text-accent" />
-            ) : (
-              <Check className="w-3.5 h-3.5 opacity-60" />
-            )
-          )}
-          {isSending && <Loader2 className="w-3 h-3 animate-spin opacity-60" />}
-          {isFailed && <span className="text-[10px] text-destructive">Failed</span>}
+    <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} mb-2 group relative`}>
+      {/* Reaction picker toggle */}
+      <div className={`flex items-end gap-1 ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
+        <div
+          className={`max-w-[75%] px-4 py-2 rounded-2xl ${
+            isOwn
+              ? "bg-primary text-primary-foreground rounded-br-md"
+              : "bg-obsidian text-foreground rounded-bl-md"
+          } ${isFailed ? "opacity-60" : ""}`}
+        >
+          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          <div className={`flex items-center gap-1.5 mt-1 ${isOwn ? "justify-end" : "justify-start"}`}>
+            <span className="text-[10px] opacity-60">{timeStr}</span>
+            {isOwn && !isFailed && !isSending && (
+              isRead ? (
+                <CheckCheck className="w-3.5 h-3.5 text-accent" />
+              ) : (
+                <Check className="w-3.5 h-3.5 opacity-60" />
+              )
+            )}
+            {isSending && <Loader2 className="w-3 h-3 animate-spin opacity-60" />}
+            {isFailed && <span className="text-[10px] text-destructive">Failed</span>}
+          </div>
         </div>
+        
+        {/* Add reaction button - shows on hover/focus */}
+        {!isSending && !isFailed && (
+          <div className="relative">
+            <button
+              onClick={() => {
+                triggerHaptic("light");
+                setShowPicker(!showPicker);
+              }}
+              className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 rounded-full hover:bg-muted/30 transition-all"
+            >
+              <Plus className="w-4 h-4 text-muted-foreground" />
+            </button>
+            
+            <AnimatePresence>
+              {showPicker && (
+                <>
+                  {/* Backdrop to close picker */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowPicker(false)} 
+                  />
+                  <ReactionPicker
+                    onSelect={(emoji) => {
+                      triggerHaptic("light");
+                      onReact(emoji);
+                    }}
+                    onClose={() => setShowPicker(false)}
+                  />
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
+
+      {/* Reactions display */}
+      <ReactionsDisplay reactions={reactions} onReact={onReact} isOwn={isOwn} />
+
       {/* "Seen" label under the last read message */}
-      {isOwn && isLastRead && isRead && (
+      {isOwn && isLastRead && isRead && reactions.length === 0 && (
         <span className="text-[10px] text-muted-foreground mt-1 mr-1">
           Seen
         </span>
@@ -123,6 +230,10 @@ export default function Chat() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { messages, isLoading, isSending, sendMessage, markAsRead } = useMessages({
+    conversationId: conversationId || null,
+  });
+
+  const { getReactionsForMessage, toggleReaction } = useMessageReactions({
     conversationId: conversationId || null,
   });
 
@@ -238,6 +349,8 @@ export default function Chat() {
           message={msg}
           isOwn={isOwn}
           isLastRead={isLastRead}
+          reactions={getReactionsForMessage(msg.id)}
+          onReact={(emoji) => toggleReaction(msg.id, emoji)}
         />
       );
     });
