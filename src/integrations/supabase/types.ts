@@ -17,18 +17,21 @@ export type Database = {
       conversation_participants: {
         Row: {
           conversation_id: string
+          deleted_at: string | null
           id: string
           joined_at: string
           user_id: string
         }
         Insert: {
           conversation_id: string
+          deleted_at?: string | null
           id?: string
           joined_at?: string
           user_id: string
         }
         Update: {
           conversation_id?: string
+          deleted_at?: string | null
           id?: string
           joined_at?: string
           user_id?: string
