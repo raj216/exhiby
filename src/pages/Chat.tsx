@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, BadgeCheck, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMessages, Message } from "@/hooks/useMessages";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { triggerHaptic } from "@/lib/haptics";
 import { format, isToday, isYesterday, isSameDay } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-
 interface OtherUser {
   user_id: string;
   name: string;
@@ -61,6 +61,26 @@ function DateDivider({ date }: { date: Date }) {
   );
 }
 
+function TypingIndicator({ userName }: { userName: string | null }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      className="flex items-center gap-2 mb-2"
+    >
+      <div className="flex items-center gap-1 px-4 py-2 bg-obsidian rounded-2xl rounded-bl-md">
+        <div className="flex gap-1">
+          <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+          <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+          <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+        </div>
+      </div>
+      <span className="text-xs text-muted-foreground">{userName || "Someone"} is typing...</span>
+    </motion.div>
+  );
+}
+
 function ChatSkeleton() {
   return (
     <div className="flex-1 p-4 space-y-4">
@@ -91,6 +111,11 @@ export default function Chat() {
   const { messages, isLoading, isSending, sendMessage, markAsRead } = useMessages({
     conversationId: conversationId || null,
   });
+
+  const { isOtherTyping, typingUserName, setTyping } = useTypingIndicator(
+    conversationId || null,
+    otherUser?.name
+  );
 
   // Fetch other user info
   useEffect(() => {
@@ -157,6 +182,7 @@ export default function Chat() {
     if (!inputValue.trim() || isSending) return;
 
     triggerHaptic("light");
+    setTyping(false); // Clear typing state when sending
     const success = await sendMessage(inputValue);
     if (success) {
       setInputValue("");
@@ -272,6 +298,9 @@ export default function Chat() {
         ) : (
           <>
             {renderMessages()}
+            <AnimatePresence>
+              {isOtherTyping && <TypingIndicator userName={typingUserName} />}
+            </AnimatePresence>
             <div ref={messagesEndRef} />
           </>
         )}
@@ -287,8 +316,12 @@ export default function Chat() {
             ref={inputRef}
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              setTyping(e.target.value.length > 0);
+            }}
             onKeyDown={handleKeyDown}
+            onBlur={() => setTyping(false)}
             placeholder="Type a message..."
             className="flex-1 bg-obsidian border border-border/30 rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             maxLength={1000}
