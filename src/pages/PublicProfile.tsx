@@ -19,7 +19,7 @@ import { CreatorReputationStats } from "@/components/CreatorReputationStats";
 import { UpcomingSessionsPreview } from "@/components/UpcomingSessionsPreview";
 import { TipCreatorModal } from "@/components/TipCreatorModal";
 import { ShareProfileModal } from "@/components/ShareProfileModal";
-import { useConversations } from "@/hooks/useConversations";
+
 
 interface LiveEventData {
   id: string;
@@ -61,8 +61,7 @@ export default function PublicProfile() {
   const [liveEvent, setLiveEvent] = useState<LiveEventData | null>(null);
   const [isTipOpen, setIsTipOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isMessageLoading, setIsMessageLoading] = useState(false);
-  const { getOrCreateConversation } = useConversations();
+  
   const isOwnProfile = user?.id === profile?.user_id;
 
   // Real-time viewer count for the live event
@@ -287,17 +286,11 @@ export default function PublicProfile() {
     setIsShareOpen(true);
   };
 
-  const handleMessage = async () => {
-    if (!profile || isMessageLoading) return;
-    setIsMessageLoading(true);
+  const handleMessage = () => {
+    if (!profile) return;
     triggerHaptic("light");
-    const conversationId = await getOrCreateConversation(profile.user_id);
-    setIsMessageLoading(false);
-    if (conversationId) {
-      navigate(`/messages/${conversationId}`);
-    } else {
-      toast.error("Could not start conversation");
-    }
+    // Navigate to new chat screen - conversation is only created when first message is sent
+    navigate(`/chat/new/${profile.user_id}`);
   };
 
   const memberSince = profile?.created_at
@@ -527,7 +520,7 @@ export default function PublicProfile() {
             <ProfileActionBar
               isFollowing={isFollowing}
               isFollowLoading={isFollowLoading}
-              isLoading={isLoading || isMessageLoading}
+              isLoading={isLoading}
               onFollowClick={handleFollow}
               onMessageClick={handleMessage}
               onSupportClick={() => setIsTipOpen(true)}
