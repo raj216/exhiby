@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck, Plus } from "lucide-react";
@@ -228,87 +228,180 @@ function ChatSkeleton() {
 }
 
 export default function Chat() {
-  const { conversationId } = useParams<{ conversationId: string }>();
+  // Support both existing conversation route and new chat route
+  const { conversationId: paramConversationId, targetUserId } = useParams<{ 
+    conversationId?: string; 
+    targetUserId?: string;
+  }>();
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  
+  // For new chats, we need to track if we've found an existing conversation
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(paramConversationId || null);
+  const [isNewChat, setIsNewChat] = useState(Boolean(targetUserId && !paramConversationId));
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Get refetch from conversations to update unread counts after marking read
-  const { refetch: refetchConversations } = useConversations();
+  const { refetch: refetchConversations, getOrCreateConversation } = useConversations();
 
   const { messages, isLoading, isSending, sendMessage, markAsRead } = useMessages({
-    conversationId: conversationId || null,
+    conversationId: activeConversationId,
     onMessagesMarkedRead: refetchConversations,
   });
 
   const { getReactionsForMessage, toggleReaction } = useMessageReactions({
-    conversationId: conversationId || null,
+    conversationId: activeConversationId,
   });
 
   const { isOtherTyping, typingUserName, setTyping } = useTypingIndicator(
-    conversationId || null,
+    activeConversationId,
     otherUser?.name
   );
 
-  // Fetch other user info
+  // Check for existing conversation when opening new chat
   useEffect(() => {
-    if (!conversationId || !user) return;
+    if (!targetUserId || !user || paramConversationId) return;
 
-    const fetchOtherUser = async () => {
-      setIsLoadingUser(true);
+    const checkExistingConversation = async () => {
       try {
-        // Get the other participant
-        const { data: participants, error: partError } = await supabase
+        // Check if we already have a conversation with this user
+        const { data: participants } = await supabase
           .from("conversation_participants")
-          .select("user_id")
-          .eq("conversation_id", conversationId)
-          .neq("user_id", user.id)
-          .single();
-
-        if (partError || !participants) {
-          console.error("[Chat] Error fetching participant:", partError);
+          .select("conversation_id")
+          .eq("user_id", user.id);
+        
+        if (!participants || participants.length === 0) {
+          console.log("[Chat] No existing conversations found");
           return;
         }
 
-        // Get their profile
-        const { data: profile, error: profileError } = await supabase.rpc("get_public_profile", {
-          profile_user_id: participants.user_id,
-        });
+        // Check which of our conversations include the target user
+        for (const p of participants) {
+          const { data: otherParticipant } = await supabase
+            .from("conversation_participants")
+            .select("user_id")
+            .eq("conversation_id", p.conversation_id)
+            .eq("user_id", targetUserId)
+            .maybeSingle();
 
-        if (!profileError && profile && Array.isArray(profile) && profile.length > 0) {
-          setOtherUser({
-            user_id: profile[0].user_id,
-            name: profile[0].name,
-            handle: profile[0].handle,
-            avatar_url: profile[0].avatar_url,
-            is_verified: profile[0].is_verified || false,
-          });
+          if (otherParticipant) {
+            // Found existing conversation - check if it has messages
+            const { count } = await supabase
+              .from("messages")
+              .select("id", { count: "exact", head: true })
+              .eq("conversation_id", p.conversation_id);
+
+            if (count && count > 0) {
+              console.log("[Chat] Found existing conversation with messages:", p.conversation_id);
+              setActiveConversationId(p.conversation_id);
+              setIsNewChat(false);
+              // Redirect to the proper URL
+              navigate(`/messages/${p.conversation_id}`, { replace: true });
+              return;
+            }
+          }
         }
+
+        console.log("[Chat] No existing conversation with messages found, staying in new chat mode");
       } catch (err) {
-        console.error("[Chat] Unexpected error:", err);
-      } finally {
-        setIsLoadingUser(false);
+        console.error("[Chat] Error checking existing conversation:", err);
       }
     };
 
-    fetchOtherUser();
-  }, [conversationId, user]);
+    checkExistingConversation();
+  }, [targetUserId, user, paramConversationId, navigate]);
+
+  // Fetch other user info
+  useEffect(() => {
+    const targetId = targetUserId || null;
+    
+    // If we have a conversationId (from param or found), fetch the other user from participants
+    if (activeConversationId && user) {
+      const fetchOtherUser = async () => {
+        setIsLoadingUser(true);
+        try {
+          const { data: participants, error: partError } = await supabase
+            .from("conversation_participants")
+            .select("user_id")
+            .eq("conversation_id", activeConversationId)
+            .neq("user_id", user.id)
+            .single();
+
+          if (partError || !participants) {
+            console.error("[Chat] Error fetching participant:", partError);
+            return;
+          }
+
+          const { data: profile, error: profileError } = await supabase.rpc("get_public_profile", {
+            profile_user_id: participants.user_id,
+          });
+
+          if (!profileError && profile && Array.isArray(profile) && profile.length > 0) {
+            setOtherUser({
+              user_id: profile[0].user_id,
+              name: profile[0].name,
+              handle: profile[0].handle,
+              avatar_url: profile[0].avatar_url,
+              is_verified: profile[0].is_verified || false,
+            });
+          }
+        } catch (err) {
+          console.error("[Chat] Unexpected error:", err);
+        } finally {
+          setIsLoadingUser(false);
+        }
+      };
+
+      fetchOtherUser();
+      return;
+    }
+
+    // If we have a targetUserId (new chat), fetch their profile directly
+    if (targetId && user) {
+      const fetchTargetUser = async () => {
+        setIsLoadingUser(true);
+        try {
+          const { data: profile, error: profileError } = await supabase.rpc("get_public_profile", {
+            profile_user_id: targetId,
+          });
+
+          if (!profileError && profile && Array.isArray(profile) && profile.length > 0) {
+            setOtherUser({
+              user_id: profile[0].user_id,
+              name: profile[0].name,
+              handle: profile[0].handle,
+              avatar_url: profile[0].avatar_url,
+              is_verified: profile[0].is_verified || false,
+            });
+          }
+        } catch (err) {
+          console.error("[Chat] Unexpected error fetching target user:", err);
+        } finally {
+          setIsLoadingUser(false);
+        }
+      };
+
+      fetchTargetUser();
+    }
+  }, [activeConversationId, targetUserId, user]);
 
   // Mark messages as read when viewing
   useEffect(() => {
-    if (conversationId && user && messages.length > 0) {
+    if (activeConversationId && user && messages.length > 0) {
       markAsRead();
     }
-  }, [conversationId, user, messages.length, markAsRead]);
+  }, [activeConversationId, user, messages.length, markAsRead]);
 
   // Mark messages as read when tab becomes visible again
   useEffect(() => {
-    if (!conversationId || !user) return;
+    if (!activeConversationId || !user) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && messages.length > 0) {
@@ -321,7 +414,7 @@ export default function Chat() {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [conversationId, user, messages.length, markAsRead]);
+  }, [activeConversationId, user, messages.length, markAsRead]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -339,10 +432,55 @@ export default function Chat() {
   };
 
   const handleSend = async () => {
-    if (!inputValue.trim() || isSending) return;
+    if (!inputValue.trim() || isSending || isCreatingConversation) return;
+    if (!user) return;
 
     triggerHaptic("light");
-    setTyping(false); // Clear typing state when sending
+    setTyping(false);
+
+    // If this is a new chat (no conversation yet), create the conversation first
+    if (isNewChat && targetUserId && !activeConversationId) {
+      setIsCreatingConversation(true);
+      try {
+        const conversationId = await getOrCreateConversation(targetUserId);
+        if (!conversationId) {
+          console.error("[Chat] Failed to create conversation");
+          setIsCreatingConversation(false);
+          return;
+        }
+        
+        // Update state with new conversation ID
+        setActiveConversationId(conversationId);
+        setIsNewChat(false);
+        
+        // Now send the message (need to do it manually since useMessages might not have updated yet)
+        const { error: insertError } = await supabase
+          .from("messages")
+          .insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content: inputValue.trim(),
+          });
+
+        if (insertError) {
+          console.error("[Chat] Error sending first message:", insertError);
+          setIsCreatingConversation(false);
+          return;
+        }
+
+        setInputValue("");
+        // Navigate to the proper URL
+        navigate(`/messages/${conversationId}`, { replace: true });
+        setIsCreatingConversation(false);
+        return;
+      } catch (err) {
+        console.error("[Chat] Error creating conversation:", err);
+        setIsCreatingConversation(false);
+        return;
+      }
+    }
+
+    // Normal send for existing conversations
     const success = await sendMessage(inputValue);
     if (success) {
       setInputValue("");
@@ -392,6 +530,8 @@ export default function Chat() {
 
     return elements;
   };
+
+  const showLoading = isLoading && !isNewChat;
 
   return (
     <div className="min-h-screen bg-carbon flex flex-col">
@@ -458,7 +598,7 @@ export default function Chat() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {isLoading ? (
+        {showLoading ? (
           <ChatSkeleton />
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-20">
@@ -490,7 +630,9 @@ export default function Chat() {
             value={inputValue}
             onChange={(e) => {
               setInputValue(e.target.value);
-              setTyping(e.target.value.length > 0);
+              if (activeConversationId) {
+                setTyping(e.target.value.length > 0);
+              }
             }}
             onKeyDown={handleKeyDown}
             onBlur={() => setTyping(false)}
@@ -500,11 +642,11 @@ export default function Chat() {
           />
           <motion.button
             onClick={handleSend}
-            disabled={!inputValue.trim() || isSending}
+            disabled={!inputValue.trim() || isSending || isCreatingConversation}
             className="p-2.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             whileTap={{ scale: 0.95 }}
           >
-            {isSending ? (
+            {isSending || isCreatingConversation ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Send className="w-5 h-5" />

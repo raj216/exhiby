@@ -68,6 +68,12 @@ const App = () => {
                     <Chat />
                   </RequireAuth>
                 } />
+                {/* New chat by user ID - no conversation created until first message */}
+                <Route path="/chat/new/:targetUserId" element={
+                  <RequireAuth>
+                    <Chat />
+                  </RequireAuth>
+                } />
                 <Route path="/explore" element={<ExploreStudios />} />
                 <Route path="/admin/feedback" element={<AdminFeedback />} />
                 <Route path="/earnings-history" element={<EarningsHistory />} />
