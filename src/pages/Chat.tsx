@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConversations } from "@/hooks/useConversations";
 import { useMessages, Message } from "@/hooks/useMessages";
 import { useMessageReactions, REACTION_EMOJIS, ReactionCount } from "@/hooks/useMessageReactions";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
@@ -237,8 +238,12 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Get refetch from conversations to update unread counts after marking read
+  const { refetch: refetchConversations } = useConversations();
+
   const { messages, isLoading, isSending, sendMessage, markAsRead } = useMessages({
     conversationId: conversationId || null,
+    onMessagesMarkedRead: refetchConversations,
   });
 
   const { getReactionsForMessage, toggleReaction } = useMessageReactions({
@@ -299,6 +304,23 @@ export default function Chat() {
     if (conversationId && user && messages.length > 0) {
       markAsRead();
     }
+  }, [conversationId, user, messages.length, markAsRead]);
+
+  // Mark messages as read when tab becomes visible again
+  useEffect(() => {
+    if (!conversationId || !user) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && messages.length > 0) {
+        console.log("[Chat] Tab became visible - marking messages as read");
+        markAsRead();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [conversationId, user, messages.length, markAsRead]);
 
   // Scroll to bottom on new messages
