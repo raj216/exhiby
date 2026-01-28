@@ -30,40 +30,76 @@ interface MessageBubbleProps {
   onReact: (emoji: string) => void;
 }
 
+interface ReactionPickerPosition {
+  top: number;
+  left: number;
+}
+
 import React from "react";
+import { createPortal } from "react-dom";
 
-const ReactionPicker = React.forwardRef<
-  HTMLDivElement,
-  { onSelect: (emoji: string) => void; onClose: () => void }
->(({ onSelect, onClose }, ref) => {
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, scale: 0.8, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.8, y: 10 }}
-      className="absolute bottom-full mb-2 left-0 z-50 bg-obsidian border border-border/50 rounded-full px-2 py-1.5 shadow-lg max-w-[calc(100vw-32px)] overflow-x-auto whitespace-nowrap scrollbar-hide"
-      style={{ WebkitOverflowScrolling: "touch" }}
-    >
-      <div className="flex items-center gap-1">
-        {REACTION_EMOJIS.map((emoji) => (
-          <button
-            key={emoji}
-            onClick={() => {
-              onSelect(emoji);
-              onClose();
-            }}
-            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
-    </motion.div>
+// Fixed-position reaction picker with calculated positioning
+function ReactionPickerPortal({
+  position,
+  onSelect,
+  onClose,
+}: {
+  position: ReactionPickerPosition;
+  onSelect: (emoji: string) => void;
+  onClose: () => void;
+}) {
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const [adjustedLeft, setAdjustedLeft] = useState(position.left);
+
+  // Adjust position after mount to prevent edge clipping
+  useEffect(() => {
+    if (!pickerRef.current) return;
+    const pickerWidth = pickerRef.current.offsetWidth;
+    const viewportWidth = window.innerWidth;
+    const edgePadding = 12;
+
+    // Clamp left position: min 12px, max (viewport - pickerWidth - 12px)
+    const minLeft = edgePadding;
+    const maxLeft = viewportWidth - pickerWidth - edgePadding;
+    const clampedLeft = Math.max(minLeft, Math.min(position.left, maxLeft));
+    
+    setAdjustedLeft(clampedLeft);
+  }, [position.left]);
+
+  return createPortal(
+    <>
+      {/* Backdrop to close picker */}
+      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
+      <motion.div
+        ref={pickerRef}
+        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.8, y: 10 }}
+        className="fixed z-[9999] bg-obsidian border border-border/50 rounded-full px-2 py-1.5 shadow-lg"
+        style={{
+          top: position.top,
+          left: adjustedLeft,
+        }}
+      >
+        <div className="flex items-center gap-1">
+          {REACTION_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() => {
+                onSelect(emoji);
+                onClose();
+              }}
+              className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    </>,
+    document.body
   );
-});
-
-ReactionPicker.displayName = "ReactionPicker";
+}
 
 function ReactionsDisplay({ 
   reactions, 
@@ -98,16 +134,46 @@ function ReactionsDisplay({
 
 function MessageBubble({ message, isOwn, isLastRead, reactions, onReact }: MessageBubbleProps) {
   const [showPicker, setShowPicker] = useState(false);
+  const [pickerPosition, setPickerPosition] = useState<ReactionPickerPosition | null>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  
   const timeStr = format(new Date(message.created_at), "h:mm a");
   const isFailed = message._status === "failed";
   const isSending = message._status === "sending";
   const isRead = Boolean(message.read_at);
+
+  const handleOpenPicker = () => {
+    if (!bubbleRef.current) return;
+    
+    triggerHaptic("light");
+    
+    // Calculate position based on bubble's bounding box
+    const rect = bubbleRef.current.getBoundingClientRect();
+    const pickerWidth = 220; // Approximate width of picker (6 emojis * 32px + padding)
+    const gap = 10; // Gap above the bubble
+    
+    // Center the popup above the bubble
+    const bubbleCenterX = rect.left + rect.width / 2;
+    const preferredLeft = bubbleCenterX - pickerWidth / 2;
+    
+    // Position above the bubble with gap
+    const top = rect.top - gap - 44; // 44px approximate picker height
+    
+    setPickerPosition({ top: Math.max(8, top), left: preferredLeft });
+    setShowPicker(true);
+  };
+
+  const handleClosePicker = () => {
+    setShowPicker(false);
+    setPickerPosition(null);
+  };
 
   return (
     <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} mb-2 group relative`}>
       {/* Reaction picker toggle */}
       <div className={`flex items-end gap-1 ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
         <div
+          ref={bubbleRef}
           className={`max-w-[75%] px-4 py-2 rounded-2xl ${
             isOwn
               ? "bg-primary text-primary-foreground rounded-br-md"
@@ -131,38 +197,28 @@ function MessageBubble({ message, isOwn, isLastRead, reactions, onReact }: Messa
         
         {/* Add reaction button - shows on hover/focus */}
         {!isSending && !isFailed && (
-          <div className="relative">
-            <button
-              onClick={() => {
-                triggerHaptic("light");
-                setShowPicker(!showPicker);
-              }}
-              className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 rounded-full hover:bg-muted/30 transition-all"
-            >
-              <Plus className="w-4 h-4 text-muted-foreground" />
-            </button>
-            
-            <AnimatePresence>
-              {showPicker && (
-                <>
-                  {/* Backdrop to close picker */}
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowPicker(false)} 
-                  />
-                  <ReactionPicker
-                    onSelect={(emoji) => {
-                      triggerHaptic("light");
-                      onReact(emoji);
-                    }}
-                    onClose={() => setShowPicker(false)}
-                  />
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+          <button
+            onClick={handleOpenPicker}
+            className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1.5 rounded-full hover:bg-muted/30 transition-all"
+          >
+            <Plus className="w-4 h-4 text-muted-foreground" />
+          </button>
         )}
       </div>
+
+      {/* Reaction picker portal */}
+      <AnimatePresence>
+        {showPicker && pickerPosition && (
+          <ReactionPickerPortal
+            position={pickerPosition}
+            onSelect={(emoji) => {
+              triggerHaptic("light");
+              onReact(emoji);
+            }}
+            onClose={handleClosePicker}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Reactions display */}
       <ReactionsDisplay reactions={reactions} onReact={onReact} isOwn={isOwn} />
