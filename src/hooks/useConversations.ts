@@ -54,7 +54,7 @@ export function useConversations() {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Real-time subscription for message changes
+  // Real-time subscription for message changes (instant unread badge updates)
   useEffect(() => {
     if (!user) return;
 
@@ -67,9 +67,11 @@ export function useConversations() {
           schema: "public",
           table: "messages",
         },
-        () => {
-          // Refetch conversations when new message arrives
-          console.log("[useConversations] New message - refetching");
+        (payload) => {
+          // Refetch conversations immediately when new message arrives
+          // This updates unread counts and latest message preview
+          const newMsg = payload.new as { sender_id: string; conversation_id: string };
+          console.log("[useConversations] New message INSERT - refetching for unread badge update");
           fetchConversations();
         }
       )
@@ -81,14 +83,18 @@ export function useConversations() {
           table: "messages",
         },
         (payload) => {
-          // Refetch when messages are marked as read (read_at changes)
-          if (payload.new && (payload.new as { read_at: string | null }).read_at) {
-            console.log("[useConversations] Message marked read - refetching");
+          // Refetch immediately when messages are marked as read
+          // This ensures unread badge clears right away
+          const updated = payload.new as { read_at: string | null };
+          if (updated.read_at) {
+            console.log("[useConversations] Message marked read UPDATE - refetching for badge clear");
             fetchConversations();
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[useConversations] Realtime subscription status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);

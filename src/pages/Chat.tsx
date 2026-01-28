@@ -42,20 +42,23 @@ const ReactionPicker = React.forwardRef<
       initial={{ opacity: 0, scale: 0.8, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 10 }}
-      className="absolute bottom-full mb-2 left-0 z-50 bg-obsidian border border-border/50 rounded-full px-2 py-1.5 flex items-center gap-1 shadow-lg"
+      className="absolute bottom-full mb-2 left-0 z-50 bg-obsidian border border-border/50 rounded-full px-2 py-1.5 shadow-lg max-w-[calc(100vw-32px)] overflow-x-auto whitespace-nowrap scrollbar-hide"
+      style={{ WebkitOverflowScrolling: "touch" }}
     >
-      {REACTION_EMOJIS.map((emoji) => (
-        <button
-          key={emoji}
-          onClick={() => {
-            onSelect(emoji);
-            onClose();
-          }}
-          className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-colors"
-        >
-          {emoji}
-        </button>
-      ))}
+      <div className="flex items-center gap-1">
+        {REACTION_EMOJIS.map((emoji) => (
+          <button
+            key={emoji}
+            onClick={() => {
+              onSelect(emoji);
+              onClose();
+            }}
+            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
     </motion.div>
   );
 });
@@ -571,7 +574,7 @@ export default function Chat() {
   const showLoading = isLoading && !isNewChat;
 
   return (
-    <div className="min-h-screen bg-carbon flex flex-col">
+    <div className="min-h-screen bg-carbon flex flex-col overflow-x-hidden">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/30">
         <div
@@ -648,7 +651,7 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
         {showLoading ? (
           <ChatSkeleton />
         ) : messages.length === 0 ? (
