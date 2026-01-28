@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 
 interface MobileHeaderProps {
@@ -19,6 +20,7 @@ export function MobileHeader({
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
+  const { hasUnread: hasUnreadMessages } = useUnreadMessages();
 
   return (
     <>
@@ -54,6 +56,18 @@ export function MobileHeader({
             </span>
           </button>
         </div>
+
+        {/* Messages Icon */}
+        <button
+          onClick={() => navigate("/messages")}
+          className="relative shrink-0 p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors duration-200"
+          aria-label="Messages"
+        >
+          <MessageCircle className="w-5 h-5 text-muted-foreground" />
+          {hasUnreadMessages && (
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-crimson" />
+          )}
+        </button>
 
         {/* Notification Bell */}
         <button

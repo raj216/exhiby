@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Bell, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, Search, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CreatorActivationModal } from "./CreatorActivationModal";
 import { WelcomeBanner } from "./WelcomeBanner";
@@ -31,10 +33,12 @@ export function DesktopHeader({
   onOpenStudio,
   onLogout,
 }: DesktopHeaderProps) {
+  const navigate = useNavigate();
   const { profile } = useProfile();
   const { user } = useAuth();
   const { isVerifiedCreator } = useUserMode();
   const { unreadCount } = useNotifications();
+  const { hasUnread: hasUnreadMessages } = useUnreadMessages();
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -104,6 +108,18 @@ export function DesktopHeader({
               Open Studio
             </button>
           )}
+
+          {/* Messages Icon */}
+          <button
+            onClick={() => navigate("/messages")}
+            className="relative p-2 rounded-full bg-obsidian border border-border/30 hover:bg-muted/50 transition-colors duration-200"
+            aria-label="Messages"
+          >
+            <MessageCircle className="w-5 h-5 text-muted-foreground" />
+            {hasUnreadMessages && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-crimson" />
+            )}
+          </button>
 
           {/* Notifications Bell */}
           <button
