@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Loader2, Eye, EyeOff, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -135,21 +136,27 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleLoading(true);
-      const redirectUrl = `${window.location.origin}/`;
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: redirectUrl,
-        },
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (result.redirected) {
+        // User is being redirected to Google, keep loading state
+        return;
       }
+
+      if (result.error) {
+        toast.error(result.error.message || "Google sign-in failed. Please try again.");
+        setIsGoogleLoading(false);
+        return;
+      }
+
+      // Success - AuthContext will handle the session update
+      toast.success("Welcome!");
+      onSuccess("");
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
-    } finally {
       setIsGoogleLoading(false);
     }
   };
