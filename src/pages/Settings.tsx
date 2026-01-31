@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing } from "lucide-react";
+import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { navigateBack } from "@/lib/navigation";
@@ -11,6 +11,8 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmailModal, ChangePasswordModal, DeleteAccountModal, ReportBugModal } from "@/components/settings";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Menu category types
 type SettingsCategory = "account" | "notifications" | "privacy" | "payments" | "vacation" | "shipping" | "help" | "guidelines";
@@ -308,37 +310,56 @@ function CategoryContent({
 
 // Account Settings Content
 function AccountContent() {
-  return <div className="space-y-4">
-      <SettingsCard title="Email Address" description="Your email for login and notifications" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Email",
-      description: "Email settings coming soon"
-    })} />
-      <SettingsCard title="Password" description="Update your password" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Password",
-      description: "Password settings coming soon"
-    })} />
-      <SettingsCard title="Two-Factor Authentication" description="Add an extra layer of security" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "2FA",
-      description: "2FA settings coming soon"
-    })} />
-      
-      {/* Delete Account - Danger Zone */}
-      <div className="pt-6 border-t border-border/20">
-        <h4 className="text-sm font-medium text-destructive mb-3">
-      </h4>
-        <button onClick={() => toast({
-        title: "Delete Account",
-        description: "Please contact support to delete your account.",
-        variant: "destructive"
-      })} className="w-full flex items-center justify-between p-4 bg-destructive/10 rounded-xl border border-destructive/30 hover:border-destructive/50 transition-colors">
-          <div className="flex items-center gap-3">
-            <Trash2 className="w-5 h-5 text-destructive" />
-            <span className="text-destructive">Delete Account</span>
-          </div>
-          <ChevronRight className="w-5 h-5 text-destructive/60" />
-        </button>
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  return (
+    <>
+      <div className="space-y-4">
+        <SettingsCard 
+          title="Email Address" 
+          description="Your email for login and notifications" 
+          action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} 
+          onClick={() => {
+            triggerClickHaptic();
+            setShowEmailModal(true);
+          }} 
+        />
+        <SettingsCard 
+          title="Password" 
+          description="Update your password" 
+          action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} 
+          onClick={() => {
+            triggerClickHaptic();
+            setShowPasswordModal(true);
+          }} 
+        />
+        
+        {/* Delete Account - Danger Zone */}
+        <div className="pt-6 border-t border-border/20">
+          <button 
+            onClick={() => {
+              triggerClickHaptic();
+              setShowDeleteModal(true);
+            }} 
+            className="w-full flex items-center justify-between p-4 bg-destructive/10 rounded-xl border border-destructive/30 hover:border-destructive/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              <span className="text-destructive">Delete Account</span>
+            </div>
+            <ChevronRight className="w-5 h-5 text-destructive/60" />
+          </button>
+        </div>
       </div>
-    </div>;
+
+      {/* Modals */}
+      <EmailModal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} />
+      <ChangePasswordModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
+      <DeleteAccountModal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} />
+    </>
+  );
 }
 
 // Notifications Settings Content
@@ -540,19 +561,51 @@ function ShippingContent() {
 
 // Help Center Content
 function HelpContent() {
-  return <div className="space-y-4">
-      <SettingsCard title="FAQ" description="Frequently asked questions" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "FAQ",
-      description: "Opening FAQ..."
-    })} />
-      <a href="mailto:support@exhiby.com" className="block">
-        <SettingsCard title="Contact Support" description="Get help from our team" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} />
-      </a>
-      <SettingsCard title="Report a Bug" description="Help us improve by reporting issues" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Bug Report",
-      description: "Bug report form coming soon"
-    })} />
-    </div>;
+  const { user } = useAuth();
+  const [showBugModal, setShowBugModal] = useState(false);
+
+  const handleContactSupport = () => {
+    triggerClickHaptic();
+    const subject = encodeURIComponent("Exhiby Support");
+    const body = encodeURIComponent(
+`Hi Exhiby team,
+
+I need help with:
+(describe)
+
+Device: ${navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'}
+Browser: ${navigator.userAgent}
+Account email: ${user?.email || '(not logged in)'}
+
+Thank you`
+    );
+    window.location.href = `mailto:support@joinexhiby.com?subject=${subject}&body=${body}`;
+  };
+
+  return (
+    <>
+      <div className="space-y-4">
+        <SettingsCard 
+          title="Contact Support" 
+          description="Get help from our team" 
+          action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+          onClick={handleContactSupport}
+        />
+        <SettingsCard 
+          title="Report a Bug" 
+          description="Help us improve by reporting issues" 
+          action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} 
+          onClick={() => {
+            triggerClickHaptic();
+            setShowBugModal(true);
+          }} 
+        />
+      </div>
+
+      {/* Modals */}
+      <ReportBugModal isOpen={showBugModal} onClose={() => setShowBugModal(false)} />
+    </>
+  );
 }
 
 // Community Guidelines Content
