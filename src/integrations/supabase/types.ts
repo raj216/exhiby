@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletions: {
+        Row: {
+          created_at: string
+          id: string
+          reason_option: string
+          reason_text: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason_option: string
+          reason_text?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason_option?: string
+          reason_text?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bug_reports: {
+        Row: {
+          created_at: string
+          id: string
+          issue_text: string
+          page: string | null
+          screenshot_url: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_text: string
+          page?: string | null
+          screenshot_url?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_text?: string
+          page?: string | null
+          screenshot_url?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           conversation_id: string
