@@ -231,7 +231,7 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
 
                       {/* Contact Support - mailto */}
                       <a 
-                        href="mailto:support@clayapp.com"
+                        href="mailto:support@joinexhiby.com?subject=Exhiby Support Request"
                         className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
                       >
                         <div className="flex items-center gap-3">
