@@ -11,7 +11,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmailModal, ChangePasswordModal, DeleteAccountModal, ReportBugModal, ContactSupportModal } from "@/components/settings";
+import { EmailModal, ChangePasswordModal, DeleteAccountModal, ReportBugModal } from "@/components/settings";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Menu category types
@@ -561,69 +561,11 @@ function ShippingContent() {
 
 // Help Center Content
 function HelpContent() {
-  const { user } = useAuth();
   const [showBugModal, setShowBugModal] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false);
 
   const handleContactSupport = () => {
     triggerClickHaptic();
-    
-    // Build mailto with template
-    const subject = encodeURIComponent("Exhiby Support");
-    const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
-    const browser = navigator.userAgent.includes("Chrome") ? "Chrome" 
-      : navigator.userAgent.includes("Safari") ? "Safari"
-      : navigator.userAgent.includes("Firefox") ? "Firefox"
-      : "Unknown";
-    
-    const body = encodeURIComponent(
-`Hi Exhiby Support,
-
-Issue:
-
-Page/Section:
-
-Device/Browser: ${isMobile ? "Mobile" : "Desktop"} / ${browser}
-
-—`
-    );
-    
-    const mailtoUrl = `mailto:support@joinexhiby.com?subject=${subject}&body=${body}`;
-    
-    // Try mailto first, fallback to modal if it fails
-    // We detect failure by checking if the page is still visible after a short delay
-    const startTime = Date.now();
-    
-    // Create a hidden link to trigger mailto
-    const link = document.createElement("a");
-    link.href = mailtoUrl;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // If mailto works, the browser will either:
-    // 1. Open email client (we stay on page)
-    // 2. Navigate away briefly then return
-    // If it fails, nothing happens and we should show fallback
-    
-    // Use a visibility check - if user is still here after 1.5s with no blur, show fallback
-    let mailtoOpened = false;
-    
-    const handleBlur = () => {
-      mailtoOpened = true;
-    };
-    
-    window.addEventListener("blur", handleBlur);
-    
-    setTimeout(() => {
-      window.removeEventListener("blur", handleBlur);
-      
-      // If window never lost focus and we're still here, mailto probably failed
-      if (!mailtoOpened && document.hasFocus()) {
-        setShowContactModal(true);
-      }
-    }, 1500);
+    window.location.href = "mailto:support@joinexhiby.com?subject=Exhiby Support Request";
   };
 
   return (
@@ -648,7 +590,6 @@ Device/Browser: ${isMobile ? "Mobile" : "Desktop"} / ${browser}
 
       {/* Modals */}
       <ReportBugModal isOpen={showBugModal} onClose={() => setShowBugModal(false)} />
-      <ContactSupportModal isOpen={showContactModal} onClose={() => setShowContactModal(false)} />
     </>
   );
 }
