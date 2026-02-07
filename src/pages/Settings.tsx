@@ -565,7 +565,14 @@ function HelpContent() {
 
   const handleContactSupport = () => {
     triggerClickHaptic();
-    window.location.href = "mailto:support@joinexhiby.com?subject=Exhiby Support Request";
+    const mailtoLink = "mailto:support@joinexhiby.com?subject=Exhiby%20Support&body=Hi%20Exhiby%20team%2C%20I%20need%20help%20with%3A";
+    
+    // Try window.location.href first, fallback to window.open
+    try {
+      window.location.href = mailtoLink;
+    } catch {
+      window.open(mailtoLink, "_blank");
+    }
   };
 
   return (

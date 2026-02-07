@@ -230,8 +230,15 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                       </button>
 
                       {/* Contact Support - mailto */}
-                      <a 
-                        href="mailto:support@joinexhiby.com?subject=Exhiby Support Request"
+                      <button 
+                        onClick={() => {
+                          const mailtoLink = "mailto:support@joinexhiby.com?subject=Exhiby%20Support&body=Hi%20Exhiby%20team%2C%20I%20need%20help%20with%3A";
+                          try {
+                            window.location.href = mailtoLink;
+                          } catch {
+                            window.open(mailtoLink, "_blank");
+                          }
+                        }}
                         className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
                       >
                         <div className="flex items-center gap-3">
@@ -239,7 +246,7 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                           <span className="text-foreground">Contact Support</span>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      </a>
+                      </button>
 
                       {/* Report a Bug */}
                       <button 
