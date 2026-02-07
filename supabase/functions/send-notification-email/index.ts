@@ -24,6 +24,20 @@ interface FollowerWithPrefs {
 const DEFAULT_CREATOR_TIMEZONE = "America/New_York";
 
 /**
+ * Escape HTML special characters to prevent XSS attacks.
+ * Used for all user-generated content inserted into email HTML.
+ */
+function escapeHtml(unsafe: string): string {
+  if (!unsafe) return "";
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
  * Format a date in the specified timezone with a human-friendly format.
  * Uses Intl.DateTimeFormat for proper timezone handling.
  * 
@@ -107,7 +121,9 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("user_id", event.creator_id)
       .single();
 
-    const creatorName = creatorProfile?.name || "A creator";
+    // Escape user-generated content to prevent XSS in email HTML
+    const creatorName = escapeHtml(creatorProfile?.name || "A creator");
+    const eventTitle = escapeHtml(event.title);
 
     // Get all followers of this creator with their notification preferences and emails
     const { data: followers, error: followersError } = await supabase
@@ -226,10 +242,11 @@ const handler = async (req: Request): Promise<Response> => {
     let ctaText = "";
     let ctaColor = "#18181b";
 
+    // Use escaped eventTitle in HTML bodyText (already HTML-safe)
     switch (email_type) {
       case "studio_scheduled":
-        subject = `Upcoming Studio: ${creatorName} — ${event.title}`;
-        bodyText = `${creatorName} scheduled a live studio session for ${scheduledDate}. Enter the studio live and ask questions in real time.`;
+        subject = `Upcoming Studio: ${creatorName} — ${eventTitle}`;
+        bodyText = `${creatorName} scheduled a live studio session for ${escapeHtml(scheduledDate)}. Enter the studio live and ask questions in real time.`;
         ctaText = "View Studio";
         ctaColor = "#18181b";
         break;
@@ -243,14 +260,14 @@ const handler = async (req: Request): Promise<Response> => {
 
       case "studio_starting_soon":
         subject = `Starting soon: ${creatorName}'s Studio`;
-        bodyText = `Reminder — ${event.title} starts in 15 minutes.`;
+        bodyText = `Reminder — ${eventTitle} starts in 15 minutes.`;
         ctaText = "Enter Studio";
         ctaColor = "#f59e0b";
         break;
 
       case "studio_starting_now":
         subject = `${creatorName}'s Studio is starting now!`;
-        bodyText = `${event.title} is starting — join now to catch it from the beginning!`;
+        bodyText = `${eventTitle} is starting — join now to catch it from the beginning!`;
         ctaText = "Join Now";
         ctaColor = "#dc2626";
         break;
@@ -281,7 +298,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Cover Image -->
           <tr>
             <td style="padding: 0 32px;">
-              <img src="${event.cover_url}" alt="${event.title}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
+              <img src="${escapeHtml(event.cover_url)}" alt="${eventTitle}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
             </td>
           </tr>
           ` : ""}
@@ -289,7 +306,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Content -->
           <tr>
             <td style="padding: 24px 32px;">
-              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${event.title}</h2>
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${eventTitle}</h2>
               <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #52525b;">
                 ${bodyText}
               </p>
