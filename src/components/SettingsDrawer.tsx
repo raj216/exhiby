@@ -239,6 +239,15 @@ export function SettingsDrawer({ isOpen, onClose, onOpenStudio }: SettingsDrawer
                           document.body.appendChild(link);
                           link.click();
                           document.body.removeChild(link);
+                          
+                          // Show fallback toast after a brief delay in case mailto didn't work
+                          setTimeout(() => {
+                            toast({
+                              title: "Can't open email app?",
+                              description: "Email us at support@joinexhiby.com",
+                              duration: 6000,
+                            });
+                          }, 1500);
                         }}
                         className="w-full flex items-center justify-between p-4 bg-carbon rounded-xl border border-border/30"
                       >
