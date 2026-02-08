@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
+import { openSupportEmail } from "@/lib/supportContact";
 import { navigateBack } from "@/lib/navigation";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
@@ -564,22 +565,7 @@ function HelpContent() {
   const [showBugModal, setShowBugModal] = useState(false);
 
   const handleContactSupport = () => {
-    triggerClickHaptic();
-    // Create a temporary anchor element to trigger mailto - most reliable cross-platform method
-    const link = document.createElement('a');
-    link.href = "mailto:support@joinexhiby.com?subject=Exhiby%20App%20Support&body=Hi%20Exhiby%20team%2C%20I%20need%20help%20with%3A";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Show fallback toast after a brief delay in case mailto didn't work
-    setTimeout(() => {
-      toast({
-        title: "Can't open email app?",
-        description: "Email us at support@joinexhiby.com",
-        duration: 6000,
-      });
-    }, 1500);
+    openSupportEmail();
   };
 
   return (
