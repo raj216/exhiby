@@ -3,9 +3,9 @@ import { toast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { triggerClickHaptic } from "@/lib/haptics";
 
-export const SUPPORT_EMAIL = "support@xbe.com";
-const SUPPORT_SUBJECT = "Xbe Support";
-const SUPPORT_BODY = "Hi Xbe team, I need help with: ";
+export const SUPPORT_EMAIL = "support@joinexhiby.com";
+const SUPPORT_SUBJECT = "Exhiby Support Request";
+const SUPPORT_BODY = "Hi Exhiby team, I need help with: ";
 
 export function getSupportMailtoLink(): string {
   const subject = encodeURIComponent(SUPPORT_SUBJECT);
