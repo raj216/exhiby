@@ -71,7 +71,7 @@ export function ClosedDoor({
       </motion.div>
 
       {/* Invitation line */}
-      <motion.p className="mt-2 mb-8 max-w-xs text-center text-sm md:text-base font-medium font-sans text-muted-foreground/80" initial={{
+      <motion.p className="mt-2 mb-8 max-w-xs text-center text-sm md:text-base font-medium font-sans text-muted-foreground" initial={{
       opacity: 0,
       y: 10
     }} animate={{
