@@ -632,6 +632,7 @@ export default function Chat() {
 
   return (
     <div className="min-h-screen bg-carbon flex flex-col overflow-x-hidden">
+     <div className="w-full max-w-[1200px] mx-auto lg:px-8 flex flex-col flex-1">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/30">
         <div
@@ -773,6 +774,7 @@ export default function Chat() {
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
       />
+     </div>
     </div>
   );
 }
