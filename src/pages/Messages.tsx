@@ -174,22 +174,23 @@ export default function Messages() {
 
   return (
     <div className="min-h-screen bg-carbon">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/30">
-        <div className="flex items-center gap-3 px-4 py-3" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
-          <motion.button
-            onClick={handleBack}
-            className="p-2 -ml-2 rounded-full hover:bg-white/5"
-            whileTap={{ scale: 0.95 }}
-          >
-            <ArrowLeft className="w-5 h-5 text-foreground" />
-          </motion.button>
-          <h1 className="font-display text-lg text-foreground">Messages</h1>
+      <div className="w-full max-w-[1200px] mx-auto lg:px-8">
+        {/* Header */}
+        <div className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/30">
+          <div className="flex items-center gap-3 px-4 py-3" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+            <motion.button
+              onClick={handleBack}
+              className="p-2 -ml-2 rounded-full hover:bg-white/5"
+              whileTap={{ scale: 0.95 }}
+            >
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </motion.button>
+            <h1 className="font-display text-lg text-foreground">Messages</h1>
+          </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-screen-md mx-auto">
+        {/* Content */}
+        <div>
         {isLoading ? (
           <ConversationsSkeleton />
         ) : error ? (
@@ -220,13 +221,14 @@ export default function Messages() {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConversationModal
-        open={deleteModalOpen}
-        onOpenChange={setDeleteModalOpen}
-        onConfirm={handleConfirmDelete}
-        isDeleting={isDeleting}
-      />
+        {/* Delete Confirmation Modal */}
+        <DeleteConversationModal
+          open={deleteModalOpen}
+          onOpenChange={setDeleteModalOpen}
+          onConfirm={handleConfirmDelete}
+          isDeleting={isDeleting}
+        />
+      </div>
     </div>
   );
 }
