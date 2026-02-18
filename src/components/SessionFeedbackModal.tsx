@@ -240,12 +240,22 @@ export function SessionFeedbackModal({
                 </div>
 
                 {/* Private Text Feedback */}
-                <Textarea
-                  placeholder="Tell us what felt off or what would make this better (private to Exhiby)..."
-                  value={privateFeedback}
-                  onChange={(e) => setPrivateFeedback(e.target.value)}
-                  className="min-h-[80px] bg-muted/30 border-border resize-none"
-                />
+                <div className="relative">
+                  <Textarea
+                    placeholder="Tell us what felt off or what would make this better (private to Exhiby)..."
+                    value={privateFeedback}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 500) setPrivateFeedback(e.target.value);
+                    }}
+                    maxLength={500}
+                    className="min-h-[80px] bg-muted/30 border-border resize-none"
+                  />
+                  {privateFeedback.length > 0 && (
+                    <span className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                      {privateFeedback.length}/500
+                    </span>
+                  )}
+                </div>
 
                 {/* Left Early Section */}
                 {leftEarly && (
