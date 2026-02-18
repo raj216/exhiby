@@ -154,10 +154,14 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
             <Textarea
               id="issue"
               value={issueText}
-              onChange={(e) => setIssueText(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length <= 1000) setIssueText(e.target.value);
+              }}
+              maxLength={1000}
               placeholder="Describe what happened..."
               className="bg-carbon border-border/30 min-h-[100px]"
             />
+            <span className="text-xs text-muted-foreground">{issueText.length}/1000</span>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
@@ -169,7 +173,10 @@ export function ReportBugModal({ isOpen, onClose }: ReportBugModalProps) {
             <Input
               id="page"
               value={page}
-              onChange={(e) => setPage(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length <= 100) setPage(e.target.value);
+              }}
+              maxLength={100}
               placeholder="e.g., Profile settings, Live room"
               className="bg-carbon border-border/30"
             />
