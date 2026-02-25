@@ -213,10 +213,10 @@ export function AudienceProfile({
           delay: 0.15
         }} className="mt-4">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl text-foreground font-bold">{displayName}</h1>
+              <h1 className="font-display text-2xl text-foreground font-bold">{displayHandle}</h1>
               {localProfile?.isVerified === true && <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />}
             </div>
-            <p className="text-muted-foreground text-sm mt-0.5">{displayHandle}</p>
+            <p className="text-muted-foreground text-sm mt-0.5">{displayName}</p>
             {displayBio && <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>}
           </motion.div>
 

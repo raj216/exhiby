@@ -5,6 +5,7 @@ interface ProfileHeaderProps {
   coverImage: string;
   avatarImage: string;
   name: string;
+  handle?: string | null;
   bio: string;
   isLive?: boolean;
   livePreviewUrl?: string;
@@ -26,6 +27,7 @@ export function ProfileHeader({
   coverImage,
   avatarImage,
   name,
+  handle,
   bio,
   isLive = false,
   livePreviewUrl,
@@ -101,11 +103,12 @@ export function ProfileHeader({
 
           <div className="flex-1 pb-2">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl text-foreground">{name}</h1>
+              <h1 className="font-display text-2xl text-foreground">{handle ? `@${handle}` : name}</h1>
               {isVerified && (
                 <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
               )}
             </div>
+            <p className="text-sm text-muted-foreground mt-0.5">{name}</p>
             <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
               {bio}
             </p>

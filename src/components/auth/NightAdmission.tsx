@@ -2,9 +2,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClosedDoor } from "./ClosedDoor";
 import { GlassCard } from "./GlassCard";
+import { PassportModal } from "./PassportModal";
 import { PassportStamp } from "./PassportStamp";
 
-export type AuthStep = "door" | "signup" | "login" | "stamping";
+export type AuthStep = "door" | "signup" | "login" | "passport" | "stamping";
 
 interface NightAdmissionProps {
   onComplete: () => void;
@@ -25,6 +26,16 @@ export function NightAdmission({ onComplete }: NightAdmissionProps) {
 
   const handleAuthSuccess = (name: string) => {
     setUserName(name);
+    if (name) {
+      // Signup flow: show passport modal to claim handle (photo optional)
+      setStep("passport");
+    } else {
+      // Login flow: show stamp animation then enter
+      setStep("stamping");
+    }
+  };
+
+  const handlePassportComplete = () => {
     setStep("stamping");
   };
 
@@ -67,6 +78,14 @@ export function NightAdmission({ onComplete }: NightAdmissionProps) {
             mode={step}
             onSuccess={handleAuthSuccess}
             onClose={handleCloseCard}
+          />
+        )}
+
+        {step === "passport" && (
+          <PassportModal
+            key="passport-modal"
+            userName={userName}
+            onComplete={handlePassportComplete}
           />
         )}
 

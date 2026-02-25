@@ -26,6 +26,7 @@ async function ensureProfileExists(user: User) {
       const { error } = await supabase.from("profiles").insert({
         user_id: user.id,
         name: user.user_metadata?.name || user.user_metadata?.full_name || "Guest",
+        handle: user.user_metadata?.handle || null,
       });
 
       if (error && !error.message.includes("duplicate")) {

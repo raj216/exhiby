@@ -442,10 +442,10 @@ export default function PublicProfile() {
             className="mt-4"
           >
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl text-foreground font-bold">{profile.name}</h1>
+              <h1 className="font-display text-2xl text-foreground font-bold">{profile.handle ? `@${profile.handle}` : profile.name}</h1>
               {profile.is_verified === true && <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />}
             </div>
-            {profile.handle && <p className="text-muted-foreground text-sm mt-0.5">@{profile.handle}</p>}
+            <p className="text-muted-foreground text-sm mt-0.5">{profile.name}</p>
             {profile.bio ? (
               <p className="text-foreground/80 text-sm mt-2">{profile.bio}</p>
             ) : (
