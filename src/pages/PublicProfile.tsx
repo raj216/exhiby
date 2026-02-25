@@ -303,7 +303,7 @@ export default function PublicProfile() {
 
   useEffect(() => {
     if (!profile) return;
-    const baseTitle = profile.handle ? `${profile.name} (@${profile.handle})` : profile.name;
+    const baseTitle = profile.handle ? `${profile.name} (${profile.handle})` : profile.name;
     const title = `${baseTitle}${isLive ? " is Live" : ""} | Exhiby`;
     document.title = title.slice(0, 60);
     const desc = `View ${profile.name}'s profile${isLive ? " and join their live stream" : ""} on Exhiby. Explore their portfolio and follow for future live sessions.`;
@@ -442,7 +442,7 @@ export default function PublicProfile() {
             className="mt-4"
           >
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl text-foreground font-bold">{profile.handle ? `@${profile.handle}` : profile.name}</h1>
+              <h1 className="font-display text-2xl text-foreground font-bold">{profile.handle ? profile.handle : profile.name}</h1>
               {profile.is_verified === true && <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />}
             </div>
             <p className="text-muted-foreground text-sm mt-0.5">{profile.name}</p>

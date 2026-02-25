@@ -67,7 +67,7 @@ function ConversationRow({
             )}
           </div>
           {conversation.other_user_handle && (
-            <p className="text-xs text-muted-foreground truncate">@{conversation.other_user_handle}</p>
+            <p className="text-xs text-muted-foreground truncate">{conversation.other_user_handle}</p>
           )}
           {conversation.last_message_content && (
             <p className={`text-sm truncate mt-0.5 ${conversation.unread_count > 0 ? "text-foreground/80" : "text-muted-foreground"}`}>

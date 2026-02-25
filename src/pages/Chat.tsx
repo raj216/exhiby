@@ -685,7 +685,7 @@ export default function Chat() {
                     )}
                   </div>
                   {otherUser.handle && (
-                    <p className="text-xs text-muted-foreground truncate">@{otherUser.handle}</p>
+                    <p className="text-xs text-muted-foreground truncate">{otherUser.handle}</p>
                   )}
                 </div>
               </button>
