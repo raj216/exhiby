@@ -61,15 +61,12 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
       
       try {
         const { data, error } = await supabase
-          .from("profiles")
-          .select("handle, user_id")
-          .ilike("handle", handle)
-          .maybeSingle();
+          .rpc("get_public_profile_by_handle", { target_handle: handle });
 
         if (error) throw error;
 
         // If the handle exists but belongs to the current user, it's still available
-        if (data && data.user_id !== user?.id) {
+        if (data && data.length > 0 && data[0].user_id !== user?.id) {
           setHandleError("Handle not available");
           setHandleAvailable(false);
         } else {

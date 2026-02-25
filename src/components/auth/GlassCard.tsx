@@ -64,14 +64,11 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       setIsCheckingUsername(true);
       try {
         const { data, error } = await supabase
-          .from("profiles")
-          .select("handle")
-          .ilike("handle", username)
-          .maybeSingle();
+          .rpc("get_public_profile_by_handle", { target_handle: username });
 
         if (error) throw error;
 
-        if (data) {
+        if (data && data.length > 0) {
           setUsernameError("Username already taken");
           setUsernameAvailable(false);
         } else {
