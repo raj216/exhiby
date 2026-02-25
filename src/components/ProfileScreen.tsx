@@ -7,6 +7,7 @@ import { ProfilePageSkeleton } from "./ui/loading-skeletons";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useProfile } from "@/hooks/useProfile";
+import { ModeSwitchToast } from "./ModeSwitchToast";
 
 interface ProfileScreenProps {
   onBack: () => void;
@@ -20,18 +21,20 @@ export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey
   const [showVerification, setShowVerification] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const { profile, isLoading: profileLoading } = useProfile();
+  const [toastMode, setToastMode] = useState<"creator" | "audience" | null>(null);
 
   const handleSwitchMode = () => {
-    // Always allow switching back to Audience. Only gate switching *into* Creator.
     if (mode === "audience" && !isVerifiedCreator) return;
 
     triggerClickHaptic();
     setIsFlipping(true);
 
-    // Start flip animation
+    const nextMode = mode === "creator" ? "audience" : "creator";
+
     setTimeout(() => {
       toggleMode();
-    }, 150); // Switch at midpoint of flip
+      setToastMode(nextMode);
+    }, 150);
 
     setTimeout(() => {
       setIsFlipping(false);
@@ -107,6 +110,8 @@ export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey
         onClose={() => setShowVerification(false)}
         onComplete={handleVerificationComplete}
       />
+
+      <ModeSwitchToast mode={toastMode} onDone={() => setToastMode(null)} />
     </>
   );
 }
