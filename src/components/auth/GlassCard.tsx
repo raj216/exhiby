@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Loader2, Eye, EyeOff, Lock } from "lucide-react";
+import { X, Loader2, Eye, EyeOff, Lock, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -14,16 +14,79 @@ interface GlassCardProps {
 const emailSchema = z.string().email("Please enter a valid email");
 const nameSchema = z.string().min(1, "Please enter your name").max(100);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+const usernameSchema = z
+  .string()
+  .min(3, "Username must be at least 3 characters")
+  .max(20, "Username must be at most 20 characters")
+  .regex(/^[a-z0-9_.]+$/, "Use letters, numbers, _ or . only");
 
 export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
 
+  // Username validation state
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameAvailable, setUsernameAvailable] = useState(false);
+
   const isSignup = mode === "signup";
+
+  // Normalize username input
+  const handleUsernameChange = (value: string) => {
+    const normalized = value.toLowerCase().replace(/\s/g, "").replace(/[^a-z0-9_.]/g, "");
+    setUsername(normalized);
+  };
+
+  // Debounced username availability check
+  useEffect(() => {
+    if (!isSignup) return;
+
+    setUsernameAvailable(false);
+    setUsernameError(null);
+
+    if (!username || username.length < 3) {
+      if (username.length > 0) setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+
+    const result = usernameSchema.safeParse(username);
+    if (!result.success) {
+      setUsernameError(result.error.errors[0].message);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingUsername(true);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("handle")
+          .ilike("handle", username)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setUsernameError("Username already taken");
+          setUsernameAvailable(false);
+        } else {
+          setUsernameAvailable(true);
+          setUsernameError(null);
+        }
+      } catch {
+        setUsernameError("Could not verify username");
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username, isSignup]);
 
   const handleSubmit = async () => {
     try {
@@ -46,6 +109,17 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
           toast.error(nameResult.error.errors[0].message);
           return;
         }
+
+        const usernameResult = usernameSchema.safeParse(username);
+        if (!usernameResult.success) {
+          toast.error(usernameResult.error.errors[0].message);
+          return;
+        }
+
+        if (!usernameAvailable) {
+          toast.error("Please choose an available username");
+          return;
+        }
       }
 
       setIsLoading(true);
@@ -61,19 +135,23 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
             data: {
               name: name,
               full_name: name,
+              handle: username,
             },
           },
         });
 
         if (error) {
           if (error.message.includes("already registered")) {
-            toast.error("This email is already registered. Try signing in instead.");
+            toast.error("An account with this email already exists. Please sign in.");
           } else {
             toast.error(error.message);
           }
           return;
         }
 
+        // Update the profile with the handle right after signup
+        // The profile is created by the trigger, we need to update it with the handle
+        // We'll do this via metadata and the passport modal will also set it
         toast.success("Account created! You can now sign in.");
         onSuccess(name);
       } else {
@@ -110,7 +188,6 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       }
 
       setIsLoading(true);
-      // Redirect to /auth for password reset flow
       const redirectUrl = `${window.location.origin}/auth`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -159,7 +236,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
         <div className="absolute inset-0 backdrop-blur-2xl bg-card/80 border border-border/30" />
         
         {/* Content */}
-        <div className="relative z-10 p-6 md:p-8">
+        <div className="relative z-10 p-6 md:p-8 max-h-[90vh] overflow-y-auto">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -210,6 +287,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
             <>
               {/* Form Fields */}
               <div className="space-y-4 mb-6">
+                {/* 1. Display Name */}
                 {isSignup && (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -230,6 +308,50 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                   </motion.div>
                 )}
 
+                {/* 2. Username (NEW - signup only) */}
+                {isSignup && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.18 }}
+                  >
+                    <label className="block text-sm text-muted-foreground mb-2">
+                      Username
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        @
+                      </span>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => handleUsernameChange(e.target.value)}
+                        placeholder="exhiby"
+                        className="premium-input pl-8 pr-10"
+                        maxLength={20}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {isCheckingUsername && (
+                          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                        )}
+                        {!isCheckingUsername && usernameAvailable && (
+                          <Check className="w-4 h-4 text-electric" />
+                        )}
+                        {!isCheckingUsername && usernameError && username.length >= 3 && (
+                          <X className="w-4 h-4 text-destructive" />
+                        )}
+                      </div>
+                    </div>
+                    {usernameError && (
+                      <p className="mt-1 text-xs text-destructive">{usernameError}</p>
+                    )}
+                    {usernameAvailable && !isCheckingUsername && (
+                      <p className="mt-1 text-xs text-electric">Username available!</p>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* 3. Email */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -248,6 +370,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                   />
                 </motion.div>
 
+                {/* 4. Password */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
