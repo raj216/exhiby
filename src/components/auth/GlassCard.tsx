@@ -28,6 +28,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Username validation state
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
@@ -86,6 +87,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
   }, [username, isSignup]);
 
   const handleSubmit = async () => {
+    setFormError(null);
     try {
       // Validate inputs
       const emailResult = emailSchema.safeParse(email);
@@ -124,7 +126,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       const redirectUrl = `${window.location.origin}/`;
 
       if (isSignup) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -138,11 +140,19 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
         });
 
         if (error) {
-          if (error.message.includes("already registered")) {
-            toast.error("An account with this email already exists. Please sign in.");
+          console.error("[GlassCard] Signup error:", error.message, error);
+          if (error.message.includes("already registered") || error.message.includes("already_exists")) {
+            setFormError("An account with this email already exists. Please sign in.");
           } else {
-            toast.error(error.message);
+            setFormError(error.message);
           }
+          return;
+        }
+
+        // Check for fake user (duplicate signup with email confirmation enabled)
+        // Supabase may return a user object with identities array empty for duplicate emails
+        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+          toast.error("An account with this email already exists. Please sign in.");
           return;
         }
 
@@ -430,7 +440,17 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                 )}
               </motion.button>
 
-              {/* Switch mode */}
+              {/* Inline form error */}
+              {formError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-center text-sm text-destructive mt-3"
+                >
+                  {formError}
+                </motion.p>
+              )}
+
               <motion.p
                 className="text-center mt-6 text-sm text-muted-foreground"
                 initial={{ opacity: 0 }}

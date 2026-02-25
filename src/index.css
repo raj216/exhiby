@@ -530,3 +530,8 @@
     transform: scale(0.99);
   }
 }
+
+/* Ensure Sonner toasts appear above auth overlays */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
+}
