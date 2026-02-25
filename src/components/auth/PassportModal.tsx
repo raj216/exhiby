@@ -22,16 +22,18 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Auto-generate handle from userName on mount
+  // Auto-generate handle from userName on mount, or use handle from user metadata
   useEffect(() => {
-    if (userName) {
+    if (user?.user_metadata?.handle) {
+      setHandle(user.user_metadata.handle);
+    } else if (userName) {
       const generatedHandle = userName
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, "")
+        .replace(/[^a-z0-9_.]/g, "")
         .slice(0, 20);
       setHandle(generatedHandle);
     }
-  }, [userName]);
+  }, [userName, user]);
 
   // Debounced handle validation
   useEffect(() => {
@@ -41,8 +43,14 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
       return;
     }
 
-    if (!/^[a-z0-9_]+$/.test(handle)) {
-      setHandleError("Only lowercase letters, numbers, and underscores");
+    if (!/^[a-z0-9_.]+$/.test(handle)) {
+      setHandleError("Use letters, numbers, _ or . only");
+      setHandleAvailable(false);
+      return;
+    }
+
+    if (handle.length > 20) {
+      setHandleError("Handle must be at most 20 characters");
       setHandleAvailable(false);
       return;
     }
@@ -61,7 +69,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
         if (error) throw error;
 
         if (data) {
-          setHandleError("This handle is taken");
+          setHandleError("Handle not available");
           setHandleAvailable(false);
         } else {
           setHandleAvailable(true);
@@ -83,13 +91,11 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image must be less than 5MB");
       return;
@@ -104,33 +110,40 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
   };
 
   const handleSubmit = async () => {
-    if (!avatarFile || !handleAvailable || !user) return;
+    if (!handleAvailable || !user) return;
 
     setIsSubmitting(true);
 
     try {
-      // Upload avatar to storage
-      const fileExt = avatarFile.name.split(".").pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
+      let avatarUrl: string | undefined;
 
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, avatarFile, { upsert: true });
+      // Upload avatar only if a file was selected (optional)
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split(".").pop();
+        const fileName = `${user.id}/avatar.${fileExt}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(fileName, avatarFile, { upsert: true });
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(fileName);
+        if (uploadError) throw uploadError;
 
-      // Update profile with avatar and handle
+        const { data: urlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(fileName);
+
+        avatarUrl = urlData.publicUrl;
+      }
+
+      // Update profile with handle and optionally avatar
+      const updateData: Record<string, string> = { handle };
+      if (avatarUrl) {
+        updateData.avatar_url = avatarUrl;
+      }
+
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({
-          avatar_url: urlData.publicUrl,
-          handle: handle,
-        })
+        .update(updateData)
         .eq("user_id", user.id);
 
       if (updateError) throw updateError;
@@ -138,7 +151,6 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
       // Show success animation
       setShowSuccess(true);
       
-      // Wait for animation then complete
       setTimeout(() => {
         onComplete();
       }, 1500);
@@ -149,7 +161,8 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
     }
   };
 
-  const canSubmit = avatarFile && handleAvailable && !isCheckingHandle && !isSubmitting;
+  // Photo is now optional - only handle availability is required
+  const canSubmit = handleAvailable && !isCheckingHandle && !isSubmitting;
 
   return (
     <motion.div
@@ -174,7 +187,6 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
           >
-            {/* Success stamp animation */}
             <motion.div
               className="w-32 h-32 rounded-full border-4 border-primary flex items-center justify-center"
               initial={{ rotate: -20, scale: 0 }}
@@ -220,11 +232,11 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                   Finish Your Passport
                 </h2>
                 <p className="text-muted-foreground text-sm">
-                  Every member needs a face and a handle.
+                  Add a photo and claim your handle.
                 </p>
               </motion.div>
 
-              {/* Photo Upload */}
+              {/* Photo Upload (Optional) */}
               <motion.div
                 className="flex flex-col items-center mb-8"
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -260,7 +272,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                   className="hidden"
                 />
                 <p className="mt-3 text-sm text-muted-foreground">
-                  {avatarPreview ? "Tap to change" : "Tap to add photo"}
+                  {avatarPreview ? "Tap to change" : "Tap to add photo (optional)"}
                 </p>
               </motion.div>
 
@@ -281,7 +293,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                   <input
                     type="text"
                     value={handle}
-                    onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                    onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
                     placeholder="yourhandle"
                     className="premium-input pl-8"
                     maxLength={20}
@@ -326,7 +338,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  "Stamp Passport & Enter"
+                  "Enter"
                 )}
               </motion.button>
             </div>
