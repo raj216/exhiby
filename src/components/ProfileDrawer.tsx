@@ -108,10 +108,10 @@ export function ProfileDrawer({
                   </div>
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">{displayName}</h2>
-                  {profile?.handle && (
-                    <p className="text-sm text-muted-foreground">@{profile.handle}</p>
-                  )}
+                  <h2 className="text-lg font-semibold text-white">
+                    {profile?.handle ? `@${profile.handle}` : displayName}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{displayName}</p>
                   <p className="text-xs text-muted-foreground capitalize mt-0.5">{mode} Mode</p>
                 </div>
               </div>
