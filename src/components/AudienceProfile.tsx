@@ -120,7 +120,7 @@ export function AudienceProfile({
 
   // CRITICAL: Do NOT fall back to "Guest" if user is authenticated and profile is loading/missing
   const displayName = localProfile?.name || (user ? "Loading..." : fallbackUser.name);
-  const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : user ? "@..." : fallbackUser.username;
+  const displayHandle = localProfile?.handle ? localProfile.handle : user ? "..." : fallbackUser.username;
   const displayMemberSince = localProfile?.memberSince || (user ? "..." : fallbackUser.memberSince);
   const displayBio = localProfile?.bio;
   const [activeTab, setActiveTab] = useState<TabType>("tickets");

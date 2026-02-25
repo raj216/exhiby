@@ -285,15 +285,12 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                   Claim your Handle
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    @
-                  </span>
                   <input
                     type="text"
                     value={handle}
                     onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
                     placeholder="yourhandle"
-                    className="premium-input pl-8"
+                    className="premium-input"
                     maxLength={20}
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2">

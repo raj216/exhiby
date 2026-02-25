@@ -326,15 +326,12 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                       Username
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        @
-                      </span>
                       <input
                         type="text"
                         value={username}
                         onChange={(e) => handleUsernameChange(e.target.value)}
                         placeholder="exhiby"
-                        className="premium-input pl-8 pr-10"
+                        className="premium-input pr-10"
                         maxLength={20}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">

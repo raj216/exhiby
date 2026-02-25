@@ -103,7 +103,7 @@ export function ProfileHeader({
 
           <div className="flex-1 pb-2">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl text-foreground">{handle ? `@${handle}` : name}</h1>
+              <h1 className="font-display text-2xl text-foreground">{handle ? handle : name}</h1>
               {isVerified && (
                 <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />
               )}

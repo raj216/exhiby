@@ -161,7 +161,7 @@ export function StudioDashboard({
 
   // Use real profile data or fallback
   const displayName = localProfile?.name || fallbackCreator.name;
-  const displayHandle = localProfile?.handle ? `@${localProfile.handle}` : "";
+  const displayHandle = localProfile?.handle ? localProfile.handle : "";
   const displayMemberSince = localProfile?.memberSince || fallbackCreator.memberSince;
   const displayAvatar = localProfile?.avatarUrl;
   const displayCover = localProfile?.coverUrl;

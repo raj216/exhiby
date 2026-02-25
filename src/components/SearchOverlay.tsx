@@ -360,7 +360,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                               )}
                             </div>
                             {topHit.handle && (
-                              <span className="text-sm text-muted-foreground">@{topHit.handle}</span>
+                              <span className="text-sm text-muted-foreground">{topHit.handle}</span>
                             )}
                             {topHit.bio && (
                               <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">{topHit.bio}</p>
@@ -407,7 +407,7 @@ export function SearchOverlay({ isOpen, onClose, onSelectArtist, onJoinLive, onS
                                   )}
                                 </div>
                                 {profile.handle && (
-                                  <span className="block text-xs text-muted-foreground truncate">@{profile.handle}</span>
+                                  <span className="block text-xs text-muted-foreground truncate">{profile.handle}</span>
                                 )}
                               </div>
                             </button>
