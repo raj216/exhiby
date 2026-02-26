@@ -766,27 +766,39 @@ export type Database = {
       }
       tickets: {
         Row: {
+          amount: number | null
           attended_at: string | null
           created_at: string
+          currency: string | null
           event_id: string
           id: string
+          payment_status: string
           purchased_at: string
+          stripe_checkout_session_id: string | null
           user_id: string
         }
         Insert: {
+          amount?: number | null
           attended_at?: string | null
           created_at?: string
+          currency?: string | null
           event_id: string
           id?: string
+          payment_status?: string
           purchased_at?: string
+          stripe_checkout_session_id?: string | null
           user_id: string
         }
         Update: {
+          amount?: number | null
           attended_at?: string | null
           created_at?: string
+          currency?: string | null
           event_id?: string
           id?: string
+          payment_status?: string
           purchased_at?: string
+          stripe_checkout_session_id?: string | null
           user_id?: string
         }
         Relationships: [
