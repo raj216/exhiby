@@ -17,7 +17,7 @@ export const featureFlags = {
    * 
    * Set to true once Stripe is properly integrated
    */
-  paymentsEnabled: false,
+  paymentsEnabled: true,
   
   /**
    * Check if paid events should be allowed
