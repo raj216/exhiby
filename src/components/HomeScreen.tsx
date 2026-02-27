@@ -546,7 +546,7 @@ export function HomeScreen({
       {portalEvent && <PaymentDrawer isOpen={showPaymentDrawer} onClose={() => {
       setShowPaymentDrawer(false);
       setPortalEvent(null);
-    }} onPaymentSuccess={handlePaymentSuccess} price={portalEvent.price} eventTitle={portalEvent.title} artistName={portalEvent.artistName} coverImage={portalEvent.coverImage} />}
+    }} onPaymentSuccess={handlePaymentSuccess} price={portalEvent.price} eventTitle={portalEvent.title} artistName={portalEvent.artistName} coverImage={portalEvent.coverImage} eventId={portalEvent.id} isFree={portalEvent.price <= 0} />}
 
       <AnimatePresence>
         {showLiveRoom && portalEvent && <LiveStudioView room={{

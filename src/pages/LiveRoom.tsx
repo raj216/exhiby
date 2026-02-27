@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AlertCircle, Loader2, MicOff, VideoOff, Clock, Calendar, Radio, Bell, BellRing, Users, Palette } from "lucide-react";
 import { format, isPast, formatDistanceToNowStrict } from "date-fns";
@@ -58,6 +58,7 @@ interface EventData {
 export default function LiveRoom() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, session } = useAuth();
   const { profile } = useProfile();
   const isMobile = useIsMobile();
@@ -109,12 +110,27 @@ export default function LiveRoom() {
     hasValidTicket, 
     isLoading: ticketLoading, 
     purchaseTicket,
-    markAttended 
+    markAttended,
+    refetch: refetchTicket,
   } = useEventTicket(eventId || null, user?.id);
   
   // Check if event requires payment and user doesn't have ticket
   // When payments are disabled via feature flag, no event requires payment
   const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && event.price > 0 && !isCreator && !hasValidTicket;
+
+  // Handle Stripe redirect query params
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      toast.success("Payment successful!", { description: "Your ticket is being confirmed..." });
+      // Refetch ticket to pick up webhook confirmation
+      refetchTicket();
+      setSearchParams({}, { replace: true });
+    } else if (paymentStatus === "canceled") {
+      toast.error("Payment canceled", { description: "You can try again when ready." });
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Live chat from database with realtime
   // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
@@ -749,6 +765,8 @@ export default function LiveRoom() {
           eventTitle={event.title}
           artistName={event.creator?.name || "Unknown Artist"}
           coverImage={event.cover_url || "/placeholder.svg"}
+          eventId={event.id}
+          isFree={event.is_free}
         />
       </div>
     );
