@@ -184,6 +184,42 @@ export type Database = {
           },
         ]
       }
+      creator_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          creator_id: string
+          currency: string
+          id: string
+          status: string
+          stripe_payout_id: string | null
+          stripe_transfer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          creator_id: string
+          currency?: string
+          id?: string
+          status?: string
+          stripe_payout_id?: string | null
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          id?: string
+          status?: string
+          stripe_payout_id?: string | null
+          stripe_transfer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       event_rooms: {
         Row: {
           created_at: string
@@ -620,6 +656,7 @@ export type Database = {
           is_founding_member: boolean | null
           is_verified: boolean
           name: string
+          stripe_connected_account_id: string | null
           updated_at: string
           user_id: string
           verified_at: string | null
@@ -636,6 +673,7 @@ export type Database = {
           is_founding_member?: boolean | null
           is_verified?: boolean
           name: string
+          stripe_connected_account_id?: string | null
           updated_at?: string
           user_id: string
           verified_at?: string | null
@@ -652,6 +690,7 @@ export type Database = {
           is_founding_member?: boolean | null
           is_verified?: boolean
           name?: string
+          stripe_connected_account_id?: string | null
           updated_at?: string
           user_id?: string
           verified_at?: string | null

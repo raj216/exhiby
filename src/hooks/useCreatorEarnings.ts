@@ -18,6 +18,8 @@ export interface CreatorEarningsData {
   lifetimeEarnings: number; // cents
   thisMonthEarnings: number; // cents
   lastMonthEarnings: number; // cents
+  totalPaidOut: number; // cents
+  availableToPayout: number; // cents
   transactions: EarningRecord[];
 }
 
@@ -26,24 +28,29 @@ export function useCreatorEarnings(userId: string | undefined) {
     queryKey: ["creator-earnings", userId],
     queryFn: async (): Promise<CreatorEarningsData> => {
       if (!userId) {
-        return { lifetimeEarnings: 0, thisMonthEarnings: 0, lastMonthEarnings: 0, transactions: [] };
+        return { lifetimeEarnings: 0, thisMonthEarnings: 0, lastMonthEarnings: 0, totalPaidOut: 0, availableToPayout: 0, transactions: [] };
       }
 
-      // Fetch all earnings for this creator
-      const { data: earnings, error } = await supabase
-        .from("creator_earnings")
-        .select("id, event_id, user_id, amount_gross, platform_fee, amount_net, currency, created_at, status")
-        .eq("creator_id", userId)
-        .eq("status", "succeeded")
-        .order("created_at", { ascending: false });
+      // Fetch earnings and payouts in parallel
+      const [earningsRes, payoutsRes] = await Promise.all([
+        supabase
+          .from("creator_earnings")
+          .select("id, event_id, user_id, amount_gross, platform_fee, amount_net, currency, created_at, status")
+          .eq("creator_id", userId)
+          .eq("status", "succeeded")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("creator_payouts")
+          .select("amount, status")
+          .eq("creator_id", userId)
+          .in("status", ["pending", "paid"]),
+      ]);
 
-      if (error) {
-        console.error("[useCreatorEarnings] Error:", error);
-        return { lifetimeEarnings: 0, thisMonthEarnings: 0, lastMonthEarnings: 0, transactions: [] };
-      }
+      const earnings = earningsRes.data || [];
+      const payouts = payoutsRes.data || [];
 
-      if (!earnings || earnings.length === 0) {
-        return { lifetimeEarnings: 0, thisMonthEarnings: 0, lastMonthEarnings: 0, transactions: [] };
+      if (earnings.length === 0) {
+        return { lifetimeEarnings: 0, thisMonthEarnings: 0, lastMonthEarnings: 0, totalPaidOut: 0, availableToPayout: 0, transactions: [] };
       }
 
       // Get event titles
@@ -55,7 +62,6 @@ export function useCreatorEarnings(userId: string | undefined) {
 
       const eventMap = new Map((events || []).map(e => [e.id, e.title]));
 
-      // Calculate month boundaries in UTC
       const now = new Date();
       const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
       const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
@@ -65,7 +71,6 @@ export function useCreatorEarnings(userId: string | undefined) {
       let thisMonthEarnings = 0;
       let lastMonthEarnings = 0;
 
-      // Group by event for transaction list
       const eventGroupMap = new Map<string, EarningRecord>();
 
       for (const e of earnings) {
@@ -79,7 +84,6 @@ export function useCreatorEarnings(userId: string | undefined) {
           lastMonthEarnings += netCents;
         }
 
-        // Group by event
         if (eventGroupMap.has(e.event_id)) {
           const existing = eventGroupMap.get(e.event_id)!;
           existing.amount_gross += e.amount_gross || 0;
@@ -102,11 +106,14 @@ export function useCreatorEarnings(userId: string | undefined) {
         }
       }
 
+      const totalPaidOut = payouts.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const availableToPayout = Math.max(0, lifetimeEarnings - totalPaidOut);
+
       const transactions = Array.from(eventGroupMap.values()).sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      return { lifetimeEarnings, thisMonthEarnings, lastMonthEarnings, transactions };
+      return { lifetimeEarnings, thisMonthEarnings, lastMonthEarnings, totalPaidOut, availableToPayout, transactions };
     },
     enabled: !!userId,
     staleTime: 30_000,
