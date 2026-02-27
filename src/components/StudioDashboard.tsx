@@ -10,6 +10,7 @@ import { FollowListModal } from "./FollowListModal";
 import { ShareStudioModal } from "./ShareStudioModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { useFollowStats } from "@/hooks/useFollowStats";
 import { useCreatorRatings } from "@/hooks/useCreatorRatings";
@@ -66,8 +67,10 @@ export function StudioDashboard({
     user
   } = useAuth();
   const {
-    analytics
-  } = useMonthlyAnalytics(user?.id);
+    data: earningsData
+  } = useCreatorEarnings(user?.id);
+  const { analytics } = useMonthlyAnalytics(user?.id);
+  const lifetimeEarningsDollars = ((earningsData?.lifetimeEarnings || 0) / 100);
   const {
     stats: followStats
   } = useFollowStats(user?.id);
@@ -371,10 +374,10 @@ export function StudioDashboard({
           }} className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-5 h-5 text-gold" />
-                <span className="text-sm text-muted-foreground">This Month</span>
+                <span className="text-sm text-muted-foreground">Earnings</span>
               </div>
               <p className="font-display text-3xl text-gold">
-                {showEarnings ? `$${analytics.totalEarnings.toLocaleString()}` : "••••"}
+                {showEarnings ? `$${lifetimeEarningsDollars.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "••••"}
               </p>
             </motion.button> : <div className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left">
               <div className="flex items-center gap-2 mb-3">

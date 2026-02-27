@@ -1,19 +1,22 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Calendar, Clock, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
+import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
 import { triggerClickHaptic } from "@/lib/haptics";
 import featureFlags from "@/lib/featureFlags";
+
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function EarningsHistory() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { analytics, loading } = useMonthlyAnalytics(user?.id);
+  const { data: earnings, isLoading: loading } = useCreatorEarnings(user?.id);
 
-  // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth", { replace: true });
@@ -32,6 +35,8 @@ export default function EarningsHistory() {
       </div>
     );
   }
+
+  const data = earnings || { lifetimeEarnings: 0, thisMonthEarnings: 0, lastMonthEarnings: 0, transactions: [] };
 
   return (
     <motion.div
@@ -54,7 +59,7 @@ export default function EarningsHistory() {
         </div>
       </div>
 
-      {/* Hero Section */}
+      {/* Hero - Lifetime Total */}
       <div className="px-4 py-8 border-b border-border/30 bg-obsidian/50">
         <div className="max-w-screen-xl mx-auto">
           <div className="flex items-center gap-3 mb-2">
@@ -62,33 +67,58 @@ export default function EarningsHistory() {
               <DollarSign className="w-6 h-6 text-gold" />
             </div>
           </div>
-          <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
+          <p className="text-sm text-muted-foreground mb-1">Lifetime Earnings</p>
           <p className="font-display text-5xl text-gold mb-2">
-            ${analytics.totalEarnings.toLocaleString()}
+            {formatCents(data.lifetimeEarnings)}
           </p>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(), "MMMM yyyy")}
-          </p>
-          
-          {/* Payout CTA - Hidden when payments disabled */}
+
+          {/* Month breakdowns */}
+          <div className="grid grid-cols-2 gap-3 mt-6">
+            <div className="bg-carbon/60 rounded-2xl p-4 border border-border/20">
+              <p className="text-xs text-muted-foreground mb-1">This Month</p>
+              <p className="font-display text-xl text-foreground">
+                {formatCents(data.thisMonthEarnings)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {format(new Date(), "MMMM yyyy")}
+              </p>
+            </div>
+            <div className="bg-carbon/60 rounded-2xl p-4 border border-border/20">
+              <p className="text-xs text-muted-foreground mb-1">Last Month</p>
+              <p className="font-display text-xl text-foreground">
+                {formatCents(data.lastMonthEarnings)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {format(new Date(new Date().getFullYear(), new Date().getMonth() - 1), "MMMM yyyy")}
+              </p>
+            </div>
+          </div>
+
+          {/* Payout Section */}
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="bg-carbon/60 rounded-2xl p-4 border border-border/20">
+              <p className="text-xs text-muted-foreground mb-1">Available to Payout</p>
+              <p className="font-display text-lg text-gold">
+                {formatCents(data.lifetimeEarnings)}
+              </p>
+            </div>
+            <div className="bg-carbon/60 rounded-2xl p-4 border border-border/20">
+              <p className="text-xs text-muted-foreground mb-1">Pending</p>
+              <p className="font-display text-lg text-muted-foreground">
+                {formatCents(0)}
+              </p>
+            </div>
+          </div>
+
+          {/* Payout CTA */}
           {featureFlags.paymentsEnabled ? (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              className="mt-6 w-full py-4 rounded-2xl font-semibold text-obsidian"
-              style={{
-                background: "linear-gradient(135deg, hsl(43 72% 52%), hsl(38 80% 45%))",
-              }}
-            >
-              Payout
-            </motion.button>
-          ) : (
             <div className="mt-6 w-full py-4 rounded-2xl bg-muted/30 border border-border/40 text-center">
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm font-medium">Payouts coming soon</span>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -97,51 +127,60 @@ export default function EarningsHistory() {
         <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-4">
           Transactions
         </p>
-        
-        {analytics.sessionBreakdowns.length === 0 ? (
+
+        {data.transactions.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4">
               <DollarSign className="w-8 h-8 text-muted-foreground/50" />
             </div>
-            <p className="text-muted-foreground">No earnings this month yet</p>
+            <p className="text-muted-foreground">No earnings yet</p>
             <p className="text-sm text-muted-foreground/70 mt-1">
-              Start hosting sessions to earn
+              Start hosting paid sessions to earn
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {analytics.sessionBreakdowns.map((session) => (
+            {data.transactions.map((tx) => (
               <div
-                key={session.eventId}
-                className="flex items-center gap-4 py-4 px-4 bg-obsidian rounded-2xl border border-border/20"
+                key={tx.id}
+                className="py-4 px-4 bg-obsidian rounded-2xl border border-border/20"
               >
-                {/* Icon */}
-                <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center flex-shrink-0">
-                  <Ticket className="w-5 h-5 text-gold" />
-                </div>
-                
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-foreground font-medium truncate">
-                    {session.title}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Calendar className="w-3 h-3 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(session.date), "MMM d, yyyy")}
+                <div className="flex items-center gap-4">
+                  {/* Icon */}
+                  <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center flex-shrink-0">
+                    <Ticket className="w-5 h-5 text-gold" />
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-foreground font-medium truncate">
+                      {tx.event_title}
                     </p>
-                    <span className="text-muted-foreground/50">•</span>
-                    <p className="text-xs text-muted-foreground">
-                      {session.ticketCount} ticket{session.ticketCount !== 1 ? "s" : ""}
+                    <div className="flex items-center gap-2 mt-1">
+                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(tx.created_at), "MMM d, yyyy")}
+                      </p>
+                      <span className="text-muted-foreground/50">•</span>
+                      <p className="text-xs text-muted-foreground">
+                        {tx.ticket_count} attendee{tx.ticket_count !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Amount */}
+                  <div className="text-right">
+                    <p className="font-display text-lg text-gold">
+                      +{formatCents(tx.amount_net)}
                     </p>
                   </div>
                 </div>
-                
-                {/* Amount */}
-                <div className="text-right">
-                  <p className="font-display text-lg text-gold">
-                    +${session.earnings.toLocaleString()}
-                  </p>
+
+                {/* Fee breakdown */}
+                <div className="flex items-center gap-4 mt-2 ml-16 text-xs text-muted-foreground">
+                  <span>Gross: {formatCents(tx.amount_gross)}</span>
+                  <span>Fee: −{formatCents(tx.platform_fee)}</span>
+                  <span className="text-gold">Net: {formatCents(tx.amount_net)}</span>
                 </div>
               </div>
             ))}

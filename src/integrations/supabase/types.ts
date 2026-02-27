@@ -118,6 +118,72 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_earnings: {
+        Row: {
+          amount_gross: number
+          amount_net: number
+          created_at: string
+          creator_id: string
+          currency: string
+          event_id: string
+          id: string
+          platform_fee: number
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_event_id: string | null
+          stripe_payment_intent_id: string | null
+          ticket_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_gross?: number
+          amount_net?: number
+          created_at?: string
+          creator_id: string
+          currency?: string
+          event_id: string
+          id?: string
+          platform_fee?: number
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_event_id?: string | null
+          stripe_payment_intent_id?: string | null
+          ticket_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_gross?: number
+          amount_net?: number
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          event_id?: string
+          id?: string
+          platform_fee?: number
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_event_id?: string | null
+          stripe_payment_intent_id?: string | null
+          ticket_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_earnings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_earnings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_rooms: {
         Row: {
           created_at: string
