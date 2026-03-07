@@ -1,5 +1,6 @@
+// Stripe Connect Edge Function v2 - uses service role for profile queries
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
+import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
 const corsHeaders = {
@@ -52,8 +53,13 @@ serve(async (req) => {
     const { action } = await req.json();
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
 
-    // Get the user's profile to check for existing connected account
-    const { data: profile } = await supabase
+    // Use service role to read stripe_connected_account_id (bypasses RLS)
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("stripe_connected_account_id")
       .eq("user_id", userId)
@@ -107,11 +113,7 @@ serve(async (req) => {
           },
         });
 
-        // Store connected account ID using service role
-        const supabaseAdmin = createClient(
-          supabaseUrl,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
+        // Store connected account ID using service role (already created above)
 
         await supabaseAdmin
           .from("profiles")
@@ -186,10 +188,6 @@ serve(async (req) => {
         }
 
         // Calculate available balance from creator_earnings
-        const supabaseAdmin = createClient(
-          supabaseUrl,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
 
         const { data: earnings } = await supabaseAdmin
           .from("creator_earnings")
