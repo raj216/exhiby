@@ -187,10 +187,6 @@ serve(async (req) => {
         }
 
         // Calculate available balance from creator_earnings
-        const supabaseAdmin = createClient(
-          supabaseUrl,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
 
         const { data: earnings } = await supabaseAdmin
           .from("creator_earnings")
