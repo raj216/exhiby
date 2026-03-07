@@ -112,11 +112,7 @@ serve(async (req) => {
           },
         });
 
-        // Store connected account ID using service role
-        const supabaseAdmin = createClient(
-          supabaseUrl,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
+        // Store connected account ID using service role (already created above)
 
         await supabaseAdmin
           .from("profiles")
