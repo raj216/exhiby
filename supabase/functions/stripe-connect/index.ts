@@ -102,6 +102,7 @@ serve(async (req) => {
           email: userEmail,
           metadata: { user_id: userId },
           capabilities: {
+            card_payments: { requested: true },
             transfers: { requested: true },
           },
         });
