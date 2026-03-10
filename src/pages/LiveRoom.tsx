@@ -35,6 +35,7 @@ import { DebugPanel } from "@/components/live/DebugPanel";
 import { VideoQualityBadge } from "@/components/live/VideoQualityBadge";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
+import { TipCreatorModal } from "@/components/TipCreatorModal";
 import { LiveRoomSkeleton } from "@/components/ui/loading-skeletons";
 
 interface EventData {
@@ -112,6 +113,7 @@ export default function LiveRoom() {
     purchaseTicket,
     markAttended,
     refetch: refetchTicket,
+    pollForConfirmation,
   } = useEventTicket(eventId || null, user?.id);
   
   // Check if event requires payment and user doesn't have ticket
@@ -120,17 +122,17 @@ export default function LiveRoom() {
 
   // Handle Stripe redirect query params
   useEffect(() => {
-    const paymentStatus = searchParams.get("payment");
-    if (paymentStatus === "success") {
-      toast.success("Payment successful!", { description: "Your ticket is being confirmed..." });
-      // Refetch ticket to pick up webhook confirmation
-      refetchTicket();
+    const paymentParam = searchParams.get("payment");
+    if (paymentParam === "success") {
+      toast.success("Payment successful!", { description: "Confirming your ticket..." });
+      // Start polling for webhook confirmation (ticket status: pending → paid)
+      pollForConfirmation();
       setSearchParams({}, { replace: true });
-    } else if (paymentStatus === "canceled") {
+    } else if (paymentParam === "canceled") {
       toast.error("Payment canceled", { description: "You can try again when ready." });
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, pollForConfirmation]);
 
   // Live chat from database with realtime
   // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
@@ -677,8 +679,11 @@ export default function LiveRoom() {
     setShowHandRaises(true);
   }, []);
 
+  // Tip button state
+  const [showTipModal, setShowTipModal] = useState(false);
+  
   const handleSwipeToPay = () => {
-    toast.success("Payment initiated!");
+    setShowTipModal(true);
   };
 
   // Get the host participant (for viewers to see)
@@ -711,15 +716,12 @@ export default function LiveRoom() {
 
   // Handle payment success for paid events
   const handlePaymentSuccess = async () => {
-    console.log("[LiveRoom] Payment success - creating ticket");
-    const success = await purchaseTicket();
-    if (success) {
-      setShowPaymentDrawer(false);
-      // Ticket is now valid, component will re-render and allow access
-      toast.success("Access granted! Joining stream...");
-    } else {
-      toast.error("Failed to record your ticket. Please try again.");
-    }
+    console.log("[LiveRoom] Payment success callback");
+    setShowPaymentDrawer(false);
+    // For free events, the ticket was created by create-checkout-session
+    // Refetch to pick it up
+    refetchTicket();
+    toast.success("Access granted! Joining stream...");
   };
 
   // Show paywall for paid events if user doesn't have ticket (and event hasn't ended)
@@ -1437,6 +1439,19 @@ export default function LiveRoom() {
           creatorName={event.creator?.name || "the creator"}
           sessionTitle={event.title}
           leftEarly={feedbackLeftEarly}
+        />
+      )}
+      
+      {/* Tip Creator Modal */}
+      {event && !isCreator && (
+        <TipCreatorModal
+          isOpen={showTipModal}
+          onClose={() => setShowTipModal(false)}
+          creatorName={event.creator?.name || "the creator"}
+          onComingSoon={() => {
+            toast.info("Tips are coming soon!");
+            setShowTipModal(false);
+          }}
         />
       )}
     </motion.div>
