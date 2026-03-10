@@ -35,6 +35,7 @@ import { DebugPanel } from "@/components/live/DebugPanel";
 import { VideoQualityBadge } from "@/components/live/VideoQualityBadge";
 import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
+import { TipCreatorModal } from "@/components/TipCreatorModal";
 import { LiveRoomSkeleton } from "@/components/ui/loading-skeletons";
 
 interface EventData {
