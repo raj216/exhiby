@@ -158,7 +158,13 @@ serve(async (req) => {
       }
     }
 
-    // Create Checkout Session
+    // If no customer exists yet, create one
+    if (!customerId && user.email) {
+      const newCustomer = await stripe.customers.create({ email: user.email });
+      customerId = newCustomer.id;
+    }
+
+    // Create Checkout Session — save payment method for future use
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email || undefined,
@@ -176,19 +182,20 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
+      payment_intent_data: {
+        setup_future_usage: "off_session",
+        metadata: {
+          event_id,
+          user_id: user.id,
+          ticket_id: pendingTicket.id,
+        },
+      },
       success_url: `${origin}/live/${event_id}?payment=success`,
       cancel_url: `${origin}/live/${event_id}?payment=canceled`,
       metadata: {
         event_id,
         user_id: user.id,
         ticket_id: pendingTicket.id,
-      },
-      payment_intent_data: {
-        metadata: {
-          event_id,
-          user_id: user.id,
-          ticket_id: pendingTicket.id,
-        },
       },
     });
 
