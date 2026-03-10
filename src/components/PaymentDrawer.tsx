@@ -378,7 +378,7 @@ export function PaymentDrawer({
               )}
             </div>
           </motion.div>
-        </>
+          </motion.div>
       )}
     </AnimatePresence>
   );
