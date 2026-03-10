@@ -210,9 +210,8 @@ export function HomeScreen({
       return;
     }
 
-    // Navigate directly to the live room page
-    console.log("[HomeScreen] Navigating to live room:", event.id);
-    
+    console.log("[HomeScreen] Join tapped for event:", event.id, "price:", event.price, "paymentsEnabled:", featureFlags.paymentsEnabled);
+
     // When payments are disabled, all events are free - go directly to live room
     if (!featureFlags.paymentsEnabled || event.price === 0) {
       navigate(`/live/${event.id}`);
@@ -224,21 +223,24 @@ export function HomeScreen({
       // Set portal event first to trigger ticket check
       setPortalEvent(event);
       
-      // Check if user already has a ticket for this event
+      // Check if user already has a CONFIRMED ticket (paid or free only)
       if (user?.id) {
+        console.log("[HomeScreen] Checking for valid ticket...");
         const { data: existingTicket } = await supabase
           .from("tickets")
-          .select("id")
+          .select("id, payment_status")
           .eq("event_id", event.id)
           .eq("user_id", user.id)
+          .in("payment_status", ["paid", "free"])
           .maybeSingle();
         
         if (existingTicket) {
           // User already paid - go directly to live room
-          console.log("[HomeScreen] User has valid ticket, skipping payment");
+          console.log("[HomeScreen] User has valid ticket:", existingTicket.id, "status:", existingTicket.payment_status);
           navigate(`/live/${event.id}`);
           return;
         }
+        console.log("[HomeScreen] No valid ticket found, opening payment drawer");
       }
       
       // No valid ticket - show payment drawer
@@ -248,21 +250,13 @@ export function HomeScreen({
     }
   };
   const handlePaymentSuccess = async () => {
+    console.log("[HomeScreen] Payment success callback from PaymentDrawer");
     setShowPaymentDrawer(false);
-    if (portalEvent && user?.id) {
-      // Create ticket record before navigating
-      const success = await purchaseTicket();
-      if (success) {
-        console.log("[HomeScreen] Ticket created, navigating to live room");
-        navigate(`/live/${portalEvent.id}`);
-      } else {
-        toast({
-          title: "Payment Error",
-          description: "Failed to record your ticket. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } else if (portalEvent) {
+    
+    if (portalEvent) {
+      // PaymentDrawer already created the ticket via create-checkout-session (free)
+      // or charge-saved-method (saved card). Just navigate to the live room.
+      console.log("[HomeScreen] Navigating to live room after payment:", portalEvent.id);
       navigate(`/live/${portalEvent.id}`);
     }
   };
