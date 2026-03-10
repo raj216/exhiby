@@ -198,7 +198,7 @@ export function PaymentDrawer({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+          className="fixed top-0 left-0 w-full h-[100vh] z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-0 m-0"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
