@@ -222,6 +222,14 @@ export function PaymentDrawer({
             </button>
             
             <div className="px-6 pb-8 pt-2">
+              onClick={onClose}
+              disabled={isProcessing}
+              className="absolute top-4 right-4 p-2 rounded-full bg-muted/50"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+            
+            <div className="px-6 pb-8 pt-2">
               {/* Event Preview */}
               <div className="flex gap-4 mb-6">
                 <div className="w-20 h-28 rounded-xl overflow-hidden flex-shrink-0">
