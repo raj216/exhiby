@@ -678,8 +678,11 @@ export default function LiveRoom() {
     setShowHandRaises(true);
   }, []);
 
+  // Tip button state
+  const [showTipModal, setShowTipModal] = useState(false);
+  
   const handleSwipeToPay = () => {
-    toast.success("Payment initiated!");
+    setShowTipModal(true);
   };
 
   // Get the host participant (for viewers to see)
