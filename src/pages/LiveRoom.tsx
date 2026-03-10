@@ -1441,6 +1441,19 @@ export default function LiveRoom() {
           leftEarly={feedbackLeftEarly}
         />
       )}
+      
+      {/* Tip Creator Modal */}
+      {event && !isCreator && (
+        <TipCreatorModal
+          isOpen={showTipModal}
+          onClose={() => setShowTipModal(false)}
+          creatorName={event.creator?.name || "the creator"}
+          onComingSoon={() => {
+            toast.info("Tips are coming soon!");
+            setShowTipModal(false);
+          }}
+        />
+      )}
     </motion.div>
   );
 }
