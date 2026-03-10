@@ -112,6 +112,7 @@ export default function LiveRoom() {
     purchaseTicket,
     markAttended,
     refetch: refetchTicket,
+    pollForConfirmation,
   } = useEventTicket(eventId || null, user?.id);
   
   // Check if event requires payment and user doesn't have ticket
