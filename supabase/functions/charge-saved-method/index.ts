@@ -17,7 +17,6 @@ serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -31,7 +30,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
 
-    // Verify user with anon key client
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -46,10 +44,9 @@ serve(async (req) => {
     }
     const user = claimsData.user;
 
-    // Parse body
     const body = await req.json().catch(() => ({}));
     const event_id = body?.event_id;
-    const origin = body?.origin || req.headers.get("origin") || "https://exhiby.lovable.app";
+    const payment_method_id = body?.payment_method_id;
 
     if (typeof event_id !== "string" || !uuidRegex.test(event_id)) {
       return new Response(JSON.stringify({ error: "Invalid event_id" }), {
@@ -58,9 +55,17 @@ serve(async (req) => {
       });
     }
 
-    // Use service role to fetch event and create ticket
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    if (!payment_method_id || typeof payment_method_id !== "string") {
+      return new Response(JSON.stringify({ error: "Missing payment_method_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
+
+    // Get event
     const { data: event, error: eventError } = await supabase
       .from("events")
       .select("id, is_free, price, creator_id, title")
@@ -75,9 +80,8 @@ serve(async (req) => {
     }
 
     const isFree = !!event.is_free || Number(event.price ?? 0) <= 0;
-
-    // For free events, just create the ticket directly
     if (isFree) {
+      // Free event — create ticket directly
       const { data: ticket, error: ticketError } = await supabase
         .from("tickets")
         .upsert(
@@ -93,7 +97,6 @@ serve(async (req) => {
         .single();
 
       if (ticketError) {
-        console.error("[create-checkout-session] Free ticket error:", ticketError);
         return new Response(JSON.stringify({ error: "Failed to create ticket" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -101,18 +104,12 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ ticket_id: ticket.id, free: true }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ success: true, ticket_id: ticket.id, free: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Paid event — Create Stripe Checkout Session
-    const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
-
-    // Server-side price validation — cents
+    // Paid event — charge saved payment method
     const priceInCents = Math.round(Number(event.price) * 100);
     if (priceInCents < 100) {
       return new Response(JSON.stringify({ error: "Price must be at least $1.00" }), {
@@ -121,7 +118,24 @@ serve(async (req) => {
       });
     }
 
-    // Create a pending ticket first
+    // Find or create Stripe customer
+    let customerId: string;
+    if (user.email) {
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({ email: user.email });
+        customerId = customer.id;
+      }
+    } else {
+      return new Response(JSON.stringify({ error: "User email required for payment" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Create pending ticket
     const { data: pendingTicket, error: pendingError } = await supabase
       .from("tickets")
       .upsert(
@@ -139,85 +153,100 @@ serve(async (req) => {
       .single();
 
     if (pendingError || !pendingTicket) {
-      console.error("[create-checkout-session] Pending ticket error:", pendingError);
+      console.error("[charge-saved-method] Pending ticket error:", pendingError);
       return new Response(JSON.stringify({ error: "Failed to create pending ticket" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check/create Stripe customer
-    let customerId: string | undefined;
-    if (user.email) {
-      const customers = await stripe.customers.list({
-        email: user.email,
-        limit: 1,
-      });
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
-      }
-    }
-
-    // If no customer exists yet, create one
-    if (!customerId && user.email) {
-      const newCustomer = await stripe.customers.create({ email: user.email });
-      customerId = newCustomer.id;
-    }
-
-    // Create Checkout Session — save payment method for future use
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email || undefined,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: event.title || "Studio Session Ticket",
-              description: `Entry ticket for live studio session`,
-            },
-            unit_amount: priceInCents,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      payment_intent_data: {
-        setup_future_usage: "off_session",
+    // Create and confirm PaymentIntent with saved method
+    try {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: priceInCents,
+        currency: "usd",
+        customer: customerId,
+        payment_method: payment_method_id,
+        off_session: true,
+        confirm: true,
         metadata: {
           event_id,
           user_id: user.id,
           ticket_id: pendingTicket.id,
         },
-      },
-      success_url: `${origin}/live/${event_id}?payment=success`,
-      cancel_url: `${origin}/live/${event_id}?payment=canceled`,
-      metadata: {
-        event_id,
-        user_id: user.id,
-        ticket_id: pendingTicket.id,
-      },
-    });
+        description: `Ticket for: ${event.title}`,
+      });
 
-    // Update ticket with checkout session ID
-    await supabase
-      .from("tickets")
-      .update({ stripe_checkout_session_id: session.id })
-      .eq("id", pendingTicket.id);
+      if (paymentIntent.status === "succeeded") {
+        // Payment succeeded — mark ticket as paid immediately
+        await supabase
+          .from("tickets")
+          .update({
+            payment_status: "paid",
+            purchased_at: new Date().toISOString(),
+          })
+          .eq("id", pendingTicket.id);
 
-    console.log(
-      `[create-checkout-session] Created session ${session.id} for event ${event_id}`
-    );
+        console.log(`[charge-saved-method] Payment succeeded for ticket ${pendingTicket.id}`);
 
-    return new Response(
-      JSON.stringify({ url: session.url, session_id: session.id }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(
+          JSON.stringify({
+            success: true,
+            ticket_id: pendingTicket.id,
+            payment_intent_id: paymentIntent.id,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    );
+
+      // Payment requires action (3D Secure etc.)
+      if (paymentIntent.status === "requires_action") {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            requires_action: true,
+            client_secret: paymentIntent.client_secret,
+            payment_intent_id: paymentIntent.id,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Other status
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Payment status: ${paymentIntent.status}`,
+          status: paymentIntent.status,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (stripeError: any) {
+      console.error("[charge-saved-method] Stripe error:", stripeError);
+
+      // Card declined or payment failed
+      if (stripeError.type === "StripeCardError") {
+        // Mark ticket as failed
+        await supabase
+          .from("tickets")
+          .update({ payment_status: "failed" })
+          .eq("id", pendingTicket.id);
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            card_error: true,
+            error: stripeError.message || "Your card was declined",
+            decline_code: stripeError.decline_code || null,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      throw stripeError;
+    }
   } catch (error) {
-    console.error("[create-checkout-session] Unexpected error:", error);
+    console.error("[charge-saved-method] Unexpected error:", error);
     return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

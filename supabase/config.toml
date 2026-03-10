@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.stripe-connect]
 verify_jwt = false
+
+[functions.check-payment-method]
+verify_jwt = false
+
+[functions.charge-saved-method]
+verify_jwt = false
+
+[functions.create-tip-payment]
+verify_jwt = false

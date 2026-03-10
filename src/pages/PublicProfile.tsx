@@ -596,7 +596,6 @@ export default function PublicProfile() {
           isOpen={isTipOpen}
           onClose={() => setIsTipOpen(false)}
           creatorName={profile.name}
-          onComingSoon={() => toast.info("Tips will be enabled soon")}
         />
       )}
 
