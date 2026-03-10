@@ -193,26 +193,25 @@ export function PaymentDrawer({
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center"
-          >
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative z-[71] bg-card rounded-3xl w-[90%] max-w-[420px]"
+            className="relative bg-card rounded-3xl w-[90%] max-w-[420px]"
           >
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
             </div>
-            
+
             <button
               onClick={onClose}
               disabled={isProcessing}
@@ -220,15 +219,7 @@ export function PaymentDrawer({
             >
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
-            
-            <div className="px-6 pb-8 pt-2">
-              onClick={onClose}
-              disabled={isProcessing}
-              className="absolute top-4 right-4 p-2 rounded-full bg-muted/50"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-            
+
             <div className="px-6 pb-8 pt-2">
               {/* Event Preview */}
               <div className="flex gap-4 mb-6">
@@ -247,7 +238,7 @@ export function PaymentDrawer({
                   <p className="text-sm text-muted-foreground">{artistName}</p>
                 </div>
               </div>
-              
+
               {/* Price breakdown */}
               <div className="bg-muted/30 rounded-xl p-4 mb-6">
                 <div className="flex justify-between items-center mb-2">
@@ -306,7 +297,6 @@ export function PaymentDrawer({
               {/* Paid: Saved method → Swipe to Pay */}
               {!effectivelyFree && !isCheckingMethod && savedMethod && (
                 <>
-                  {/* Saved card info */}
                   <div className="flex items-center gap-3 bg-muted/30 rounded-xl px-4 py-3 mb-4">
                     <CreditCard className="w-5 h-5 text-muted-foreground" />
                     <div className="flex-1">
@@ -378,7 +368,7 @@ export function PaymentDrawer({
               )}
             </div>
           </motion.div>
-          </motion.div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
