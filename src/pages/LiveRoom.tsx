@@ -1448,10 +1448,7 @@ export default function LiveRoom() {
           isOpen={showTipModal}
           onClose={() => setShowTipModal(false)}
           creatorName={event.creator?.name || "the creator"}
-          onComingSoon={() => {
-            toast.info("Tips are coming soon!");
-            setShowTipModal(false);
-          }}
+          eventId={event.id}
         />
       )}
     </motion.div>
