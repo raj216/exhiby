@@ -118,7 +118,8 @@ export default function LiveRoom() {
   
   // Check if event requires payment and user doesn't have ticket
   // When payments are disabled via feature flag, no event requires payment
-  const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && event.price > 0 && !isCreator && !hasValidTicket;
+  // Also catch edge case where price might be 0/null but is_free is false
+  const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && !isCreator && !hasValidTicket;
 
   // Handle Stripe redirect query params
   useEffect(() => {

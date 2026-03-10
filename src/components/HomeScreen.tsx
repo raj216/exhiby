@@ -210,7 +210,14 @@ export function HomeScreen({
       return;
     }
 
-    console.log("[HomeScreen] Join tapped for event:", event.id, "price:", event.price, "paymentsEnabled:", featureFlags.paymentsEnabled);
+    console.log("[HomeScreen] Join tapped for event:", event.id, "price:", event.price, "creatorId:", event.creatorId, "userId:", user?.id);
+
+    // Creators always go directly to their own live room (no payment needed)
+    if (user?.id && event.creatorId === user.id) {
+      console.log("[HomeScreen] User is the creator — navigating directly to live room");
+      navigate(`/live/${event.id}`);
+      return;
+    }
 
     // When payments are disabled, all events are free - go directly to live room
     if (!featureFlags.paymentsEnabled || event.price === 0) {
@@ -218,7 +225,7 @@ export function HomeScreen({
       return;
     }
     
-    // Payments enabled and event is paid
+    // Payments enabled and event is paid — audience flow
     if (event.price > 0) {
       // Set portal event first to trigger ticket check
       setPortalEvent(event);
@@ -226,21 +233,26 @@ export function HomeScreen({
       // Check if user already has a CONFIRMED ticket (paid or free only)
       if (user?.id) {
         console.log("[HomeScreen] Checking for valid ticket...");
-        const { data: existingTicket } = await supabase
-          .from("tickets")
-          .select("id, payment_status")
-          .eq("event_id", event.id)
-          .eq("user_id", user.id)
-          .in("payment_status", ["paid", "free"])
-          .maybeSingle();
-        
-        if (existingTicket) {
-          // User already paid - go directly to live room
-          console.log("[HomeScreen] User has valid ticket:", existingTicket.id, "status:", existingTicket.payment_status);
-          navigate(`/live/${event.id}`);
-          return;
+        try {
+          const { data: existingTicket } = await supabase
+            .from("tickets")
+            .select("id, payment_status")
+            .eq("event_id", event.id)
+            .eq("user_id", user.id)
+            .in("payment_status", ["paid", "free"])
+            .maybeSingle();
+          
+          if (existingTicket) {
+            // User already paid - go directly to live room
+            console.log("[HomeScreen] User has valid ticket:", existingTicket.id, "status:", existingTicket.payment_status);
+            navigate(`/live/${event.id}`);
+            return;
+          }
+          console.log("[HomeScreen] No valid ticket found, opening payment drawer");
+        } catch (err) {
+          console.error("[HomeScreen] Error checking ticket:", err);
+          // Still show payment drawer on error — don't block
         }
-        console.log("[HomeScreen] No valid ticket found, opening payment drawer");
       }
       
       // No valid ticket - show payment drawer
