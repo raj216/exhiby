@@ -174,17 +174,32 @@ serve(async (req) => {
     const roomUrl = dailyRoom.url;
     console.log("[create-live-room] Daily room created:", roomUrl);
 
-    // Insert room_url into protected event_rooms table
-    const { error: roomInsertError } = await supabase
-      .from("event_rooms")
-      .upsert({
-        event_id: event_id,
-        room_url: roomUrl,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "event_id" });
+    // Insert room_url into protected event_rooms table (with retry for transient connection errors)
+    let roomInsertError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const { error } = await supabase
+        .from("event_rooms")
+        .upsert({
+          event_id: event_id,
+          room_url: roomUrl,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "event_id" });
+
+      if (!error) {
+        roomInsertError = null;
+        console.log(`[create-live-room] Room URL stored successfully (attempt ${attempt})`);
+        break;
+      }
+
+      roomInsertError = error;
+      console.warn(`[create-live-room] Room insert attempt ${attempt}/3 failed:`, error.message);
+      if (attempt < 3) {
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+      }
+    }
 
     if (roomInsertError) {
-      console.error("[create-live-room] Room insert error:", roomInsertError);
+      console.error("[create-live-room] Room insert failed after 3 attempts:", roomInsertError);
       return new Response(JSON.stringify({ error: "Failed to store room URL" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
