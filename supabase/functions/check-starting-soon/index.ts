@@ -163,22 +163,23 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Validate cron secret for scheduled job authentication
+  // Validate cron secret — refuse to run if not configured
   const cronSecret = Deno.env.get("CRON_SECRET");
+  if (!cronSecret) {
+    console.error("CRON_SECRET not configured — refusing to execute");
+    return new Response(
+      JSON.stringify({ error: "Service not configured" }),
+      { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   const authHeader = req.headers.get("x-cron-secret");
-  
-  // If CRON_SECRET is configured, require it for all requests
-  if (cronSecret) {
-    if (!authHeader || authHeader !== cronSecret) {
-      console.error("Unauthorized: Invalid or missing x-cron-secret header");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-  } else {
-    // Log warning if CRON_SECRET is not configured (for development/transition period)
-    console.warn("Warning: CRON_SECRET not configured. Function is running without authentication.");
+  if (!authHeader || authHeader !== cronSecret) {
+    console.error("Unauthorized: Invalid or missing x-cron-secret header");
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
