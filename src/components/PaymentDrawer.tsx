@@ -35,44 +35,45 @@ export function PaymentDrawer({
   const handlePayment = async () => {
     setIsProcessing(true);
     try {
-      if (isFree || price <= 0) {
-        // Free event — create ticket directly
-        const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-          body: { event_id: eventId, origin: window.location.origin },
-        });
-        if (error) throw error;
+      // Call create-checkout-session for both free and paid events
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: { event_id: eventId, origin: window.location.origin },
+      });
+
+      if (error) {
+        console.error("[PaymentDrawer] Edge function error:", error);
+        throw new Error(error.message || "Failed to create checkout session");
+      }
+
+      const response = data as { url?: string; free?: boolean; ticket_id?: string } | null;
+
+      if (!response) {
+        throw new Error("Empty response from server");
+      }
+
+      // Free event — ticket created directly by backend
+      if (response.free) {
+        console.log("[PaymentDrawer] Free ticket created:", response.ticket_id);
         triggerSuccessHaptic();
         onPaymentSuccess();
         return;
       }
 
       // Paid event — redirect to Stripe Checkout
-      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-        body: { event_id: eventId, origin: window.location.origin },
-      });
-
-      if (error) throw error;
-
-      const response = data as { url?: string; free?: boolean; ticket_id?: string } | null;
-
-      if (response?.free) {
-        triggerSuccessHaptic();
-        onPaymentSuccess();
+      if (response.url) {
+        console.log("[PaymentDrawer] Redirecting to Stripe Checkout...");
+        toast.info("Redirecting to secure payment...", { duration: 3000 });
+        window.location.href = response.url;
+        // Don't setIsProcessing(false) — page will redirect
         return;
       }
 
-      if (response?.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = response.url;
-      } else {
-        throw new Error("No checkout URL received");
-      }
+      throw new Error("No checkout URL received from server");
     } catch (err: any) {
       console.error("[PaymentDrawer] Payment error:", err);
       toast.error("Payment failed", {
         description: err.message || "Please try again",
       });
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -152,7 +153,7 @@ export function PaymentDrawer({
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing...
+                    {isFree || price <= 0 ? "Processing..." : "Redirecting to Stripe..."}
                   </>
                 ) : isFree || price <= 0 ? (
                   "Enter Free"
@@ -167,7 +168,7 @@ export function PaymentDrawer({
               <p className="text-xs text-center text-muted-foreground mt-4">
                 {isFree || price <= 0
                   ? "Free entry • Instant access"
-                  : "Secure payment via Stripe • Instant access after payment"}
+                  : "You'll be redirected to Stripe for secure card payment"}
               </p>
             </div>
           </motion.div>
