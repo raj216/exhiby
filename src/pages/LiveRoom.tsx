@@ -715,15 +715,12 @@ export default function LiveRoom() {
 
   // Handle payment success for paid events
   const handlePaymentSuccess = async () => {
-    console.log("[LiveRoom] Payment success - creating ticket");
-    const success = await purchaseTicket();
-    if (success) {
-      setShowPaymentDrawer(false);
-      // Ticket is now valid, component will re-render and allow access
-      toast.success("Access granted! Joining stream...");
-    } else {
-      toast.error("Failed to record your ticket. Please try again.");
-    }
+    console.log("[LiveRoom] Payment success callback");
+    setShowPaymentDrawer(false);
+    // For free events, the ticket was created by create-checkout-session
+    // Refetch to pick it up
+    refetchTicket();
+    toast.success("Access granted! Joining stream...");
   };
 
   // Show paywall for paid events if user doesn't have ticket (and event hasn't ended)
