@@ -121,17 +121,17 @@ export default function LiveRoom() {
 
   // Handle Stripe redirect query params
   useEffect(() => {
-    const paymentStatus = searchParams.get("payment");
-    if (paymentStatus === "success") {
-      toast.success("Payment successful!", { description: "Your ticket is being confirmed..." });
-      // Refetch ticket to pick up webhook confirmation
-      refetchTicket();
+    const paymentParam = searchParams.get("payment");
+    if (paymentParam === "success") {
+      toast.success("Payment successful!", { description: "Confirming your ticket..." });
+      // Start polling for webhook confirmation (ticket status: pending → paid)
+      pollForConfirmation();
       setSearchParams({}, { replace: true });
-    } else if (paymentStatus === "canceled") {
+    } else if (paymentParam === "canceled") {
       toast.error("Payment canceled", { description: "You can try again when ready." });
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, pollForConfirmation]);
 
   // Live chat from database with realtime
   // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
