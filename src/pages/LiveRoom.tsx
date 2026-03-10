@@ -387,6 +387,23 @@ export default function LiveRoom() {
     };
   }, [event, user, isCreator, joinAsViewer, leaveAsViewer]);
   
+  // Re-fetch room_url when ticket becomes valid (after payment)
+  useEffect(() => {
+    if (!eventId || !hasValidTicket || isCreator || event?.room_url) return;
+    
+    const refetchRoomUrl = async () => {
+      console.log("[LiveRoom] Ticket confirmed — re-fetching room_url...");
+      const { data: roomUrl } = await supabase.rpc("get_event_room_url", {
+        event_id: eventId,
+      });
+      if (roomUrl) {
+        console.log("[LiveRoom] Got room_url after payment:", roomUrl);
+        setEvent((prev) => prev ? { ...prev, room_url: roomUrl } : null);
+      }
+    };
+    refetchRoomUrl();
+  }, [eventId, hasValidTicket, isCreator, event?.room_url]);
+
   // Mark ticket as attended when video joins (separate from viewer record)
   useEffect(() => {
     if (event && user && !isCreator && isJoined && hasValidTicket) {
