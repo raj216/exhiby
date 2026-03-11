@@ -120,21 +120,31 @@ export default function LiveRoom() {
   // Check if event requires payment and user doesn't have ticket
   // When payments are disabled via feature flag, no event requires payment
   // Also catch edge case where price might be 0/null but is_free is false
-  const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && !isCreator && !hasValidTicket;
+  // CRITICAL: Don't show paywall when we're awaiting payment confirmation after Stripe redirect
+  const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && !isCreator && !hasValidTicket && !isAwaitingPaymentConfirmation;
 
   // Handle Stripe redirect query params
   useEffect(() => {
     const paymentParam = searchParams.get("payment");
     if (paymentParam === "success") {
+      setIsAwaitingPaymentConfirmation(true);
       toast.success("Payment successful!", { description: "Confirming your ticket..." });
       // Start polling for webhook confirmation (ticket status: pending → paid)
       pollForConfirmation();
       setSearchParams({}, { replace: true });
     } else if (paymentParam === "canceled") {
       toast.error("Payment canceled", { description: "You can try again when ready." });
+      setIsAwaitingPaymentConfirmation(false);
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams, pollForConfirmation]);
+
+  // Clear awaiting flag once ticket is confirmed
+  useEffect(() => {
+    if (hasValidTicket && isAwaitingPaymentConfirmation) {
+      setIsAwaitingPaymentConfirmation(false);
+    }
+  }, [hasValidTicket, isAwaitingPaymentConfirmation]);
 
   // Live chat from database with realtime
   // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
