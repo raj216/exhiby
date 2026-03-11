@@ -88,6 +88,7 @@ export default function LiveRoom() {
   
   // Payment state for paid events
   const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
+  const [isAwaitingPaymentConfirmation, setIsAwaitingPaymentConfirmation] = useState(false);
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
