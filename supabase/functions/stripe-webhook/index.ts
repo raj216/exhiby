@@ -18,22 +18,37 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+  // --- DIAGNOSTIC: Log env availability ---
+  console.log(`[stripe-webhook] ENV CHECK: STRIPE_SECRET_KEY=${stripeSecretKey ? "SET (" + stripeSecretKey.substring(0, 7) + "...)" : "MISSING"}`);
+  console.log(`[stripe-webhook] ENV CHECK: STRIPE_WEBHOOK_SECRET=${webhookSecret ? "SET (" + webhookSecret.substring(0, 8) + "...)" : "MISSING"}`);
+  console.log(`[stripe-webhook] ENV CHECK: SUPABASE_URL=${supabaseUrl ? "SET" : "MISSING"}`);
+  console.log(`[stripe-webhook] ENV CHECK: SUPABASE_SERVICE_ROLE_KEY=${supabaseServiceKey ? "SET" : "MISSING"}`);
+
   if (!stripeSecretKey || !webhookSecret) {
-    console.error("[stripe-webhook] Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET");
+    console.error("[stripe-webhook] FATAL: Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET");
     return new Response(JSON.stringify({ error: "Server misconfigured" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
+  const stripe = new Stripe(stripeSecretKey, { apiVersion: "2024-12-18.acacia" });
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
 
+    // --- DIAGNOSTIC: Log raw request info ---
+    console.log(`[stripe-webhook] Request method: ${req.method}`);
+    console.log(`[stripe-webhook] Body length: ${body.length}`);
+    console.log(`[stripe-webhook] Signature header present: ${!!signature}`);
+    if (signature) {
+      console.log(`[stripe-webhook] Signature preview: ${signature.substring(0, 50)}...`);
+    }
+
     if (!signature) {
+      console.error("[stripe-webhook] Missing stripe-signature header");
       return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -43,9 +58,12 @@ serve(async (req) => {
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log(`[stripe-webhook] ✅ Signature verified successfully`);
     } catch (err) {
-      console.error("[stripe-webhook] Signature verification failed:", err.message);
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+      console.error(`[stripe-webhook] ❌ Signature verification FAILED: ${err.message}`);
+      console.error(`[stripe-webhook] Webhook secret starts with: ${webhookSecret.substring(0, 8)}...`);
+      console.error(`[stripe-webhook] Ensure STRIPE_WEBHOOK_SECRET matches the signing secret from Stripe Dashboard > Webhooks > your endpoint > Signing secret`);
+      return new Response(JSON.stringify({ error: "Invalid signature", detail: err.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -69,12 +87,16 @@ serve(async (req) => {
     }
 
     // Log the event
-    await supabase.from("stripe_webhook_events").insert({
+    const { error: insertError } = await supabase.from("stripe_webhook_events").insert({
       event_id: event.id,
       event_type: event.type,
       status: "processing",
       payload_json: event,
     });
+
+    if (insertError) {
+      console.error("[stripe-webhook] Failed to log event:", insertError);
+    }
 
     let processingStatus = "processed";
 
@@ -82,17 +104,28 @@ serve(async (req) => {
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
+          console.log(`[stripe-webhook] Processing checkout.session.completed: ${session.id}`);
           await handleCheckoutCompleted(supabase, session, event.id);
           break;
         }
         case "payment_intent.succeeded": {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          console.log(`[stripe-webhook] Processing payment_intent.succeeded: ${paymentIntent.id}`);
           await handlePaymentIntentSucceeded(supabase, paymentIntent, event.id);
           break;
         }
         case "payment_intent.payment_failed": {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          console.log(`[stripe-webhook] Processing payment_intent.payment_failed: ${paymentIntent.id}`);
           await handlePaymentIntentFailed(supabase, paymentIntent);
+          break;
+        }
+        case "charge.succeeded": {
+          const charge = event.data.object;
+          console.log(`[stripe-webhook] Processing charge.succeeded: ${charge.id}, payment_intent: ${charge.payment_intent}`);
+          // charge.succeeded is typically redundant with payment_intent.succeeded
+          // but we log it for completeness
+          processingStatus = "processed";
           break;
         }
         default:
@@ -100,7 +133,7 @@ serve(async (req) => {
           processingStatus = "ignored";
       }
     } catch (handlerError) {
-      console.error(`[stripe-webhook] Error handling ${event.type}:`, handlerError);
+      console.error(`[stripe-webhook] ❌ Error handling ${event.type}:`, handlerError);
       processingStatus = "error";
     }
 
@@ -110,13 +143,15 @@ serve(async (req) => {
       .update({ status: processingStatus })
       .eq("event_id", event.id);
 
+    console.log(`[stripe-webhook] ✅ Event ${event.id} completed with status: ${processingStatus}`);
+
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[stripe-webhook] Unexpected error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    console.error("[stripe-webhook] ❌ Unexpected error:", error);
+    return new Response(JSON.stringify({ error: "Internal server error", detail: String(error) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -133,6 +168,9 @@ async function handleCheckoutCompleted(
 ) {
   const checkoutSessionId = session.id;
   console.log(`[stripe-webhook] checkout.session.completed: ${checkoutSessionId}`);
+  console.log(`[stripe-webhook] Session payment_status: ${session.payment_status}`);
+  console.log(`[stripe-webhook] Session amount_total: ${session.amount_total}`);
+  console.log(`[stripe-webhook] Session metadata:`, JSON.stringify(session.metadata));
 
   // Find the ticket by stripe_checkout_session_id
   const { data: ticket, error } = await supabase
@@ -147,10 +185,48 @@ async function handleCheckoutCompleted(
   }
 
   if (!ticket) {
-    console.warn(`[stripe-webhook] No ticket found for checkout session: ${checkoutSessionId}`);
+    console.warn(`[stripe-webhook] ⚠️ No ticket found for checkout session: ${checkoutSessionId}`);
+    // Try finding by metadata
+    const eventId = session.metadata?.event_id;
+    const userId = session.metadata?.user_id;
+    if (eventId && userId) {
+      console.log(`[stripe-webhook] Trying metadata fallback: event_id=${eventId}, user_id=${userId}`);
+      const { data: fallbackTicket, error: fallbackError } = await supabase
+        .from("tickets")
+        .select("id, payment_status, event_id, user_id, amount, currency")
+        .eq("event_id", eventId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (fallbackError) {
+        console.error("[stripe-webhook] Fallback ticket lookup error:", fallbackError);
+        return;
+      }
+      if (!fallbackTicket) {
+        console.warn("[stripe-webhook] ⚠️ No ticket found via metadata fallback either");
+        return;
+      }
+      // Update the ticket with checkout session ID and proceed
+      await supabase
+        .from("tickets")
+        .update({ stripe_checkout_session_id: checkoutSessionId })
+        .eq("id", fallbackTicket.id);
+
+      await markTicketPaidAndRecordEarnings(supabase, fallbackTicket, session, stripeEventId);
+      return;
+    }
     return;
   }
 
+  await markTicketPaidAndRecordEarnings(supabase, ticket, session, stripeEventId);
+}
+
+async function markTicketPaidAndRecordEarnings(
+  supabase: ReturnType<typeof createClient>,
+  ticket: { id: string; payment_status: string; event_id: string; user_id: string; amount: number | null; currency: string | null },
+  session: Stripe.Checkout.Session,
+  stripeEventId: string
+) {
   if (ticket.payment_status === "paid") {
     console.log(`[stripe-webhook] Ticket ${ticket.id} already marked as paid`);
     return;
@@ -165,11 +241,11 @@ async function handleCheckoutCompleted(
     .eq("id", ticket.id);
 
   if (updateError) {
-    console.error("[stripe-webhook] Error updating ticket:", updateError);
+    console.error("[stripe-webhook] ❌ Error updating ticket:", updateError);
     throw updateError;
   }
 
-  console.log(`[stripe-webhook] Ticket ${ticket.id} marked as paid`);
+  console.log(`[stripe-webhook] ✅ Ticket ${ticket.id} marked as paid`);
 
   // Record earnings for the creator
   await recordCreatorEarning(supabase, {
@@ -179,7 +255,7 @@ async function handleCheckoutCompleted(
     amountCents: ticket.amount ? Math.round(Number(ticket.amount) * 100) : (session.amount_total || 0),
     currency: ticket.currency || session.currency || "usd",
     stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || null,
-    stripeCheckoutSessionId: checkoutSessionId,
+    stripeCheckoutSessionId: session.id,
     stripeEventId,
   });
 }
@@ -193,12 +269,14 @@ async function handlePaymentIntentSucceeded(
   stripeEventId: string
 ) {
   console.log(`[stripe-webhook] payment_intent.succeeded: ${paymentIntent.id}`);
+  console.log(`[stripe-webhook] PI metadata:`, JSON.stringify(paymentIntent.metadata));
+  console.log(`[stripe-webhook] PI amount: ${paymentIntent.amount}, currency: ${paymentIntent.currency}`);
 
   const eventId = paymentIntent.metadata?.event_id;
   const userId = paymentIntent.metadata?.user_id;
 
   if (!eventId || !userId) {
-    console.log("[stripe-webhook] No event_id/user_id in metadata, skipping ticket update");
+    console.log("[stripe-webhook] No event_id/user_id in PI metadata, skipping ticket update");
     return;
   }
 
@@ -215,6 +293,8 @@ async function handlePaymentIntentSucceeded(
     console.error("[stripe-webhook] Error updating ticket from payment_intent:", error);
     throw error;
   }
+
+  console.log(`[stripe-webhook] Updated ${tickets?.length || 0} tickets from PI`);
 
   // Record earnings (if not already recorded by checkout.session.completed)
   if (tickets && tickets.length > 0) {
@@ -279,6 +359,8 @@ async function recordCreatorEarning(
     stripeEventId: string;
   }
 ) {
+  console.log(`[stripe-webhook] Recording earnings for event ${params.eventId}, amount: ${params.amountCents} cents`);
+
   // Look up creator_id from the event
   const { data: event, error: eventError } = await supabase
     .from("events")
@@ -319,11 +401,11 @@ async function recordCreatorEarning(
   if (error) {
     // Unique constraint on stripe_event_id handles idempotency
     if (error.code === "23505") {
-      console.log("[stripe-webhook] Earnings already recorded for this event, skipping");
+      console.log("[stripe-webhook] Earnings already recorded for this event, skipping (idempotent)");
     } else {
-      console.error("[stripe-webhook] Error recording creator earning:", error);
+      console.error("[stripe-webhook] ❌ Error recording creator earning:", error);
     }
   } else {
-    console.log(`[stripe-webhook] Recorded earning: $${(params.amountCents / 100).toFixed(2)} for creator ${event.creator_id}`);
+    console.log(`[stripe-webhook] ✅ Recorded earning: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
   }
 }
