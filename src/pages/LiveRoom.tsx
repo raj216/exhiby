@@ -753,6 +753,26 @@ export default function LiveRoom() {
     toast.success("Access granted! Joining stream...");
   };
 
+  // Show "confirming payment" UI when awaiting webhook/verify confirmation
+  if (isAwaitingPaymentConfirmation && event && !hasValidTicket) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="text-center max-w-md px-6">
+          {event.cover_url && (
+            <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg">
+              <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <h2 className="text-xl font-display text-foreground mb-2">Confirming Payment</h2>
+          <p className="text-sm text-muted-foreground">
+            Your payment was successful. Verifying your ticket...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Show paywall for paid events if user doesn't have ticket (and event hasn't ended)
   if (requiresPayment && event && !event.live_ended_at) {
     return (
