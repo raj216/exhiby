@@ -187,12 +187,23 @@ export default function EarningsHistory() {
             </div>
           </div>
 
+          {/* Verified Status Badge */}
+          {connectStatus === "active" && (
+            <div className="mt-6 flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-emerald-400">Payouts Enabled</p>
+                <p className="text-xs text-muted-foreground">Your Stripe account is verified and ready for payouts.</p>
+              </div>
+            </div>
+          )}
+
           {/* Payout Button */}
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={handlePayoutClick}
             disabled={getPayoutButtonDisabled()}
-            className={`mt-6 w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-colors ${
+            className={`mt-4 w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-colors ${
               getPayoutButtonDisabled()
                 ? "bg-muted/30 border border-border/40 text-muted-foreground cursor-not-allowed"
                 : "text-obsidian"
@@ -210,26 +221,40 @@ export default function EarningsHistory() {
             <span>{getPayoutButtonText()}</span>
           </motion.button>
 
-          {/* Connect status hint */}
+          {/* Connect status hints */}
           {connectStatus === "active" && (
-            <button
-              onClick={handleDashboardClick}
-              className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Open Stripe Dashboard
-            </button>
+            <div className="mt-3 space-y-2">
+              <button
+                onClick={handleDashboardClick}
+                className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open Stripe Dashboard
+              </button>
+            </div>
           )}
           {connectStatus === "pending_verification" && (
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              Stripe is reviewing your account. This usually takes 1-2 business days.
+              Stripe is reviewing your account. This usually takes 1–2 business days.
             </p>
           )}
           {(connectStatus === "not_connected" || connectStatus === "onboarding_incomplete") && (
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Complete Stripe onboarding to start receiving payouts.
-            </p>
+            <div className="mt-3 space-y-2">
+              <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-muted/20 border border-border/20">
+                <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Set up payouts through Stripe's secure verification. You'll need to provide identity details and bank account info. Your earnings are safe until you're ready.
+                </p>
+              </div>
+            </div>
           )}
+
+          {/* Payout timing note — always visible */}
+          <div className="mt-4 px-3 py-2 rounded-xl bg-muted/10 border border-border/10">
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed text-center">
+              Your first payout may take around 7 days to process through Stripe. After that, payout timing may become faster depending on your Stripe account status.
+            </p>
+          </div>
         </div>
       </div>
 
