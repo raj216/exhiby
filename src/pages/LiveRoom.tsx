@@ -88,6 +88,7 @@ export default function LiveRoom() {
   
   // Payment state for paid events
   const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
+  const [isAwaitingPaymentConfirmation, setIsAwaitingPaymentConfirmation] = useState(false);
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
@@ -119,21 +120,31 @@ export default function LiveRoom() {
   // Check if event requires payment and user doesn't have ticket
   // When payments are disabled via feature flag, no event requires payment
   // Also catch edge case where price might be 0/null but is_free is false
-  const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && !isCreator && !hasValidTicket;
+  // CRITICAL: Don't show paywall when we're awaiting payment confirmation after Stripe redirect
+  const requiresPayment = featureFlags.paymentsEnabled && event && !event.is_free && !isCreator && !hasValidTicket && !isAwaitingPaymentConfirmation;
 
   // Handle Stripe redirect query params
   useEffect(() => {
     const paymentParam = searchParams.get("payment");
     if (paymentParam === "success") {
+      setIsAwaitingPaymentConfirmation(true);
       toast.success("Payment successful!", { description: "Confirming your ticket..." });
       // Start polling for webhook confirmation (ticket status: pending → paid)
       pollForConfirmation();
       setSearchParams({}, { replace: true });
     } else if (paymentParam === "canceled") {
       toast.error("Payment canceled", { description: "You can try again when ready." });
+      setIsAwaitingPaymentConfirmation(false);
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams, pollForConfirmation]);
+
+  // Clear awaiting flag once ticket is confirmed
+  useEffect(() => {
+    if (hasValidTicket && isAwaitingPaymentConfirmation) {
+      setIsAwaitingPaymentConfirmation(false);
+    }
+  }, [hasValidTicket, isAwaitingPaymentConfirmation]);
 
   // Live chat from database with realtime
   // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
@@ -741,6 +752,26 @@ export default function LiveRoom() {
     refetchTicket();
     toast.success("Access granted! Joining stream...");
   };
+
+  // Show "confirming payment" UI when awaiting webhook/verify confirmation
+  if (isAwaitingPaymentConfirmation && event && !hasValidTicket) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="text-center max-w-md px-6">
+          {event.cover_url && (
+            <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg">
+              <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <h2 className="text-xl font-display text-foreground mb-2">Confirming Payment</h2>
+          <p className="text-sm text-muted-foreground">
+            Your payment was successful. Verifying your ticket...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Show paywall for paid events if user doesn't have ticket (and event hasn't ended)
   if (requiresPayment && event && !event.live_ended_at) {

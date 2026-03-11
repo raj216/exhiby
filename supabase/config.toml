@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.create-tip-payment]
 verify_jwt = false
+
+[functions.verify-checkout-session]
+verify_jwt = false

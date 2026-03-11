@@ -23,6 +23,7 @@ export function useEventTicket(eventId: string | null, userId: string | undefine
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const verifyCalledRef = useRef(false);
 
   const fetchTicket = useCallback(async () => {
     if (!eventId || !userId) {
@@ -86,11 +87,42 @@ export function useEventTicket(eventId: string | null, userId: string | undefine
   }, []);
 
   /**
+   * Call verify-checkout-session edge function as a fallback
+   * when webhook hasn't updated the ticket yet.
+   */
+  const verifyCheckoutSession = useCallback(async (): Promise<boolean> => {
+    if (!eventId) return false;
+    try {
+      console.log("[useEventTicket] Calling verify-checkout-session fallback...");
+      const { data, error } = await supabase.functions.invoke("verify-checkout-session", {
+        body: { event_id: eventId },
+      });
+      if (error) {
+        console.error("[useEventTicket] Verify error:", error);
+        return false;
+      }
+      if (data?.verified) {
+        console.log("[useEventTicket] Verify confirmed! Ticket:", data.ticket_id);
+        return true;
+      }
+      console.log("[useEventTicket] Verify result:", data);
+      return false;
+    } catch (err) {
+      console.error("[useEventTicket] Verify unexpected error:", err);
+      return false;
+    }
+  }, [eventId]);
+
+  /**
    * Poll for ticket confirmation after Stripe redirect.
-   * Checks every 2 seconds for up to 30 seconds for the webhook to update payment_status.
+   * Checks every 2 seconds. After 3 failed DB checks, calls
+   * verify-checkout-session as a fallback to check Stripe directly.
    */
   const pollForConfirmation = useCallback(() => {
     if (!eventId || !userId) return;
+    
+    // Reset verify flag for new poll cycle
+    verifyCalledRef.current = false;
     
     // Clear any existing poll
     if (pollIntervalRef.current) {
@@ -98,7 +130,7 @@ export function useEventTicket(eventId: string | null, userId: string | undefine
     }
 
     let attempts = 0;
-    const maxAttempts = 15; // 30 seconds total
+    const maxAttempts = 20; // 40 seconds total
 
     console.log("[useEventTicket] Starting poll for payment confirmation...");
     
@@ -107,6 +139,7 @@ export function useEventTicket(eventId: string | null, userId: string | undefine
       console.log(`[useEventTicket] Poll attempt ${attempts}/${maxAttempts}`);
 
       try {
+        // First check if the ticket is already confirmed in DB
         const { data, error } = await supabase
           .from("tickets")
           .select("id, payment_status")
@@ -126,6 +159,34 @@ export function useEventTicket(eventId: string | null, userId: string | undefine
           }
           return;
         }
+
+        // After 3 attempts (~6s), use fallback to check Stripe directly
+        if (attempts >= 3 && !verifyCalledRef.current) {
+          verifyCalledRef.current = true;
+          const verified = await verifyCheckoutSession();
+          if (verified) {
+            // Re-fetch ticket to update local state
+            await fetchTicket();
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            return;
+          }
+        }
+
+        // After more attempts, try verify again
+        if (attempts >= 8 && attempts % 4 === 0) {
+          const verified = await verifyCheckoutSession();
+          if (verified) {
+            await fetchTicket();
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+            return;
+          }
+        }
       } catch (err) {
         console.error("[useEventTicket] Poll error:", err);
       }
@@ -138,7 +199,7 @@ export function useEventTicket(eventId: string | null, userId: string | undefine
         }
       }
     }, 2000);
-  }, [eventId, userId]);
+  }, [eventId, userId, verifyCheckoutSession, fetchTicket]);
 
   /**
    * Purchase a ticket for this event (free events only).
