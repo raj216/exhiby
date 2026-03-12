@@ -43,6 +43,23 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const { event_id, notification_type }: NotifyRequest = await req.json();
+
+    // Input validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!event_id || !uuidRegex.test(event_id)) {
+      return new Response(JSON.stringify({ error: "Invalid event_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const VALID_TYPES: NotifyRequest["notification_type"][] = ["studio_scheduled", "studio_live"];
+    if (!notification_type || !VALID_TYPES.includes(notification_type)) {
+      return new Response(JSON.stringify({ error: "Invalid notification_type" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log(`Creating ${notification_type} notifications for event: ${event_id} by user: ${user.id}`);
 
     // Fetch event details
