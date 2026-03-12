@@ -17,21 +17,23 @@ export function useCreatorStats(userId: string | undefined) {
     queryFn: async (): Promise<CreatorStats> => {
       if (!userId) return { sessionsHosted: 0, followersCount: 0, uniqueGuests: 0, earnings: 0, ticketsSold: 0 };
 
+      // First get creator's event IDs for ticket counting
+      const { data: creatorEvents } = await supabase.from("events").select("id").eq("creator_id", userId);
+      const eventIds = (creatorEvents || []).map(e => e.id);
+
       // Parallel fetch all stats
       const [sessionStatsResult, followersResult, ticketsSoldResult] = await Promise.all([
-        // Use new RPC for accurate session stats (completed sessions + unique guests from live_viewers)
         supabase.rpc("get_creator_session_stats", { target_creator_id: userId }),
-        // Get follower count
         supabase.rpc("get_follower_count", { target_user_id: userId }),
-        // Count real sold tickets (only Stripe-confirmed paid tickets, excluding self-purchases)
-        supabase
-          .from("tickets")
-          .select("id", { count: "exact", head: true })
-          .eq("payment_status", "paid")
-          .neq("user_id", userId)
-          .in("event_id", 
-            (await supabase.from("events").select("id").eq("creator_id", userId)).data?.map(e => e.id) || []
-          ),
+        // Count real sold tickets (only Stripe-confirmed, excluding self-purchases)
+        eventIds.length > 0
+          ? supabase
+              .from("tickets")
+              .select("id", { count: "exact", head: true })
+              .eq("payment_status", "paid")
+              .neq("user_id", userId)
+              .in("event_id", eventIds)
+          : Promise.resolve({ count: 0 } as any),
       ]);
 
       let sessionsHosted = 0;
