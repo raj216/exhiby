@@ -56,8 +56,8 @@ export function useCreatorStats(userId: string | undefined) {
         sessionsHosted,
         followersCount: followersResult.data ?? 0,
         uniqueGuests,
-        earnings: 0, // To be implemented with payments
-        ticketsSold: 0, // To be implemented with payments
+        earnings: 0, // Sourced from useCreatorEarnings
+        ticketsSold: ticketsSoldResult.count ?? 0,
       };
     },
     enabled: !!userId,
