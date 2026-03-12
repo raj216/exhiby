@@ -61,8 +61,9 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const isDescriptionValid = description.trim().length > 0;
   const isCategorySelected = category !== "";
   const isPriceValid = isFree || (parseFloat(price) >= 1);
+  const isCapacityValid = isUnlimited || (parseInt(capacity) >= 1 && !isNaN(parseInt(capacity)));
   
-  const canGoLive = isCoverUploaded && isTitleValid && isDescriptionValid && isCategorySelected && isPriceValid;
+  const canGoLive = isCoverUploaded && isTitleValid && isDescriptionValid && isCategorySelected && isPriceValid && isCapacityValid;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
