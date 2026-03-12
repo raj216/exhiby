@@ -438,10 +438,6 @@ export function ScheduleEventModal({
               </div>
               <Switch checked={isFree} onCheckedChange={checked => {
                 setIsFree(checked);
-                // Reset to non-unlimited if switching to paid
-                if (!checked && capacity === "unlimited") {
-                  setCapacity("10");
-                }
               }} />
             </div>
           ) : (
