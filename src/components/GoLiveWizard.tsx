@@ -43,7 +43,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [isFree, setIsFree] = useState(true);
-  const [capacity, setCapacity] = useState<string>("10");
+  const [capacity, setCapacity] = useState<string>("25");
+  const [isUnlimited, setIsUnlimited] = useState(false);
   const [price, setPrice] = useState("");
   const [coverImage, setCoverImage] = useState<Blob | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
