@@ -132,6 +132,11 @@ serve(async (req) => {
           },
         ],
         mode: "payment",
+        metadata: {
+          type: "tip",
+          event_id: event_id || "",
+          user_id: user.id,
+        },
         payment_intent_data: {
           setup_future_usage: "off_session",
           metadata: {
