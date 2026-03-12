@@ -84,6 +84,14 @@ serve(async (req) => {
       );
     }
 
+    // Verify the caller is the message sender
+    if (message.sender_id !== callerUserId) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: not the message sender" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
+
     // Get conversation participants (excluding sender)
     const { data: participants, error: partError } = await supabase
       .from("conversation_participants")
