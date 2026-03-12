@@ -397,19 +397,28 @@ export function ScheduleEventModal({
             <Label className="text-sm text-muted-foreground mb-2 block">
               Studio Capacity <span className="text-electric">*</span>
             </Label>
-            <div className="flex gap-2">
-              {["5", "10", "25", "unlimited"].map(option => {
-                const isUnlimited = option === "unlimited";
-                const isDisabled = isUnlimited && !isFree;
-                const isSelected = capacity === option;
-                return <button key={option} type="button" disabled={isDisabled} onClick={() => setCapacity(option)} className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${isSelected ? "bg-electric text-white" : isDisabled ? "bg-surface/50 text-muted-foreground/40 cursor-not-allowed" : "bg-surface border border-border/30 text-muted-foreground hover:bg-surface/80"}`}>
-                    {isUnlimited ? "Unlimited" : `${option} seats`}
-                  </button>;
-              })}
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={isUnlimited ? "" : capacity}
+                onChange={handleCapacityChange}
+                placeholder="25"
+                disabled={isUnlimited}
+                className="bg-surface border-border/30 w-24 text-center"
+              />
+              <span className="text-sm text-muted-foreground">seats</span>
             </div>
             <p className="text-xs text-muted-foreground/70 mt-2">
               Limited seats create better interaction inside the studio
             </p>
+            <label className="flex items-center gap-2 mt-3 cursor-pointer">
+              <Checkbox
+                checked={isUnlimited}
+                onCheckedChange={(checked) => setIsUnlimited(checked === true)}
+              />
+              <span className="text-sm text-muted-foreground">Unlimited audience</span>
+            </label>
           </div>
 
           {/* Entry Type Toggle - Only show when payments enabled */}
