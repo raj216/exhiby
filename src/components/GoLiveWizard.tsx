@@ -107,6 +107,13 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
     }
   };
 
+  const handleCapacityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "" || /^\d{1,4}$/.test(value)) {
+      setCapacity(value);
+    }
+  };
+
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
