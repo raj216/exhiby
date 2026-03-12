@@ -93,8 +93,9 @@ export function useMonthlyAnalytics(userId: string | undefined) {
       // A real "sale" = ticket where user_id != event.creator_id
       const { data: tickets, error: ticketsError } = await supabase
         .from("tickets")
-        .select("id, event_id, purchased_at, user_id")
+        .select("id, event_id, purchased_at, user_id, payment_status")
         .in("event_id", eventIds)
+        .eq("payment_status", "paid")
         .gte("purchased_at", monthStart)
         .lte("purchased_at", monthEnd);
 

@@ -136,7 +136,8 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
             supabase
               .from("tickets")
               .select("*", { count: "exact", head: true })
-              .eq("event_id", event.id),
+              .eq("event_id", event.id)
+              .in("payment_status", ["paid", "free"]),
             supabase
               .from("saved_sessions")
               .select("*", { count: "exact", head: true })
