@@ -97,9 +97,14 @@ export function ScheduleEventModal({
       setDescription(value);
     }
   };
+  const handleCapacityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "" || /^\d{1,4}$/.test(value)) {
+      setCapacity(value);
+    }
+  };
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Only allow numeric input with decimals
     if (value === "" || /^\d*\.?\d{0,2}$/.test(value)) {
       setPrice(value);
     }
