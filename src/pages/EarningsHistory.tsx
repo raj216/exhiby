@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Calendar, Clock, ExternalLink, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Calendar, Clock, ExternalLink, Loader2, CheckCircle, AlertCircle, Coins } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
@@ -48,7 +48,6 @@ export default function EarningsHistory() {
     triggerClickHaptic();
 
     if (connectStatus === "not_connected" || connectStatus === "onboarding_incomplete") {
-      // Start or resume onboarding
       const url = await startOnboarding();
       if (url) {
         window.location.href = url;
@@ -64,7 +63,6 @@ export default function EarningsHistory() {
     }
 
     if (connectStatus === "active") {
-      // Request payout
       setPayoutLoading(true);
       const result = await requestPayout();
       setPayoutLoading(false);
@@ -249,7 +247,7 @@ export default function EarningsHistory() {
             </div>
           )}
 
-          {/* Payout timing note — always visible */}
+          {/* Payout timing note */}
           <div className="mt-4 px-3 py-2 rounded-xl bg-muted/10 border border-border/10">
             <p className="text-[11px] text-muted-foreground/70 leading-relaxed text-center">
               Your first payout may take around 7 days to process through Stripe. After that, payout timing may become faster depending on your Stripe account status.
@@ -276,43 +274,63 @@ export default function EarningsHistory() {
           </div>
         ) : (
           <div className="space-y-3">
-            {data.transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="py-4 px-4 bg-obsidian rounded-2xl border border-border/20"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center flex-shrink-0">
-                    <Ticket className="w-5 h-5 text-gold" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground font-medium truncate">
-                      {tx.event_title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Calendar className="w-3 h-3 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(tx.created_at), "MMM d, yyyy")}
-                      </p>
-                      <span className="text-muted-foreground/50">•</span>
-                      <p className="text-xs text-muted-foreground">
-                        {tx.ticket_count} attendee{tx.ticket_count !== 1 ? "s" : ""}
+            {data.transactions.map((tx) => {
+              const isTip = tx.type === "tip";
+              return (
+                <div
+                  key={tx.id}
+                  className="py-4 px-4 bg-obsidian rounded-2xl border border-border/20"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isTip ? "bg-emerald-500/10" : "bg-gold/10"}`}>
+                      {isTip ? (
+                        <Coins className="w-5 h-5 text-emerald-400" />
+                      ) : (
+                        <Ticket className="w-5 h-5 text-gold" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-foreground font-medium truncate">
+                          {tx.event_title}
+                        </p>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          isTip
+                            ? "bg-emerald-500/15 text-emerald-400"
+                            : "bg-gold/15 text-gold"
+                        }`}>
+                          {isTip ? "Tip" : "Ticket"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(tx.created_at), "MMM d, yyyy")}
+                        </p>
+                        {!isTip && tx.ticket_count > 0 && (
+                          <>
+                            <span className="text-muted-foreground/50">•</span>
+                            <p className="text-xs text-muted-foreground">
+                              {tx.ticket_count} attendee{tx.ticket_count !== 1 ? "s" : ""}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-display text-lg ${isTip ? "text-emerald-400" : "text-gold"}`}>
+                        +{formatCents(tx.amount_net)}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-display text-lg text-gold">
-                      +{formatCents(tx.amount_net)}
-                    </p>
+                  <div className="flex items-center gap-4 mt-2 ml-16 text-xs text-muted-foreground">
+                    <span>Gross: {formatCents(tx.amount_gross)}</span>
+                    <span>Platform Fee (10%): −{formatCents(tx.platform_fee)}</span>
+                    <span className={isTip ? "text-emerald-400" : "text-gold"}>Net: {formatCents(tx.amount_net)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mt-2 ml-16 text-xs text-muted-foreground">
-                  <span>Gross: {formatCents(tx.amount_gross)}</span>
-                  <span>Platform Fee (10%): −{formatCents(tx.platform_fee)}</span>
-                  <span className="text-gold">Net: {formatCents(tx.amount_net)}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
