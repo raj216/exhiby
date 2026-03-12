@@ -123,9 +123,13 @@ serve(async (req) => {
         case "charge.succeeded": {
           const charge = event.data.object;
           console.log(`[stripe-webhook] Processing charge.succeeded: ${charge.id}, payment_intent: ${charge.payment_intent}`);
-          // charge.succeeded is typically redundant with payment_intent.succeeded
-          // but we log it for completeness
           processingStatus = "processed";
+          break;
+        }
+        case "charge.refunded": {
+          const charge = event.data.object as any;
+          console.log(`[stripe-webhook] Processing charge.refunded: ${charge.id}`);
+          await handleChargeRefunded(supabase, charge);
           break;
         }
         default:
