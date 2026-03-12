@@ -123,9 +123,13 @@ serve(async (req) => {
         case "charge.succeeded": {
           const charge = event.data.object;
           console.log(`[stripe-webhook] Processing charge.succeeded: ${charge.id}, payment_intent: ${charge.payment_intent}`);
-          // charge.succeeded is typically redundant with payment_intent.succeeded
-          // but we log it for completeness
           processingStatus = "processed";
+          break;
+        }
+        case "charge.refunded": {
+          const charge = event.data.object as any;
+          console.log(`[stripe-webhook] Processing charge.refunded: ${charge.id}`);
+          await handleChargeRefunded(supabase, charge);
           break;
         }
         default:
@@ -404,7 +408,59 @@ async function recordCreatorEarning(
       console.log("[stripe-webhook] Earnings already recorded for this event, skipping (idempotent)");
     } else {
       console.error("[stripe-webhook] ❌ Error recording creator earning:", error);
+}
+
+/**
+ * Handle charge.refunded — mark ticket as refunded + update earnings
+ */
+async function handleChargeRefunded(
+  supabase: ReturnType<typeof createClient>,
+  charge: any
+) {
+  const paymentIntentId = charge.payment_intent;
+  console.log(`[stripe-webhook] charge.refunded: ${charge.id}, pi: ${paymentIntentId}`);
+
+  if (!paymentIntentId) {
+    console.log("[stripe-webhook] No payment_intent on refunded charge, skipping");
+    return;
+  }
+
+  // Find earnings by stripe_payment_intent_id
+  const { data: earning, error: earningError } = await supabase
+    .from("creator_earnings")
+    .select("id, event_id, user_id")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .maybeSingle();
+
+  if (earningError) {
+    console.error("[stripe-webhook] Error finding earning for refund:", earningError);
+  }
+
+  // Update earning status to refunded
+  if (earning) {
+    await supabase
+      .from("creator_earnings")
+      .update({ status: "refunded" })
+      .eq("id", earning.id);
+    console.log(`[stripe-webhook] ✅ Earning ${earning.id} marked as refunded`);
+
+    // Update ticket to refunded
+    const { error: ticketError } = await supabase
+      .from("tickets")
+      .update({ payment_status: "refunded" })
+      .eq("event_id", earning.event_id)
+      .eq("user_id", earning.user_id)
+      .eq("payment_status", "paid");
+
+    if (ticketError) {
+      console.error("[stripe-webhook] Error updating ticket for refund:", ticketError);
+    } else {
+      console.log(`[stripe-webhook] ✅ Ticket marked as refunded`);
     }
+  } else {
+    console.warn(`[stripe-webhook] ⚠️ No earning found for PI: ${paymentIntentId}`);
+  }
+}
   } else {
     console.log(`[stripe-webhook] ✅ Recorded earning: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
   }
