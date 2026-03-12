@@ -206,7 +206,8 @@ export function ScheduleEventModal({
         category: category,
         scheduled_at: scheduledAt,
         is_free: isFree,
-        price: isFree ? 0 : parseFloat(price) || 0
+        price: isFree ? 0 : parseFloat(price) || 0,
+        capacity: isUnlimited ? null : parseInt(capacity) || 25
       }).select('id').single();
       if (error) throw error;
 
