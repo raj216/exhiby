@@ -57,7 +57,8 @@ export function ScheduleEventModal({
   const isDateValid = scheduledDate !== "";
   const isTimeValid = scheduledTime !== "";
   const isPriceValid = isFree || parseFloat(price) >= 1;
-  const canPublish = isCoverUploaded && isCategorySelected && isTitleValid && isDescriptionValid && isDateValid && isTimeValid && isPriceValid;
+  const isCapacityValid = isUnlimited || (parseInt(capacity) >= 1 && !isNaN(parseInt(capacity)));
+  const canPublish = isCoverUploaded && isCategorySelected && isTitleValid && isDescriptionValid && isDateValid && isTimeValid && isPriceValid && isCapacityValid;
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
