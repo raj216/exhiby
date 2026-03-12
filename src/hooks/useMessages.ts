@@ -257,6 +257,13 @@ export function useMessages({ conversationId, onMessagesMarkedRead }: UseMessage
                 : m
             )
           );
+
+          // Trigger push notification for recipient (fire-and-forget)
+          supabase.functions.invoke("send-dm-push", {
+            body: { message_id: data.id },
+          }).catch((err) => {
+            console.log("[useMessages] Push notification failed (non-critical):", err);
+          });
         }
 
         return true;
