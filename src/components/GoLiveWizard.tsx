@@ -173,6 +173,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         duration_minutes: durationMinutes,
         is_free: isFree,
         price: isFree ? 0 : parseFloat(price) || 0,
+        capacity: isUnlimited ? null : parseInt(capacity) || 25,
         is_live: false, // Will be set to true by edge function
         viewer_count: 0,
       };
