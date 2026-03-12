@@ -18,7 +18,6 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  // --- DIAGNOSTIC: Log env availability ---
   console.log(`[stripe-webhook] ENV CHECK: STRIPE_SECRET_KEY=${stripeSecretKey ? "SET (" + stripeSecretKey.substring(0, 7) + "...)" : "MISSING"}`);
   console.log(`[stripe-webhook] ENV CHECK: STRIPE_WEBHOOK_SECRET=${webhookSecret ? "SET (" + webhookSecret.substring(0, 8) + "...)" : "MISSING"}`);
   console.log(`[stripe-webhook] ENV CHECK: SUPABASE_URL=${supabaseUrl ? "SET" : "MISSING"}`);
@@ -39,7 +38,6 @@ serve(async (req) => {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
 
-    // --- DIAGNOSTIC: Log raw request info ---
     console.log(`[stripe-webhook] Request method: ${req.method}`);
     console.log(`[stripe-webhook] Body length: ${body.length}`);
     console.log(`[stripe-webhook] Signature header present: ${!!signature}`);
@@ -61,8 +59,6 @@ serve(async (req) => {
       console.log(`[stripe-webhook] ✅ Signature verified successfully`);
     } catch (err) {
       console.error(`[stripe-webhook] ❌ Signature verification FAILED: ${err.message}`);
-      console.error(`[stripe-webhook] Webhook secret starts with: ${webhookSecret.substring(0, 8)}...`);
-      console.error(`[stripe-webhook] Ensure STRIPE_WEBHOOK_SECRET matches the signing secret from Stripe Dashboard > Webhooks > your endpoint > Signing secret`);
       return new Response(JSON.stringify({ error: "Invalid signature", detail: err.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -164,6 +160,7 @@ serve(async (req) => {
 
 /**
  * Handle checkout.session.completed — mark ticket as paid + record earnings
+ * Also handles tip checkout sessions (no ticket involved).
  */
 async function handleCheckoutCompleted(
   supabase: ReturnType<typeof createClient>,
@@ -174,8 +171,32 @@ async function handleCheckoutCompleted(
   console.log(`[stripe-webhook] checkout.session.completed: ${checkoutSessionId}`);
   console.log(`[stripe-webhook] Session payment_status: ${session.payment_status}`);
   console.log(`[stripe-webhook] Session amount_total: ${session.amount_total}`);
-  console.log(`[stripe-webhook] Session metadata:`, JSON.stringify(session.metadata));
 
+  // Check payment_intent metadata for type (tip checkout sessions store metadata on payment_intent_data)
+  const piMetadata = session.metadata || {};
+  const paymentIntentMetadata = typeof session.payment_intent === "object" && session.payment_intent?.metadata
+    ? session.payment_intent.metadata
+    : {};
+  // Merge: checkout-level metadata takes priority for type detection
+  const mergedMeta = { ...paymentIntentMetadata, ...piMetadata };
+  console.log(`[stripe-webhook] Merged metadata:`, JSON.stringify(mergedMeta));
+
+  // --- TIP CHECKOUT ---
+  if (mergedMeta.type === "tip") {
+    console.log(`[stripe-webhook] Detected TIP checkout session`);
+    await recordTipEarning(supabase, {
+      eventId: mergedMeta.event_id || "",
+      tipperUserId: mergedMeta.user_id || "",
+      amountCents: session.amount_total || 0,
+      currency: session.currency || "usd",
+      stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || null,
+      stripeCheckoutSessionId: session.id,
+      stripeEventId,
+    });
+    return;
+  }
+
+  // --- TICKET CHECKOUT ---
   // Find the ticket by stripe_checkout_session_id
   const { data: ticket, error } = await supabase
     .from("tickets")
@@ -191,8 +212,8 @@ async function handleCheckoutCompleted(
   if (!ticket) {
     console.warn(`[stripe-webhook] ⚠️ No ticket found for checkout session: ${checkoutSessionId}`);
     // Try finding by metadata
-    const eventId = session.metadata?.event_id;
-    const userId = session.metadata?.user_id;
+    const eventId = mergedMeta.event_id;
+    const userId = mergedMeta.user_id;
     if (eventId && userId) {
       console.log(`[stripe-webhook] Trying metadata fallback: event_id=${eventId}, user_id=${userId}`);
       const { data: fallbackTicket, error: fallbackError } = await supabase
@@ -210,7 +231,6 @@ async function handleCheckoutCompleted(
         console.warn("[stripe-webhook] ⚠️ No ticket found via metadata fallback either");
         return;
       }
-      // Update the ticket with checkout session ID and proceed
       await supabase
         .from("tickets")
         .update({ stripe_checkout_session_id: checkoutSessionId })
@@ -266,6 +286,7 @@ async function markTicketPaidAndRecordEarnings(
 
 /**
  * Handle payment_intent.succeeded — fallback confirmation + record earnings
+ * Also handles tip payments charged with saved payment methods.
  */
 async function handlePaymentIntentSucceeded(
   supabase: ReturnType<typeof createClient>,
@@ -276,8 +297,26 @@ async function handlePaymentIntentSucceeded(
   console.log(`[stripe-webhook] PI metadata:`, JSON.stringify(paymentIntent.metadata));
   console.log(`[stripe-webhook] PI amount: ${paymentIntent.amount}, currency: ${paymentIntent.currency}`);
 
-  const eventId = paymentIntent.metadata?.event_id;
-  const userId = paymentIntent.metadata?.user_id;
+  const meta = paymentIntent.metadata || {};
+
+  // --- TIP (off-session charge via saved method) ---
+  if (meta.type === "tip") {
+    console.log(`[stripe-webhook] Detected TIP payment_intent`);
+    await recordTipEarning(supabase, {
+      eventId: meta.event_id || "",
+      tipperUserId: meta.user_id || "",
+      amountCents: paymentIntent.amount || 0,
+      currency: paymentIntent.currency || "usd",
+      stripePaymentIntentId: paymentIntent.id,
+      stripeCheckoutSessionId: null,
+      stripeEventId,
+    });
+    return;
+  }
+
+  // --- TICKET fallback ---
+  const eventId = meta.event_id;
+  const userId = meta.user_id;
 
   if (!eventId || !userId) {
     console.log("[stripe-webhook] No event_id/user_id in PI metadata, skipping ticket update");
@@ -346,9 +385,9 @@ async function handlePaymentIntentFailed(
 }
 
 /**
- * Record a creator earning in the creator_earnings table.
+ * Record a creator earning for a TICKET purchase.
  * Uses stripe_event_id as unique key for idempotency.
- * Platform fee is 10% (configurable).
+ * Platform fee is 10%.
  */
 async function recordCreatorEarning(
   supabase: ReturnType<typeof createClient>,
@@ -363,9 +402,8 @@ async function recordCreatorEarning(
     stripeEventId: string;
   }
 ) {
-  console.log(`[stripe-webhook] Recording earnings for event ${params.eventId}, amount: ${params.amountCents} cents`);
+  console.log(`[stripe-webhook] Recording ticket earnings for event ${params.eventId}, amount: ${params.amountCents} cents`);
 
-  // Look up creator_id from the event
   const { data: event, error: eventError } = await supabase
     .from("events")
     .select("creator_id")
@@ -403,11 +441,86 @@ async function recordCreatorEarning(
   });
 
   if (error) {
-    // Unique constraint on stripe_event_id handles idempotency
     if (error.code === "23505") {
       console.log("[stripe-webhook] Earnings already recorded for this event, skipping (idempotent)");
     } else {
       console.error("[stripe-webhook] ❌ Error recording creator earning:", error);
+    }
+  } else {
+    console.log(`[stripe-webhook] ✅ Recorded ticket earning: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
+  }
+}
+
+/**
+ * Record a creator earning for a TIP payment.
+ * Tips have no ticket_id. Uses stripe_event_id for idempotency.
+ * Platform fee is 10%.
+ */
+async function recordTipEarning(
+  supabase: ReturnType<typeof createClient>,
+  params: {
+    eventId: string;
+    tipperUserId: string;
+    amountCents: number;
+    currency: string;
+    stripePaymentIntentId: string | null;
+    stripeCheckoutSessionId: string | null;
+    stripeEventId: string;
+  }
+) {
+  console.log(`[stripe-webhook] Recording TIP earnings, event: ${params.eventId || "(none)"}, amount: ${params.amountCents} cents`);
+
+  if (!params.eventId || !params.tipperUserId) {
+    console.error("[stripe-webhook] Missing event_id or user_id for tip earning");
+    return;
+  }
+
+  // Look up creator from the event
+  const { data: event, error: eventError } = await supabase
+    .from("events")
+    .select("creator_id")
+    .eq("id", params.eventId)
+    .maybeSingle();
+
+  if (eventError || !event) {
+    console.error("[stripe-webhook] Could not find event for tip earning:", params.eventId, eventError);
+    return;
+  }
+
+  // Don't record self-tips
+  if (event.creator_id === params.tipperUserId) {
+    console.log("[stripe-webhook] Skipping self-tip earnings");
+    return;
+  }
+
+  const PLATFORM_FEE_PERCENT = 10;
+  const platformFee = Math.round(params.amountCents * PLATFORM_FEE_PERCENT / 100);
+  const amountNet = params.amountCents - platformFee;
+
+  const { error } = await supabase.from("creator_earnings").insert({
+    creator_id: event.creator_id,
+    event_id: params.eventId,
+    ticket_id: null, // Tips have no ticket
+    user_id: params.tipperUserId,
+    stripe_payment_intent_id: params.stripePaymentIntentId,
+    stripe_checkout_session_id: params.stripeCheckoutSessionId,
+    amount_gross: params.amountCents,
+    platform_fee: platformFee,
+    amount_net: amountNet,
+    currency: params.currency,
+    status: "succeeded",
+    stripe_event_id: params.stripeEventId,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      console.log("[stripe-webhook] Tip earning already recorded, skipping (idempotent)");
+    } else {
+      console.error("[stripe-webhook] ❌ Error recording tip earning:", error);
+    }
+  } else {
+    console.log(`[stripe-webhook] ✅ Recorded TIP earning: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
+  }
 }
 
 /**
@@ -428,7 +541,7 @@ async function handleChargeRefunded(
   // Find earnings by stripe_payment_intent_id
   const { data: earning, error: earningError } = await supabase
     .from("creator_earnings")
-    .select("id, event_id, user_id")
+    .select("id, event_id, user_id, ticket_id")
     .eq("stripe_payment_intent_id", paymentIntentId)
     .maybeSingle();
 
@@ -444,24 +557,22 @@ async function handleChargeRefunded(
       .eq("id", earning.id);
     console.log(`[stripe-webhook] ✅ Earning ${earning.id} marked as refunded`);
 
-    // Update ticket to refunded
-    const { error: ticketError } = await supabase
-      .from("tickets")
-      .update({ payment_status: "refunded" })
-      .eq("event_id", earning.event_id)
-      .eq("user_id", earning.user_id)
-      .eq("payment_status", "paid");
+    // Only update ticket if this earning had a ticket (not a tip)
+    if (earning.ticket_id) {
+      const { error: ticketError } = await supabase
+        .from("tickets")
+        .update({ payment_status: "refunded" })
+        .eq("event_id", earning.event_id)
+        .eq("user_id", earning.user_id)
+        .eq("payment_status", "paid");
 
-    if (ticketError) {
-      console.error("[stripe-webhook] Error updating ticket for refund:", ticketError);
-    } else {
-      console.log(`[stripe-webhook] ✅ Ticket marked as refunded`);
+      if (ticketError) {
+        console.error("[stripe-webhook] Error updating ticket for refund:", ticketError);
+      } else {
+        console.log(`[stripe-webhook] ✅ Ticket marked as refunded`);
+      }
     }
   } else {
     console.warn(`[stripe-webhook] ⚠️ No earning found for PI: ${paymentIntentId}`);
-  }
-}
-  } else {
-    console.log(`[stripe-webhook] ✅ Recorded earning: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
   }
 }

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type EarningType = "ticket" | "tip";
+
 export interface EarningRecord {
   id: string;
   event_id: string;
@@ -12,6 +14,7 @@ export interface EarningRecord {
   currency: string;
   created_at: string;
   ticket_count: number;
+  type: EarningType;
 }
 
 export interface CreatorEarningsData {
@@ -35,7 +38,7 @@ export function useCreatorEarnings(userId: string | undefined) {
       const [earningsRes, payoutsRes] = await Promise.all([
         supabase
           .from("creator_earnings")
-          .select("id, event_id, user_id, amount_gross, platform_fee, amount_net, currency, created_at, status")
+          .select("id, event_id, user_id, amount_gross, platform_fee, amount_net, currency, created_at, status, ticket_id")
           .eq("creator_id", userId)
           .eq("status", "succeeded")
           .order("created_at", { ascending: false }),
@@ -71,7 +74,9 @@ export function useCreatorEarnings(userId: string | undefined) {
       let thisMonthEarnings = 0;
       let lastMonthEarnings = 0;
 
-      const eventGroupMap = new Map<string, EarningRecord>();
+      // Group by event_id + type (ticket vs tip)
+      const groupKey = (eventId: string, isTip: boolean) => `${eventId}::${isTip ? "tip" : "ticket"}`;
+      const groupMap = new Map<string, EarningRecord>();
 
       for (const e of earnings) {
         const netCents = e.amount_net || 0;
@@ -84,14 +89,17 @@ export function useCreatorEarnings(userId: string | undefined) {
           lastMonthEarnings += netCents;
         }
 
-        if (eventGroupMap.has(e.event_id)) {
-          const existing = eventGroupMap.get(e.event_id)!;
+        const isTip = e.ticket_id === null;
+        const key = groupKey(e.event_id, isTip);
+
+        if (groupMap.has(key)) {
+          const existing = groupMap.get(key)!;
           existing.amount_gross += e.amount_gross || 0;
           existing.platform_fee += e.platform_fee || 0;
           existing.amount_net += netCents;
-          existing.ticket_count += 1;
+          existing.ticket_count += isTip ? 0 : 1;
         } else {
-          eventGroupMap.set(e.event_id, {
+          groupMap.set(key, {
             id: e.id,
             event_id: e.event_id,
             event_title: eventMap.get(e.event_id) || "Untitled Session",
@@ -101,7 +109,8 @@ export function useCreatorEarnings(userId: string | undefined) {
             amount_net: netCents,
             currency: e.currency,
             created_at: e.created_at,
-            ticket_count: 1,
+            ticket_count: isTip ? 0 : 1,
+            type: isTip ? "tip" : "ticket",
           });
         }
       }
@@ -109,7 +118,7 @@ export function useCreatorEarnings(userId: string | undefined) {
       const totalPaidOut = payouts.reduce((sum, p) => sum + (p.amount || 0), 0);
       const availableToPayout = Math.max(0, lifetimeEarnings - totalPaidOut);
 
-      const transactions = Array.from(eventGroupMap.values()).sort(
+      const transactions = Array.from(groupMap.values()).sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
