@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ImagePlus, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,7 +44,8 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [isFree, setIsFree] = useState(true);
-  const [capacity, setCapacity] = useState<string>("10");
+  const [capacity, setCapacity] = useState<string>("25");
+  const [isUnlimited, setIsUnlimited] = useState(false);
   const [price, setPrice] = useState("");
   const [coverImage, setCoverImage] = useState<Blob | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -60,8 +62,9 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const isDescriptionValid = description.trim().length > 0;
   const isCategorySelected = category !== "";
   const isPriceValid = isFree || (parseFloat(price) >= 1);
+  const isCapacityValid = isUnlimited || (parseInt(capacity) >= 1 && !isNaN(parseInt(capacity)));
   
-  const canGoLive = isCoverUploaded && isTitleValid && isDescriptionValid && isCategorySelected && isPriceValid;
+  const canGoLive = isCoverUploaded && isTitleValid && isDescriptionValid && isCategorySelected && isPriceValid && isCapacityValid;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,6 +105,13 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
     const value = e.target.value;
     if (value.length <= MAX_DESCRIPTION_LENGTH) {
       setDescription(value);
+    }
+  };
+
+  const handleCapacityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "" || /^\d{1,4}$/.test(value)) {
+      setCapacity(value);
     }
   };
 
@@ -164,6 +174,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
         duration_minutes: durationMinutes,
         is_free: isFree,
         price: isFree ? 0 : parseFloat(price) || 0,
+        capacity: isUnlimited ? null : parseInt(capacity) || 25,
         is_live: false, // Will be set to true by edge function
         viewer_count: 0,
       };
@@ -406,34 +417,28 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             <Label className="text-sm text-muted-foreground mb-2 block">
               Studio Capacity <span className="text-electric">*</span>
             </Label>
-            <div className="flex gap-2">
-              {["5", "10", "25", "unlimited"].map((option) => {
-                const isUnlimited = option === "unlimited";
-                const isDisabled = isUnlimited && !isFree;
-                const isSelected = capacity === option;
-                
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => setCapacity(option)}
-                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                      isSelected
-                        ? "bg-electric text-white"
-                        : isDisabled
-                        ? "bg-surface/50 text-muted-foreground/40 cursor-not-allowed"
-                        : "bg-surface border border-border/30 text-muted-foreground hover:bg-surface/80"
-                    }`}
-                  >
-                    {isUnlimited ? "Unlimited" : `${option} seats`}
-                  </button>
-                );
-              })}
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={isUnlimited ? "" : capacity}
+                onChange={handleCapacityChange}
+                placeholder="25"
+                disabled={isUnlimited}
+                className="bg-surface border-border/30 w-24 text-center"
+              />
+              <span className="text-sm text-muted-foreground">seats</span>
             </div>
             <p className="text-xs text-muted-foreground/70 mt-2">
               Limited seats create better interaction inside the studio
             </p>
+            <label className="flex items-center gap-2 mt-3 cursor-pointer">
+              <Checkbox
+                checked={isUnlimited}
+                onCheckedChange={(checked) => setIsUnlimited(checked === true)}
+              />
+              <span className="text-sm text-muted-foreground">Unlimited audience</span>
+            </label>
           </div>
 
           {/* Entry Type Toggle */}
@@ -454,11 +459,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             <Switch
               checked={isFree}
               onCheckedChange={(checked) => {
-                setIsFree(checked);
-                // Reset to non-unlimited if switching to paid
-                if (!checked && capacity === "unlimited") {
-                  setCapacity("10");
-                }
+                setIsFree(checked === true);
               }}
             />
           </div>
