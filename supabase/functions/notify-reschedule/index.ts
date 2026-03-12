@@ -90,6 +90,16 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const { event_id }: RescheduleRequest = await req.json();
+
+    // Input validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!event_id || !uuidRegex.test(event_id)) {
+      return new Response(JSON.stringify({ error: "Invalid event_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log(`Processing reschedule notification for event: ${event_id}`);
 
     // Fetch event details
