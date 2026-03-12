@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ImagePlus, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
