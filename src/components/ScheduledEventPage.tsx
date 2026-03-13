@@ -4,6 +4,7 @@ import { X, Bell, BellOff, Play, Calendar, Clock } from "lucide-react";
 import { SlideToAction } from "./SlideToAction";
 import { triggerHaptic } from "@/lib/haptics";
 import { toast } from "sonner";
+import { calculateProcessingFee } from "@/lib/processingFee";
 
 interface ScheduledEventPageProps {
   isOpen: boolean;
@@ -115,11 +116,29 @@ export function ScheduledEventPage({
             {/* Content Section */}
             <div className="flex-1 p-6 -mt-4">
               {/* Price Tag */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-obsidian border border-gold/30 mb-6">
-                <span className="text-gold font-semibold text-lg">
-                  {price === 0 ? "Free Entry" : `$${price} Ticket`}
-                </span>
-              </div>
+              {price === 0 ? (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-obsidian border border-gold/30 mb-6">
+                  <span className="text-gold font-semibold text-lg">Free Entry</span>
+                </div>
+              ) : (
+                <div className="bg-obsidian/80 rounded-xl px-4 py-3 border border-border/30 space-y-1.5 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Entry ticket</span>
+                    <span className="text-foreground">${price.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Processing fee</span>
+                    <span className="text-foreground">${calculateProcessingFee(price).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm pt-1.5 border-t border-border/30">
+                    <span className="text-foreground font-semibold">Total</span>
+                    <span className="text-gold font-semibold">${(price + calculateProcessingFee(price)).toFixed(2)}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70 pt-1">
+                    Processing fee supports secure card payments via Stripe.
+                  </p>
+                </div>
+              )}
 
               {/* Description */}
               {description && (

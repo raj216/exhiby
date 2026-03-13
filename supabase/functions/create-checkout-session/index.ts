@@ -11,6 +11,14 @@ const corsHeaders = {
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Calculate processing fee in cents: ceil(price * 0.029 + 30) */
+function calcProcessingFeeCents(ticketPriceCents: number): number {
+  if (ticketPriceCents <= 0) return 0;
+  const ticketDollars = ticketPriceCents / 100;
+  const feeDollars = ticketDollars * 0.029 + 0.30;
+  return Math.ceil(feeDollars * 100);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -113,15 +121,19 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
 
     // Server-side price validation — cents
-    const priceInCents = Math.round(Number(event.price) * 100);
-    if (priceInCents < 100) {
+    const ticketPriceCents = Math.round(Number(event.price) * 100);
+    if (ticketPriceCents < 100) {
       return new Response(JSON.stringify({ error: "Price must be at least $1.00" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Create a pending ticket first
+    // Calculate processing fee and total charge
+    const processingFeeCents = calcProcessingFeeCents(ticketPriceCents);
+    const totalChargeCents = ticketPriceCents + processingFeeCents;
+
+    // Create a pending ticket first (amount = original ticket price, NOT total)
     const { data: pendingTicket, error: pendingError } = await supabase
       .from("tickets")
       .upsert(
@@ -164,7 +176,7 @@ serve(async (req) => {
       customerId = newCustomer.id;
     }
 
-    // Create Checkout Session — save payment method for future use
+    // Create Checkout Session with ticket + processing fee as separate line items
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email || undefined,
@@ -174,9 +186,20 @@ serve(async (req) => {
             currency: "usd",
             product_data: {
               name: event.title || "Studio Session Ticket",
-              description: `Entry ticket for live studio session`,
+              description: "Entry ticket for live studio session",
             },
-            unit_amount: priceInCents,
+            unit_amount: ticketPriceCents,
+          },
+          quantity: 1,
+        },
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Processing Fee",
+              description: "Secure card payment processing",
+            },
+            unit_amount: processingFeeCents,
           },
           quantity: 1,
         },
@@ -188,6 +211,8 @@ serve(async (req) => {
           event_id,
           user_id: user.id,
           ticket_id: pendingTicket.id,
+          ticket_price_cents: String(ticketPriceCents),
+          processing_fee_cents: String(processingFeeCents),
         },
       },
       success_url: `${origin}/live/${event_id}?payment=success`,
@@ -196,6 +221,8 @@ serve(async (req) => {
         event_id,
         user_id: user.id,
         ticket_id: pendingTicket.id,
+        ticket_price_cents: String(ticketPriceCents),
+        processing_fee_cents: String(processingFeeCents),
       },
     });
 
@@ -206,7 +233,7 @@ serve(async (req) => {
       .eq("id", pendingTicket.id);
 
     console.log(
-      `[create-checkout-session] Created session ${session.id} for event ${event_id}`
+      `[create-checkout-session] Created session ${session.id} for event ${event_id} (ticket: ${ticketPriceCents}c + fee: ${processingFeeCents}c = ${totalChargeCents}c)`
     );
 
     return new Response(
