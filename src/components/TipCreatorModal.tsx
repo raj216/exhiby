@@ -294,7 +294,10 @@ export function TipCreatorModal({
                   ) : (
                     <SlideToAction
                       onComplete={handleSavedTip}
-                      label={resolvedAmount > 0 ? `Swipe to Tip $${resolvedAmount}` : "Select amount"}
+                      label={resolvedAmount > 0 ? `Swipe to Tip $${buyerTotal.toFixed(2)}` : "Select amount"}
+                      completedLabel="Sent ✓"
+                      icon={<Coins className="w-5 h-5 text-white" />}
+                    />
                       completedLabel="Sent ✓"
                       icon={<Coins className="w-5 h-5 text-white" />}
                     />
