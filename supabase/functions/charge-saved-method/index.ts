@@ -11,6 +11,14 @@ const corsHeaders = {
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Calculate processing fee in cents: ceil(price * 0.029 + 30) */
+function calcProcessingFeeCents(ticketPriceCents: number): number {
+  if (ticketPriceCents <= 0) return 0;
+  const ticketDollars = ticketPriceCents / 100;
+  const feeDollars = ticketDollars * 0.029 + 0.30;
+  return Math.ceil(feeDollars * 100);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -110,13 +118,17 @@ serve(async (req) => {
     }
 
     // Paid event — charge saved payment method
-    const priceInCents = Math.round(Number(event.price) * 100);
-    if (priceInCents < 100) {
+    const ticketPriceCents = Math.round(Number(event.price) * 100);
+    if (ticketPriceCents < 100) {
       return new Response(JSON.stringify({ error: "Price must be at least $1.00" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Calculate processing fee and total charge amount
+    const processingFeeCents = calcProcessingFeeCents(ticketPriceCents);
+    const totalChargeCents = ticketPriceCents + processingFeeCents;
 
     // Find or create Stripe customer
     let customerId: string;
@@ -135,7 +147,7 @@ serve(async (req) => {
       });
     }
 
-    // Create pending ticket
+    // Create pending ticket (amount = original ticket price, NOT total)
     const { data: pendingTicket, error: pendingError } = await supabase
       .from("tickets")
       .upsert(
@@ -160,10 +172,10 @@ serve(async (req) => {
       });
     }
 
-    // Create and confirm PaymentIntent with saved method
+    // Create and confirm PaymentIntent with saved method — charge total (ticket + fee)
     try {
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: priceInCents,
+        amount: totalChargeCents,
         currency: "usd",
         customer: customerId,
         payment_method: payment_method_id,
@@ -173,6 +185,8 @@ serve(async (req) => {
           event_id,
           user_id: user.id,
           ticket_id: pendingTicket.id,
+          ticket_price_cents: String(ticketPriceCents),
+          processing_fee_cents: String(processingFeeCents),
         },
         description: `Ticket for: ${event.title}`,
       });
@@ -187,7 +201,7 @@ serve(async (req) => {
           })
           .eq("id", pendingTicket.id);
 
-        console.log(`[charge-saved-method] Payment succeeded for ticket ${pendingTicket.id}`);
+        console.log(`[charge-saved-method] Payment succeeded for ticket ${pendingTicket.id} (ticket: ${ticketPriceCents}c + fee: ${processingFeeCents}c = ${totalChargeCents}c)`);
 
         return new Response(
           JSON.stringify({

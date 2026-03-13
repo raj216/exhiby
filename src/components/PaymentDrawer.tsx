@@ -6,6 +6,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SlideToAction } from "./SlideToAction";
+import { calculateProcessingFee } from "@/lib/processingFee";
 
 interface SavedPaymentMethod {
   id: string;
@@ -45,6 +46,8 @@ export function PaymentDrawer({
   const [chargeError, setChargeError] = useState<string | null>(null);
 
   const effectivelyFree = isFree || price <= 0;
+  const processingFee = effectivelyFree ? 0 : calculateProcessingFee(price);
+  const buyerTotal = effectivelyFree ? 0 : price + processingFee;
 
   // Check for saved payment method when drawer opens (paid events only)
   useEffect(() => {
@@ -247,12 +250,25 @@ export function PaymentDrawer({
                     {effectivelyFree ? "Free" : `$${price.toFixed(2)}`}
                   </span>
                 </div>
+                {!effectivelyFree && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-muted-foreground">Processing fee</span>
+                    <span className="text-sm text-foreground">
+                      ${processingFee.toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2 border-t border-border">
                   <span className="text-sm font-semibold text-foreground">Total</span>
                   <span className="text-lg font-bold text-primary">
-                    {effectivelyFree ? "Free" : `$${price.toFixed(2)}`}
+                    {effectivelyFree ? "Free" : `$${buyerTotal.toFixed(2)}`}
                   </span>
                 </div>
+                {!effectivelyFree && (
+                  <p className="text-[11px] text-muted-foreground/70 mt-2">
+                    Processing fee supports secure card payments via Stripe.
+                  </p>
+                )}
               </div>
 
               {/* Card error message */}
@@ -317,7 +333,7 @@ export function PaymentDrawer({
                   ) : (
                     <SlideToAction
                       onComplete={handleSavedMethodCharge}
-                      label={`Swipe to Pay $${price.toFixed(2)}`}
+                      label={`Swipe to Pay $${buyerTotal.toFixed(2)}`}
                       completedLabel="Paid ✓"
                     />
                   )}
@@ -355,7 +371,7 @@ export function PaymentDrawer({
                     ) : (
                       <>
                         <CreditCard className="w-5 h-5" />
-                        Pay with Card — ${price.toFixed(2)}
+                        Pay with Card — ${buyerTotal.toFixed(2)}
                         <ExternalLink className="w-4 h-4" />
                       </>
                     )}
