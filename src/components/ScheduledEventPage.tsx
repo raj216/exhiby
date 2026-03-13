@@ -4,6 +4,7 @@ import { X, Bell, BellOff, Play, Calendar, Clock } from "lucide-react";
 import { SlideToAction } from "./SlideToAction";
 import { triggerHaptic } from "@/lib/haptics";
 import { toast } from "sonner";
+import { calculateProcessingFee } from "@/lib/processingFee";
 
 interface ScheduledEventPageProps {
   isOpen: boolean;
