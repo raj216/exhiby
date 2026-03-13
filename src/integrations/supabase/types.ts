@@ -659,7 +659,6 @@ export type Database = {
           is_founding_member: boolean | null
           is_verified: boolean
           name: string
-          stripe_connected_account_id: string | null
           updated_at: string
           user_id: string
           verified_at: string | null
@@ -676,7 +675,6 @@ export type Database = {
           is_founding_member?: boolean | null
           is_verified?: boolean
           name: string
-          stripe_connected_account_id?: string | null
           updated_at?: string
           user_id: string
           verified_at?: string | null
@@ -693,7 +691,6 @@ export type Database = {
           is_founding_member?: boolean | null
           is_verified?: boolean
           name?: string
-          stripe_connected_account_id?: string | null
           updated_at?: string
           user_id?: string
           verified_at?: string | null
@@ -871,6 +868,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stripe_connect_accounts: {
+        Row: {
+          created_at: string
+          id: string
+          stripe_connected_account_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stripe_connected_account_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stripe_connected_account_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       stripe_webhook_events: {
         Row: {
