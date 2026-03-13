@@ -113,12 +113,14 @@ serve(async (req) => {
           },
         });
 
-        // Store connected account ID using service role (already created above)
-
+        // Store connected account ID in private table
         await supabaseAdmin
-          .from("profiles")
-          .update({ stripe_connected_account_id: account.id })
-          .eq("user_id", userId);
+          .from("stripe_connect_accounts")
+          .upsert({
+            user_id: userId,
+            stripe_connected_account_id: account.id,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "user_id" });
 
         return new Response(
           JSON.stringify({ account_id: account.id }),
