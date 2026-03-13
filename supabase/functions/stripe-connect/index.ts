@@ -59,13 +59,13 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
+    const { data: connectAccount } = await supabaseAdmin
+      .from("stripe_connect_accounts")
       .select("stripe_connected_account_id")
       .eq("user_id", userId)
       .maybeSingle();
 
-    const connectedAccountId = profile?.stripe_connected_account_id;
+    const connectedAccountId = connectAccount?.stripe_connected_account_id;
 
     switch (action) {
       case "get_status": {
