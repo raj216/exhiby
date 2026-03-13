@@ -39,6 +39,8 @@ describe("getPricingBreakdown", () => {
 
 describe("calculateProcessingFeeCents", () => {
   it("returns correct cents values", () => {
+    // 1000 * 0.029 = 29.000000000000004 in JS, + 30 = 59.000000000000004, ceil = 60
+    // This is a known floating point issue. The cents function works in integer math.
     expect(calculateProcessingFeeCents(1000)).toBe(59); // $10 -> 59c
     expect(calculateProcessingFeeCents(100)).toBe(33);  // $1 -> 33c
     expect(calculateProcessingFeeCents(0)).toBe(0);
