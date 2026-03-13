@@ -245,6 +245,27 @@ export function TipCreatorModal({
                 </div>
               )}
 
+              {/* Fee breakdown */}
+              {resolvedAmount > 0 && !isCheckingMethod && (
+                <div className="mt-4 bg-muted/20 rounded-xl px-4 py-3 space-y-1.5">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Tip</span>
+                    <span>${resolvedAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Processing fee</span>
+                    <span>${processingFee.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-border/30 pt-1.5 flex justify-between text-sm font-medium text-foreground">
+                    <span>Total</span>
+                    <span>${buyerTotal.toFixed(2)}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70">
+                    Processing fee covers card transaction costs
+                  </p>
+                </div>
+              )}
+
               {/* Loading */}
               {isCheckingMethod && (
                 <div className="flex items-center justify-center gap-2 py-4 mt-4">
