@@ -6,6 +6,7 @@ import { triggerClickHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SlideToAction } from "./SlideToAction";
+import { calculateProcessingFee, calculateBuyerTotal } from "@/lib/processingFee";
 
 interface SavedPaymentMethod {
   id: string;
@@ -44,6 +45,9 @@ export function TipCreatorModal({
     if (!Number.isNaN(custom) && custom > 0) return custom;
     return selectedAmount ?? 0;
   }, [customAmount, selectedAmount]);
+
+  const processingFee = useMemo(() => calculateProcessingFee(resolvedAmount), [resolvedAmount]);
+  const buyerTotal = useMemo(() => calculateBuyerTotal(resolvedAmount), [resolvedAmount]);
 
   // Check for saved payment method
   useEffect(() => {
@@ -241,6 +245,27 @@ export function TipCreatorModal({
                 </div>
               )}
 
+              {/* Fee breakdown */}
+              {resolvedAmount > 0 && !isCheckingMethod && (
+                <div className="mt-4 bg-muted/20 rounded-xl px-4 py-3 space-y-1.5">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Tip</span>
+                    <span>${resolvedAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Processing fee</span>
+                    <span>${processingFee.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-border/30 pt-1.5 flex justify-between text-sm font-medium text-foreground">
+                    <span>Total</span>
+                    <span>${buyerTotal.toFixed(2)}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground/70">
+                    Processing fee covers card transaction costs
+                  </p>
+                </div>
+              )}
+
               {/* Loading */}
               {isCheckingMethod && (
                 <div className="flex items-center justify-center gap-2 py-4 mt-4">
@@ -269,7 +294,7 @@ export function TipCreatorModal({
                   ) : (
                     <SlideToAction
                       onComplete={handleSavedTip}
-                      label={resolvedAmount > 0 ? `Swipe to Tip $${resolvedAmount}` : "Select amount"}
+                      label={resolvedAmount > 0 ? `Swipe to Tip $${buyerTotal.toFixed(2)}` : "Select amount"}
                       completedLabel="Sent ✓"
                       icon={<Coins className="w-5 h-5 text-white" />}
                     />
@@ -301,7 +326,7 @@ export function TipCreatorModal({
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4" />
-                        Pay with Card{resolvedAmount > 0 ? ` • $${resolvedAmount}` : ""}
+                        Pay with Card{resolvedAmount > 0 ? ` • $${buyerTotal.toFixed(2)}` : ""}
                         <ExternalLink className="w-3 h-3" />
                       </>
                     )}
