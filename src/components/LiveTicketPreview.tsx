@@ -96,11 +96,26 @@ export function LiveTicketPreview({
                   </h3>
 
                   {/* Price Tag */}
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-obsidian border border-gold/30">
-                    <span className="text-gold font-semibold">
-                      {isFree ? "Free Entry" : `$${effectivePrice}`}
-                    </span>
-                  </div>
+                  {isFree ? (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-obsidian border border-gold/30">
+                      <span className="text-gold font-semibold">Free Entry</span>
+                    </div>
+                  ) : (
+                    <div className="bg-obsidian/80 rounded-xl px-4 py-3 border border-border/30 space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Ticket</span>
+                        <span className="text-foreground">${effectivePrice.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Processing fee</span>
+                        <span className="text-foreground">${calculateProcessingFee(effectivePrice).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm pt-1.5 border-t border-border/30">
+                        <span className="text-foreground font-semibold">Total</span>
+                        <span className="text-gold font-semibold">${(effectivePrice + calculateProcessingFee(effectivePrice)).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Slide to Enter */}
