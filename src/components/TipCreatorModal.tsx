@@ -298,9 +298,6 @@ export function TipCreatorModal({
                       completedLabel="Sent ✓"
                       icon={<Coins className="w-5 h-5 text-white" />}
                     />
-                      completedLabel="Sent ✓"
-                      icon={<Coins className="w-5 h-5 text-white" />}
-                    />
                   )}
 
                   <button
