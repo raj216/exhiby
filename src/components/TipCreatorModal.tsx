@@ -329,7 +329,7 @@ export function TipCreatorModal({
                     ) : (
                       <>
                         <CreditCard className="w-4 h-4" />
-                        Pay with Card{resolvedAmount > 0 ? ` • $${resolvedAmount}` : ""}
+                        Pay with Card{resolvedAmount > 0 ? ` • $${buyerTotal.toFixed(2)}` : ""}
                         <ExternalLink className="w-3 h-3" />
                       </>
                     )}
