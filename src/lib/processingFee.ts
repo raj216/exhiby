@@ -15,8 +15,10 @@
  */
 export function calculateProcessingFee(ticketPrice: number): number {
   if (ticketPrice <= 0) return 0;
-  const raw = ticketPrice * 0.029 + 0.30;
-  return Math.ceil(raw * 100) / 100;
+  // Work in cents to avoid floating point errors
+  const priceCents = Math.round(ticketPrice * 100);
+  const feeCents = Math.ceil(priceCents * 0.029 + 30);
+  return feeCents / 100;
 }
 
 /**
@@ -49,7 +51,5 @@ export function getPricingBreakdown(ticketPrice: number) {
  */
 export function calculateProcessingFeeCents(ticketPriceCents: number): number {
   if (ticketPriceCents <= 0) return 0;
-  const ticketDollars = ticketPriceCents / 100;
-  const feeDollars = ticketDollars * 0.029 + 0.30;
-  return Math.ceil(feeDollars * 100);
+  return Math.ceil((ticketPriceCents * 29) / 1000 + 30);
 }

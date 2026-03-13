@@ -11,12 +11,11 @@ const corsHeaders = {
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Calculate processing fee in cents: ceil(price * 0.029 + 30) */
+/** Calculate processing fee in cents: ceil((priceCents * 29 + 30000) / 1000) */
 function calcProcessingFeeCents(ticketPriceCents: number): number {
   if (ticketPriceCents <= 0) return 0;
-  const ticketDollars = ticketPriceCents / 100;
-  const feeDollars = ticketDollars * 0.029 + 0.30;
-  return Math.ceil(feeDollars * 100);
+  // Use integer math: 2.9% = 29/1000, then add 30 cents
+  return Math.ceil((ticketPriceCents * 29) / 1000 + 30);
 }
 
 serve(async (req) => {
