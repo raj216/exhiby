@@ -46,6 +46,9 @@ export function TipCreatorModal({
     return selectedAmount ?? 0;
   }, [customAmount, selectedAmount]);
 
+  const processingFee = useMemo(() => calculateProcessingFee(resolvedAmount), [resolvedAmount]);
+  const buyerTotal = useMemo(() => calculateBuyerTotal(resolvedAmount), [resolvedAmount]);
+
   // Check for saved payment method
   useEffect(() => {
     if (!isOpen) return;
