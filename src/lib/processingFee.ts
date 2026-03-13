@@ -51,7 +51,5 @@ export function getPricingBreakdown(ticketPrice: number) {
  */
 export function calculateProcessingFeeCents(ticketPriceCents: number): number {
   if (ticketPriceCents <= 0) return 0;
-  const ticketDollars = ticketPriceCents / 100;
-  const feeDollars = ticketDollars * 0.029 + 0.30;
-  return Math.ceil(feeDollars * 100);
+  return Math.ceil(ticketPriceCents * 0.029 + 30);
 }
