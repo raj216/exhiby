@@ -6,6 +6,7 @@ import { triggerClickHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SlideToAction } from "./SlideToAction";
+import { calculateProcessingFee, calculateBuyerTotal } from "@/lib/processingFee";
 
 interface SavedPaymentMethod {
   id: string;

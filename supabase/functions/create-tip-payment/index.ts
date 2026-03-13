@@ -51,7 +51,10 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
-    const amountCents = Math.round(amount * 100);
+    const tipCents = Math.round(amount * 100);
+    // Buyer-paid processing fee: ceil(price * 2.9% + 30¢)
+    const processingFeeCents = Math.ceil((tipCents * 29) / 1000 + 30);
+    const amountCents = tipCents + processingFeeCents;
 
     // Find or create customer
     let customerId: string;
