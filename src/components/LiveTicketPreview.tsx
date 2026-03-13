@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { SlideToAction } from "./SlideToAction";
 import { triggerHaptic } from "@/lib/haptics";
 import featureFlags from "@/lib/featureFlags";
+import { calculateProcessingFee } from "@/lib/processingFee";
 
 interface LiveTicketPreviewProps {
   isOpen: boolean;
