@@ -307,10 +307,15 @@ async function handlePaymentIntentSucceeded(
   // --- TIP (off-session charge via saved method) ---
   if (meta.type === "tip") {
     console.log(`[stripe-webhook] Detected TIP payment_intent`);
+    // Use original tip amount from metadata (excludes buyer-paid processing fee)
+    const originalTipCents = meta.tip_amount_cents
+      ? parseInt(meta.tip_amount_cents, 10)
+      : paymentIntent.amount || 0;
+    console.log(`[stripe-webhook] Original tip amount: ${originalTipCents} cents (PI amount: ${paymentIntent.amount})`);
     await recordTipEarning(supabase, {
       eventId: meta.event_id || "",
       tipperUserId: meta.user_id || "",
-      amountCents: paymentIntent.amount || 0,
+      amountCents: originalTipCents,
       currency: paymentIntent.currency || "usd",
       stripePaymentIntentId: paymentIntent.id,
       stripeCheckoutSessionId: null,
