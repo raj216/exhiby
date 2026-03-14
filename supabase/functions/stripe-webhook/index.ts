@@ -184,10 +184,15 @@ async function handleCheckoutCompleted(
   // --- TIP CHECKOUT ---
   if (mergedMeta.type === "tip") {
     console.log(`[stripe-webhook] Detected TIP checkout session`);
+    // Use original tip amount from metadata (excludes buyer-paid processing fee)
+    const originalTipCents = mergedMeta.tip_amount_cents
+      ? parseInt(mergedMeta.tip_amount_cents, 10)
+      : session.amount_total || 0;
+    console.log(`[stripe-webhook] Original tip amount: ${originalTipCents} cents (charge total: ${session.amount_total})`);
     await recordTipEarning(supabase, {
       eventId: mergedMeta.event_id || "",
       tipperUserId: mergedMeta.user_id || "",
-      amountCents: session.amount_total || 0,
+      amountCents: originalTipCents,
       currency: session.currency || "usd",
       stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || null,
       stripeCheckoutSessionId: session.id,
@@ -302,10 +307,15 @@ async function handlePaymentIntentSucceeded(
   // --- TIP (off-session charge via saved method) ---
   if (meta.type === "tip") {
     console.log(`[stripe-webhook] Detected TIP payment_intent`);
+    // Use original tip amount from metadata (excludes buyer-paid processing fee)
+    const originalTipCents = meta.tip_amount_cents
+      ? parseInt(meta.tip_amount_cents, 10)
+      : paymentIntent.amount || 0;
+    console.log(`[stripe-webhook] Original tip amount: ${originalTipCents} cents (PI amount: ${paymentIntent.amount})`);
     await recordTipEarning(supabase, {
       eventId: meta.event_id || "",
       tipperUserId: meta.user_id || "",
-      amountCents: paymentIntent.amount || 0,
+      amountCents: originalTipCents,
       currency: paymentIntent.currency || "usd",
       stripePaymentIntentId: paymentIntent.id,
       stripeCheckoutSessionId: null,
