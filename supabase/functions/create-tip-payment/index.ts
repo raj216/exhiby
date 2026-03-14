@@ -140,6 +140,7 @@ serve(async (req) => {
           type: "tip",
           event_id: event_id || "",
           user_id: user.id,
+          tip_amount_cents: String(tipCents),
         },
         payment_intent_data: {
           setup_future_usage: "off_session",
@@ -147,6 +148,7 @@ serve(async (req) => {
             type: "tip",
             event_id: event_id || "",
             user_id: user.id,
+            tip_amount_cents: String(tipCents),
           },
         },
         success_url: `${origin}/live/${event_id || ""}?tip=success`,
