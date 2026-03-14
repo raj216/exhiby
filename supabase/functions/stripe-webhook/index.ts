@@ -184,10 +184,15 @@ async function handleCheckoutCompleted(
   // --- TIP CHECKOUT ---
   if (mergedMeta.type === "tip") {
     console.log(`[stripe-webhook] Detected TIP checkout session`);
+    // Use original tip amount from metadata (excludes buyer-paid processing fee)
+    const originalTipCents = mergedMeta.tip_amount_cents
+      ? parseInt(mergedMeta.tip_amount_cents, 10)
+      : session.amount_total || 0;
+    console.log(`[stripe-webhook] Original tip amount: ${originalTipCents} cents (charge total: ${session.amount_total})`);
     await recordTipEarning(supabase, {
       eventId: mergedMeta.event_id || "",
       tipperUserId: mergedMeta.user_id || "",
-      amountCents: session.amount_total || 0,
+      amountCents: originalTipCents,
       currency: session.currency || "usd",
       stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || null,
       stripeCheckoutSessionId: session.id,
