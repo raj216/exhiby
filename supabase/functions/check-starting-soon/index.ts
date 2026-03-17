@@ -53,6 +53,10 @@ function formatDateInTimezone(isoDateString: string, timezone: string = DEFAULT_
   }
 }
 
+function escapeHtml(s: string): string {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 // This function handles:
 // 1. Sessions starting in ~15 minutes - send reminder to followers
 // 2. Sessions at start_time - send "Go Live Now" email + in-app to creator
@@ -77,7 +81,7 @@ async function sendCreatorEmail(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${subject}</title>
+  <title>${escapeHtml(subject)}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
@@ -95,7 +99,7 @@ async function sendCreatorEmail(
           <!-- Cover Image -->
           <tr>
             <td style="padding: 0 32px;">
-              <img src="${coverUrl}" alt="${eventTitle}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
+              <img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(eventTitle)}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
             </td>
           </tr>
           ` : ""}
@@ -103,7 +107,7 @@ async function sendCreatorEmail(
           <!-- Content -->
           <tr>
             <td style="padding: 24px 32px;">
-              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${eventTitle}</h2>
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${escapeHtml(eventTitle)}</h2>
               <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #52525b;">
                 ${bodyText}
               </p>

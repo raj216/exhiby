@@ -57,6 +57,10 @@ function formatDateInTimezone(isoDateString: string, timezone: string = DEFAULT_
   }
 }
 
+function escapeHtml(s: string): string {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -239,6 +243,9 @@ const handler = async (req: Request): Promise<Response> => {
         const settingsLink = `${domain}/?view=settings`;
 
         const subject = `Schedule updated: ${creatorName} — ${event.title}`;
+        const safeTitle = escapeHtml(event.title);
+        const safeCoverUrl = escapeHtml(event.cover_url || '');
+        const safeCreatorName = escapeHtml(creatorName);
         const bodyText = `The scheduled time has been updated to ${scheduledDate}. You can join from the same link.`;
 
         const htmlContent = `
@@ -265,7 +272,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Cover Image -->
           <tr>
             <td style="padding: 0 32px;">
-              <img src="${event.cover_url}" alt="${event.title}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
+              <img src="${safeCoverUrl}" alt="${safeTitle}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
             </td>
           </tr>
           ` : ""}
@@ -273,7 +280,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Content -->
           <tr>
             <td style="padding: 24px 32px;">
-              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${event.title}</h2>
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${safeTitle}</h2>
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #f59e0b; font-weight: 600;">Schedule Updated</p>
               <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #52525b;">
                 ${bodyText}
@@ -294,7 +301,7 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
               <p style="margin: 0; font-size: 13px; color: #a1a1aa; text-align: center;">
-                You're receiving this email because you follow ${creatorName} on Exhiby.
+                You're receiving this email because you follow ${safeCreatorName} on Exhiby.
                 <br />
                 <a href="${settingsLink}" style="color: #71717a; text-decoration: underline;">Manage notification preferences</a>
               </p>
