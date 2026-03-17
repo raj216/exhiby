@@ -243,6 +243,9 @@ const handler = async (req: Request): Promise<Response> => {
         const settingsLink = `${domain}/?view=settings`;
 
         const subject = `Schedule updated: ${creatorName} — ${event.title}`;
+        const safeTitle = escapeHtml(event.title);
+        const safeCoverUrl = escapeHtml(event.cover_url || '');
+        const safeCreatorName = escapeHtml(creatorName);
         const bodyText = `The scheduled time has been updated to ${scheduledDate}. You can join from the same link.`;
 
         const htmlContent = `
