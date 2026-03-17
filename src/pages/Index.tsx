@@ -292,8 +292,8 @@ function IndexContent() {
                 setActiveTab(mode === "audience" ? "passport" : "profile");
               }}
               onOpenStudio={() => {
-                navigateToScreen("profile");
-                setActiveTab("profile");
+                navigateToScreen("creatorProfile");
+                setActiveTab("studio");
               }}
               onOpenSearch={() => setShowSearch(true)}
               onLogout={handleLogout}
