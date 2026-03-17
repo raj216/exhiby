@@ -280,7 +280,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Content -->
           <tr>
             <td style="padding: 24px 32px;">
-              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${event.title}</h2>
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${safeTitle}</h2>
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #f59e0b; font-weight: 600;">Schedule Updated</p>
               <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #52525b;">
                 ${bodyText}
