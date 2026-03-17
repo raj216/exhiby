@@ -53,6 +53,10 @@ function formatDateInTimezone(isoDateString: string, timezone: string = DEFAULT_
   }
 }
 
+function escapeHtml(s: string): string {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 // This function handles:
 // 1. Sessions starting in ~15 minutes - send reminder to followers
 // 2. Sessions at start_time - send "Go Live Now" email + in-app to creator
