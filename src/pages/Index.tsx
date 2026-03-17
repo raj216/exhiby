@@ -53,7 +53,12 @@ function IndexContent() {
   const [showSearch, setShowSearch] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [eventData, setEventData] = useState<EventData | null>(null);
-  const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
+  const initialScreen = getInitialScreen();
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialScreen === "profile") return mode === "audience" ? "passport" : "profile";
+    if (initialScreen === "creatorProfile") return "studio";
+    return mode === "audience" ? "home" : "studio";
+  });
   const [showWelcomeStamp, setShowWelcomeStamp] = useState(false);
   const [userName, setUserName] = useState("Guest");
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);

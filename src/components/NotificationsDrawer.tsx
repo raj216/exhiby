@@ -243,12 +243,14 @@ function NotificationListContent({
   loading,
   onNavigate,
   onDismiss,
+  onClearAll,
   isMobile,
 }: {
   notifications: Notification[];
   loading: boolean;
   onNavigate: (link: string | null, id: string) => void;
   onDismiss: (id: string) => void;
+  onClearAll: () => void;
   isMobile: boolean;
 }) {
   if (loading) {
@@ -264,21 +266,33 @@ function NotificationListContent({
   }
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="divide-y divide-border/10">
-        <AnimatePresence mode="popLayout">
-          {notifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              notification={notification}
-              onNavigate={onNavigate}
-              onDismiss={onDismiss}
-              isMobile={isMobile}
-            />
-          ))}
-        </AnimatePresence>
+    <div className="flex flex-col h-full">
+      {/* Clear all bar */}
+      <div className="flex items-center justify-end px-4 py-2 border-b border-border/10">
+        <button
+          onClick={onClearAll}
+          className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-full bg-muted/20 hover:bg-muted/40 border border-border/20"
+        >
+          Clear all
+        </button>
       </div>
-    </ScrollArea>
+      {/* Scrollable list */}
+      <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="divide-y divide-border/10">
+          <AnimatePresence mode="popLayout">
+            {notifications.map((notification) => (
+              <NotificationItem
+                key={notification.id}
+                notification={notification}
+                onNavigate={onNavigate}
+                onDismiss={onDismiss}
+                isMobile={isMobile}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      </ScrollArea>
+    </div>
   );
 }
 
