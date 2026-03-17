@@ -25,7 +25,7 @@ function IndexContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading } = useAuth();
-  const { mode } = useUserMode();
+  const { mode, setMode } = useUserMode();
   
   // Restore internal screen from URL on mount (survives page refresh)
   const getInitialScreen = (): Screen => {
