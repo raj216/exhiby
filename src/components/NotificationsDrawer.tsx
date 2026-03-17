@@ -425,6 +425,7 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
             loading={loading}
             onNavigate={handleNavigate}
             onDismiss={handleDismiss}
+            onClearAll={handleClearAll}
             isMobile={isMobile}
           />
         </div>
