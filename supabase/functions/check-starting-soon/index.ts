@@ -99,7 +99,7 @@ async function sendCreatorEmail(
           <!-- Cover Image -->
           <tr>
             <td style="padding: 0 32px;">
-              <img src="${coverUrl}" alt="${eventTitle}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
+              <img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(eventTitle)}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
             </td>
           </tr>
           ` : ""}
