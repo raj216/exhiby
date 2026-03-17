@@ -27,6 +27,16 @@ function IndexContent() {
   const { user, isLoading } = useAuth();
   const { mode } = useUserMode();
   
+  // Restore internal screen from URL on mount (survives page refresh)
+  const getInitialScreen = (): Screen => {
+    const params = new URLSearchParams(window.location.search);
+    const screen = params.get("screen");
+    if (screen === "profile" || screen === "creatorProfile" || screen === "search" || screen === "settings") {
+      return screen as Screen;
+    }
+    return "home";
+  };
+
   // Navigation history for proper back button support
   const { 
     currentScreen, 
@@ -34,7 +44,7 @@ function IndexContent() {
     goBack, 
     goHome,
     canGoBack 
-  } = useNavigationHistory("home");
+  } = useNavigationHistory(getInitialScreen());
   
   const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
   const [showWizard, setShowWizard] = useState(false);
