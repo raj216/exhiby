@@ -201,6 +201,38 @@ serve(async (req) => {
 
         console.log(`[charge-saved-method] Payment succeeded for ticket ${pendingTicket.id} (ticket: ${ticketPriceCents}c + fee: ${processingFeeCents}c = ${totalChargeCents}c)`);
 
+        // Record creator earnings directly (webhooks may not fire for off-session charges)
+        if (event.creator_id !== user.id) {
+          const PLATFORM_FEE_PERCENT = 10;
+          const platformFee = Math.round(ticketPriceCents * PLATFORM_FEE_PERCENT / 100);
+          const amountNet = ticketPriceCents - platformFee;
+
+          const { error: earningsError } = await supabase.from("creator_earnings").insert({
+            creator_id: event.creator_id,
+            event_id,
+            ticket_id: pendingTicket.id,
+            user_id: user.id,
+            stripe_payment_intent_id: paymentIntent.id,
+            stripe_checkout_session_id: null,
+            amount_gross: ticketPriceCents,
+            platform_fee: platformFee,
+            amount_net: amountNet,
+            currency: "usd",
+            status: "succeeded",
+            stripe_event_id: `charge_saved_${paymentIntent.id}`,
+          });
+
+          if (earningsError) {
+            if (earningsError.code === "23505") {
+              console.log("[charge-saved-method] Earnings already recorded (idempotent)");
+            } else {
+              console.error("[charge-saved-method] Error recording earnings:", earningsError);
+            }
+          } else {
+            console.log(`[charge-saved-method] ✅ Recorded earning: $${(ticketPriceCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
+          }
+        }
+
         return new Response(
           JSON.stringify({
             success: true,
