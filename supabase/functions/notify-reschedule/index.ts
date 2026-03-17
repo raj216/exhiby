@@ -272,7 +272,7 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Cover Image -->
           <tr>
             <td style="padding: 0 32px;">
-              <img src="${event.cover_url}" alt="${event.title}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
+              <img src="${safeCoverUrl}" alt="${safeTitle}" style="width: 100%; height: auto; border-radius: 8px; display: block;" />
             </td>
           </tr>
           ` : ""}
