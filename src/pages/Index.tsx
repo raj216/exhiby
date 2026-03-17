@@ -27,6 +27,16 @@ function IndexContent() {
   const { user, isLoading } = useAuth();
   const { mode } = useUserMode();
   
+  // Restore internal screen from URL on mount (survives page refresh)
+  const getInitialScreen = (): Screen => {
+    const params = new URLSearchParams(window.location.search);
+    const screen = params.get("screen");
+    if (screen === "profile" || screen === "creatorProfile" || screen === "search" || screen === "settings") {
+      return screen as Screen;
+    }
+    return "home";
+  };
+
   // Navigation history for proper back button support
   const { 
     currentScreen, 
@@ -34,7 +44,7 @@ function IndexContent() {
     goBack, 
     goHome,
     canGoBack 
-  } = useNavigationHistory("home");
+  } = useNavigationHistory(getInitialScreen());
   
   const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
   const [showWizard, setShowWizard] = useState(false);
@@ -43,7 +53,12 @@ function IndexContent() {
   const [showSearch, setShowSearch] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [eventData, setEventData] = useState<EventData | null>(null);
-  const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
+  const initialScreen = getInitialScreen();
+  const [activeTab, setActiveTab] = useState(() => {
+    if (initialScreen === "profile") return mode === "audience" ? "passport" : "profile";
+    if (initialScreen === "creatorProfile") return "studio";
+    return mode === "audience" ? "home" : "studio";
+  });
   const [showWelcomeStamp, setShowWelcomeStamp] = useState(false);
   const [userName, setUserName] = useState("Guest");
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
@@ -277,8 +292,8 @@ function IndexContent() {
                 setActiveTab(mode === "audience" ? "passport" : "profile");
               }}
               onOpenStudio={() => {
-                navigateToScreen("profile");
-                setActiveTab("profile");
+                navigateToScreen("creatorProfile");
+                setActiveTab("studio");
               }}
               onOpenSearch={() => setShowSearch(true)}
               onLogout={handleLogout}
@@ -327,8 +342,8 @@ function IndexContent() {
           setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
         onOpenStudio={() => {
-          navigateToScreen("profile");
-          setActiveTab("profile");
+          navigateToScreen("creatorProfile");
+          setActiveTab("studio");
         }}
         onGoLive={() => setShowWizard(true)}
         onLogout={handleLogout}
