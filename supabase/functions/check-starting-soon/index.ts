@@ -107,7 +107,7 @@ async function sendCreatorEmail(
           <!-- Content -->
           <tr>
             <td style="padding: 24px 32px;">
-              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${eventTitle}</h2>
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600; color: #18181b;">${escapeHtml(eventTitle)}</h2>
               <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 1.6; color: #52525b;">
                 ${bodyText}
               </p>

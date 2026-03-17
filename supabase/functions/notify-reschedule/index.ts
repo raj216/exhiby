@@ -301,7 +301,7 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
               <p style="margin: 0; font-size: 13px; color: #a1a1aa; text-align: center;">
-                You're receiving this email because you follow ${creatorName} on Exhiby.
+                You're receiving this email because you follow ${safeCreatorName} on Exhiby.
                 <br />
                 <a href="${settingsLink}" style="color: #71717a; text-decoration: underline;">Manage notification preferences</a>
               </p>
