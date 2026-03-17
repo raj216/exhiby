@@ -337,23 +337,31 @@ export function NotificationsDrawer({ open, onClose }: NotificationsDrawerProps)
   };
 
   const handleDismiss = async (notificationId: string) => {
-    // Optimistically remove from UI
     setDismissedIds(prev => new Set([...prev, notificationId]));
-    
-    // Delete from database
     try {
-      await supabase
-        .from("notifications")
-        .delete()
-        .eq("id", notificationId);
+      await supabase.from("notifications").delete().eq("id", notificationId);
     } catch (err) {
       console.error("Error dismissing notification:", err);
-      // Revert on error
       setDismissedIds(prev => {
         const next = new Set(prev);
         next.delete(notificationId);
         return next;
       });
+    }
+  };
+
+  const handleClearAll = async () => {
+    // Optimistically dismiss all visible
+    const allIds = new Set(visibleNotifications.map(n => n.id));
+    setDismissedIds(prev => new Set([...prev, ...allIds]));
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("notifications").delete().eq("user_id", user.id);
+      }
+      refetch();
+    } catch (err) {
+      console.error("Error clearing all notifications:", err);
     }
   };
 
