@@ -25,7 +25,7 @@ function IndexContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading } = useAuth();
-  const { mode } = useUserMode();
+  const { mode, setMode } = useUserMode();
   
   // Restore internal screen from URL on mount (survives page refresh)
   const getInitialScreen = (): Screen => {
@@ -292,8 +292,9 @@ function IndexContent() {
                 setActiveTab(mode === "audience" ? "passport" : "profile");
               }}
               onOpenStudio={() => {
-                navigateToScreen("creatorProfile");
-                setActiveTab("studio");
+                setMode("creator");
+                navigateToScreen("profile");
+                setActiveTab("profile");
               }}
               onOpenSearch={() => setShowSearch(true)}
               onLogout={handleLogout}
@@ -342,8 +343,9 @@ function IndexContent() {
           setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
         onOpenStudio={() => {
-          navigateToScreen("creatorProfile");
-          setActiveTab("studio");
+          setMode("creator");
+          navigateToScreen("profile");
+          setActiveTab("profile");
         }}
         onGoLive={() => setShowWizard(true)}
         onLogout={handleLogout}
