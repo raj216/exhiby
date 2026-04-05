@@ -95,32 +95,26 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
     loadCreatorStatus();
   }, [user]);
 
-  // Function to activate creator role (writes to database)
+  // Function to activate creator role (via secure server-side function)
   const activateCreatorRole = async (): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase.from("user_roles").insert({
-        user_id: user.id,
-        role: "creator",
-      });
+      const { data, error } = await supabase.functions.invoke("activate-creator-role");
 
       if (error) {
-        // If it's a duplicate error, user is already a creator
-        if (error.message.includes("duplicate") || error.code === "23505") {
-          setVerifiedCreator(true);
-          _setMode("creator");
-          writeStoredMode("creator");
-          return true;
-        }
         console.error("Failed to activate creator role:", error);
         return false;
       }
 
-      setVerifiedCreator(true);
-      _setMode("creator");
-      writeStoredMode("creator");
-      return true;
+      if (data?.success) {
+        setVerifiedCreator(true);
+        _setMode("creator");
+        writeStoredMode("creator");
+        return true;
+      }
+
+      return false;
     } catch (err) {
       console.error("Error activating creator role:", err);
       return false;
