@@ -133,7 +133,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (event && event.creator_id !== user.id) {
-      const amountCents = session.amount_total || Math.round(Number(ticket.amount || 0) * 100);
+      const amountCents = ticket.amount ? Math.round(Number(ticket.amount) * 100) : (session.amount_total || 0);
       const PLATFORM_FEE_PERCENT = 10;
       const platformFee = Math.round(amountCents * PLATFORM_FEE_PERCENT / 100);
       const amountNet = amountCents - platformFee;
