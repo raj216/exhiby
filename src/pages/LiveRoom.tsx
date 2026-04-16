@@ -353,8 +353,8 @@ export default function LiveRoom() {
         console.log("[LiveRoom] room_url (via RPC):", roomUrl);
 
         // Fetch creator profile
-        const { data: profiles } = await supabase.rpc("get_all_public_profiles");
-        const creatorProfile = profiles?.find((p: any) => p.user_id === data.creator_id);
+        const { data: creatorProfiles } = await supabase.rpc("get_creator_profiles", { user_ids: [data.creator_id] });
+        const creatorProfile = creatorProfiles?.[0] ?? null;
 
         setEvent({
           id: data.id,
