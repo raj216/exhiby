@@ -28,7 +28,9 @@ export interface CreatorEarningsData {
 }
 
 export function useCreatorEarnings(userId: string | undefined) {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["creator-earnings", userId],
     queryFn: async (): Promise<CreatorEarningsData> => {
       if (!userId) {
@@ -129,4 +131,42 @@ export function useCreatorEarnings(userId: string | undefined) {
     staleTime: 30_000,
     gcTime: 5 * 60_000,
   });
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`creator-earnings-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "creator_earnings",
+          filter: `creator_id=eq.${userId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["creator-earnings", userId] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "creator_earnings",
+          filter: `creator_id=eq.${userId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["creator-earnings", userId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
+
+  return query;
 }
