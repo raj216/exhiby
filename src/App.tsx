@@ -11,7 +11,7 @@ import { LiveNotificationToast } from "@/components/LiveNotificationToast";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import PublicProfile from "./pages/PublicProfile";
-import LiveRoom from "./pages/LiveRoom";
+import LiveRoomEntry from "./pages/LiveRoomEntry";
 import ExploreStudios from "./pages/ExploreStudios";
 import AdminFeedback from "./pages/AdminFeedback";
 import EarningsHistory from "./pages/EarningsHistory";
@@ -54,7 +54,7 @@ const App = () => {
                 } />
                 <Route path="/live/:eventId" element={
                   <RequireAuth>
-                    <LiveRoom />
+                    <LiveRoomEntry />
                   </RequireAuth>
                 } />
                 {/* Messages Routes - Protected */}
