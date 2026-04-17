@@ -29,6 +29,9 @@ import {
   StreamEndedScreen,
   ReconnectingBanner,
   LiveCountdown,
+  StudioCameraView,
+  AddCameraSheet,
+  STUDIO_CAM_PREFIX,
 } from "@/components/live";
 import { HandRaisesDrawer } from "@/components/live/HandRaisesDrawer";
 import { DebugPanel } from "@/components/live/DebugPanel";
@@ -77,6 +80,7 @@ export default function LiveRoom() {
   const [showChat, setShowChat] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
   const [showHandRaises, setShowHandRaises] = useState(false);
+  const [showAddCameraSheet, setShowAddCameraSheet] = useState(false);
   
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -715,8 +719,18 @@ export default function LiveRoom() {
     setShowTipModal(true);
   };
 
+  // Studio Camera mode (phone as second camera) — opt in via ?mode=studio-cam
+  const isStudioCameraMode = searchParams.get("mode") === "studio-cam";
+
+  // Detect a phone-camera participant joined as the second camera
+  const studioCamParticipant =
+    remoteParticipants.find((p) => p.userName?.startsWith(STUDIO_CAM_PREFIX)) ?? null;
+  const studioCameraConnected = !!studioCamParticipant;
+
   // Get the host participant (for viewers to see)
-  const hostParticipant = isCreator ? localParticipant : remoteParticipants[0];
+  // Prefer the dedicated studio-camera feed when available — for both creator and audience.
+  const hostParticipant =
+    studioCamParticipant ?? (isCreator ? localParticipant : remoteParticipants[0]);
 
   // Debug data for panel
   const debugEventData = event ? {
