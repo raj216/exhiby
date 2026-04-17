@@ -236,11 +236,16 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
 
       // Close wizard and navigate to live room
       onClose();
-      navigate(`/live/${insertedEvent.id}`);
-      
-      toast({ 
-        title: "You're Live!", 
-        description: "Your studio is now open" 
+      const target = launchMode === "camera"
+        ? `/live/${insertedEvent.id}?cam=1`
+        : `/live/${insertedEvent.id}`;
+      navigate(target);
+
+      toast({
+        title: launchMode === "camera" ? "Studio Camera Live" : "You're Live!",
+        description: launchMode === "camera"
+          ? "Phone camera streaming to your studio"
+          : "Your studio is now open"
       });
 
     } catch (err: any) {
