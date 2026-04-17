@@ -757,6 +757,19 @@ export default function LiveRoom() {
     );
   }
 
+  // Studio Camera mode: phone-only camera UI for the creator.
+  // Render the dedicated full-screen camera view instead of the full LiveRoom.
+  if (isStudioCameraMode && isCreator && event?.room_url) {
+    return (
+      <StudioCameraView
+        roomUrl={event.room_url}
+        eventTitle={event.title}
+        creatorName={profile?.name || profile?.handle || "Studio"}
+        onDisconnect={() => navigate(`/live/${event.id}`)}
+      />
+    );
+  }
+
   // Handle payment success for paid events
   const handlePaymentSuccess = async () => {
     console.log("[LiveRoom] Payment success callback");
@@ -1452,7 +1465,19 @@ export default function LiveRoom() {
             unreadChatCount={showChat ? 0 : chatUnreadCount}
             handRaiseCount={handRaiseCount}
             onOpenHandRaises={handleOpenHandRaises}
+            onOpenStudioCamera={isCreator ? () => setShowAddCameraSheet(true) : undefined}
+            studioCameraConnected={studioCameraConnected}
           />
+
+          {/* Add Studio Camera QR Sheet (Creator Only) */}
+          {isCreator && event && (
+            <AddCameraSheet
+              isOpen={showAddCameraSheet}
+              onClose={() => setShowAddCameraSheet(false)}
+              cameraUrl={`${window.location.origin}/live/${event.id}?mode=studio-cam`}
+              isConnected={studioCameraConnected}
+            />
+          )}
 
           {/* Hand Raises Drawer (Creator Only) */}
           {isCreator && (
