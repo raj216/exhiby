@@ -59,7 +59,7 @@ serve(async (req) => {
       console.log(`[stripe-webhook] ✅ Signature verified successfully`);
     } catch (err) {
       console.error(`[stripe-webhook] ❌ Signature verification FAILED: ${err.message}`);
-      return new Response(JSON.stringify({ error: "Invalid signature", detail: err.message }), {
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -151,7 +151,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[stripe-webhook] ❌ Unexpected error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(error) }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
