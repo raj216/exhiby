@@ -10,6 +10,7 @@ import {
   Video,
   VideoOff,
   SwitchCamera,
+  Smartphone,
   LogOut,
 } from "lucide-react";
 import {
@@ -39,6 +40,9 @@ interface LiveRoomControlsProps {
   // Hand raises for creator
   handRaiseCount?: number;
   onOpenHandRaises?: () => void;
+  // Studio camera (second camera via phone QR)
+  onOpenStudioCamera?: () => void;
+  studioCameraConnected?: boolean;
 }
 
 export function LiveRoomControls({
@@ -60,6 +64,8 @@ export function LiveRoomControls({
   unreadChatCount = 0,
   handRaiseCount = 0,
   onOpenHandRaises,
+  onOpenStudioCamera,
+  studioCameraConnected = false,
 }: LiveRoomControlsProps) {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -189,6 +195,31 @@ export function LiveRoomControls({
                         </TooltipTrigger>
                         <TooltipContent side="top">
                           <p>Switch camera</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {/* Studio Camera (phone as second camera) */}
+                    {onOpenStudioCamera && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={onOpenStudioCamera}
+                            disabled={isEnding}
+                            className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                              studioCameraConnected
+                                ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                                : "bg-white/10 text-white hover:bg-white/20"
+                            }`}
+                          >
+                            <Smartphone className="w-5 h-5" />
+                            {studioCameraConnected && (
+                              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-400 ring-2 ring-black/40" />
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>{studioCameraConnected ? "Studio camera connected" : "Add studio camera"}</p>
                         </TooltipContent>
                       </Tooltip>
                     )}
