@@ -52,6 +52,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const [launchMode, setLaunchMode] = useState<"full" | "camera">("full");
   
   // Lock body scroll when wizard is open
   useScrollLock(true);
