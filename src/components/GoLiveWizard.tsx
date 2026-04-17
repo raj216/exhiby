@@ -497,6 +497,51 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
             )}
           </AnimatePresence>
 
+          {/* Launch Mode Picker */}
+          <div>
+            <Label className="text-sm text-muted-foreground mb-2 block">
+              Go Live With <span className="text-electric">*</span>
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerClickHaptic();
+                  setLaunchMode("full");
+                }}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-luxury ease-luxury ${
+                  launchMode === "full"
+                    ? "bg-muted text-foreground border-border/60"
+                    : "bg-surface border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                }`}
+              >
+                <Monitor className="w-5 h-5" />
+                <span className="text-xs font-medium">Full Studio</span>
+                <span className="text-[10px] text-muted-foreground/70 leading-tight text-center">
+                  Camera + chat + materials
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerClickHaptic();
+                  setLaunchMode("camera");
+                }}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-luxury ease-luxury ${
+                  launchMode === "camera"
+                    ? "bg-muted text-foreground border-border/60"
+                    : "bg-surface border-border/30 text-muted-foreground hover:border-border/60 hover:text-foreground"
+                }`}
+              >
+                <Smartphone className="w-5 h-5" />
+                <span className="text-xs font-medium">Studio Camera</span>
+                <span className="text-[10px] text-muted-foreground/70 leading-tight text-center">
+                  Phone-only camera feed
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Submit Button */}
           <Button
             onClick={handleGoLive}
@@ -509,7 +554,7 @@ export function GoLiveWizard({ onClose, onGoLive }: GoLiveWizardProps) {
                 Opening Studio...
               </>
             ) : (
-              "OPEN STUDIO"
+              launchMode === "camera" ? "GO LIVE FROM CAMERA" : "OPEN STUDIO"
             )}
           </Button>
 
