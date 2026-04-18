@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
@@ -16,7 +16,7 @@ import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationHistory, type Screen } from "@/hooks/useNavigationHistory";
 import { supabase } from "@/integrations/supabase/client";
-import { Toaster } from "@/components/ui/sonner";
+
 import { toast } from "sonner";
 
 import { EventData } from "@/components/GoLiveWizard";
@@ -38,14 +38,11 @@ function IndexContent() {
   };
 
   // Navigation history for proper back button support
-  const { 
-    currentScreen, 
-    navigate: navTo, 
-    goBack, 
+  const {
+    navigate: navTo,
     goHome,
-    canGoBack 
   } = useNavigationHistory(getInitialScreen());
-  
+
   const [transitionDirection, setTransitionDirection] = useState<"forward" | "backward">("forward");
   const [showWizard, setShowWizard] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -53,12 +50,6 @@ function IndexContent() {
   const [showSearch, setShowSearch] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [eventData, setEventData] = useState<EventData | null>(null);
-  const initialScreen = getInitialScreen();
-  const [activeTab, setActiveTab] = useState(() => {
-    if (initialScreen === "profile") return mode === "audience" ? "passport" : "profile";
-    if (initialScreen === "creatorProfile") return "studio";
-    return mode === "audience" ? "home" : "studio";
-  });
   const [showWelcomeStamp, setShowWelcomeStamp] = useState(false);
   const [userName, setUserName] = useState("Guest");
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
@@ -66,36 +57,42 @@ function IndexContent() {
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [refreshScheduleKey, setRefreshScheduleKey] = useState(0);
 
+  // Derive currentScreen from URL (single source of truth)
+  const currentScreen: Screen = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const s = params.get("screen");
+    if (s === "profile" || s === "creatorProfile" || s === "search" || s === "settings") {
+      return s as Screen;
+    }
+    return "home";
+  }, [location.search]);
+
+  // Derive activeTab from currentScreen + mode (no manual setState needed)
+  const activeTab = useMemo(() => {
+    if (currentScreen === "profile") return mode === "audience" ? "passport" : "profile";
+    return "home";
+  }, [currentScreen, mode]);
+
+  // Set backward slide direction when browser back button is pressed
+  useEffect(() => {
+    const onPop = () => setTransitionDirection("backward");
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   // Navigate forward to a screen
   const navigateToScreen = useCallback((screen: Screen) => {
     setTransitionDirection("forward");
     navTo(screen);
-
-    // Push a real router history entry so browser back works.
-    const params = new URLSearchParams(location.search);
-    params.set("screen", screen);
-    navigate({ pathname: "/", search: `?${params.toString()}` }, { replace: false });
-  }, [navTo]);
+    const search = screen !== "home" ? `?screen=${screen}` : "";
+    navigate({ pathname: "/", search }, { replace: false });
+  }, [navTo, navigate]);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
-    // Prefer real router history (so routed pages like /tickets-history go back correctly).
     setTransitionDirection("backward");
-    // Always go back exactly one step; do not force a homepage fallback.
     navigate(-1);
-
-    // Also keep the internal screen stack in sync for in-app screens.
-    if (canGoBack) {
-      const previousEntry = goBack();
-      if (previousEntry) {
-        if (previousEntry.screen === "home") {
-          setActiveTab(mode === "audience" ? "home" : "studio");
-        } else if (previousEntry.screen === "profile") {
-          setActiveTab(mode === "audience" ? "passport" : "profile");
-        }
-      }
-    }
-  }, [canGoBack, goBack, mode, navigate]);
+  }, [navigate]);
 
   // Check if user needs passport setup (first-time users)
   useEffect(() => {
@@ -163,14 +160,12 @@ function IndexContent() {
     if (state?.openProfile) {
       console.log("[Index] Opening own profile from navigation state");
       navigateToScreen("profile");
-      setActiveTab(mode === "audience" ? "passport" : "profile");
       // Clear the state to prevent re-triggering
       navigate(location.pathname, { replace: true, state: {} });
     }
     if (state?.openEditProfile) {
       console.log("[Index] Opening edit profile from navigation state");
       navigateToScreen("profile");
-      setActiveTab(mode === "audience" ? "passport" : "profile");
       // Clear the state
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -210,12 +205,12 @@ function IndexContent() {
     } else if (tab === "home" || tab === "studio") {
       setTransitionDirection("backward");
       goHome();
+      navigate({ pathname: "/", search: "" }, { replace: false });
     } else {
       toast.info("Coming Soon", {
         description: `${tab.charAt(0).toUpperCase() + tab.slice(1)} feature is under development`,
       });
     }
-    setActiveTab(tab);
   };
 
   const handleLogout = () => {
@@ -289,19 +284,17 @@ function IndexContent() {
               onViewCreatorProfile={() => navigateToScreen("creatorProfile")}
               onViewAudienceProfile={() => {
                 navigateToScreen("profile");
-                setActiveTab(mode === "audience" ? "passport" : "profile");
               }}
               onOpenStudio={() => {
                 setMode("creator");
                 navigateToScreen("profile");
-                setActiveTab("profile");
               }}
               onOpenSearch={() => setShowSearch(true)}
               onLogout={handleLogout}
               onGoHome={() => {
                 setTransitionDirection("backward");
                 goHome();
-                setActiveTab(mode === "audience" ? "home" : "studio");
+                navigate({ pathname: "/", search: "" }, { replace: false });
               }}
             />
           </PageTransition>
@@ -314,8 +307,6 @@ function IndexContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Toaster position="top-center" />
-      
       {/* App content with scale effect when modals open */}
       <motion.div
         animate={{
@@ -326,7 +317,7 @@ function IndexContent() {
         style={{ willChange: "transform, filter", transformOrigin: "center center" }}
         className="min-h-screen"
       >
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="wait">
           {renderScreen()}
         </AnimatePresence>
       </motion.div>
@@ -340,12 +331,10 @@ function IndexContent() {
         onOpenCategories={() => setShowCategories(true)}
         onViewProfile={() => {
           navigateToScreen("profile");
-          setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
         onOpenStudio={() => {
           setMode("creator");
           navigateToScreen("profile");
-          setActiveTab("profile");
         }}
         onGoLive={() => setShowWizard(true)}
         onLogout={handleLogout}
@@ -375,7 +364,6 @@ function IndexContent() {
         onOpenOwnProfile={() => {
           setShowSearch(false);
           navigateToScreen("profile");
-          setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
       />
 
