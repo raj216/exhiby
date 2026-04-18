@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, MessageSquare, Trash2, BadgeCheck } from "lucide-react";
 import { useConversations, Conversation } from "@/hooks/useConversations";
 import { triggerHaptic } from "@/lib/haptics";
+import { navigateBack } from "@/lib/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteConversationModal } from "@/components/DeleteConversationModal";
@@ -123,11 +124,7 @@ export default function Messages() {
 
   const handleBack = () => {
     triggerHaptic("light");
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/");
-    }
+    navigateBack(navigate, "/");
   };
 
   const handleConversationClick = (conversationId: string) => {
