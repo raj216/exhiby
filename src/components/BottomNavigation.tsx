@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Search, User, Compass, Video } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -57,6 +58,11 @@ export function BottomNavigation({
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  const location = useLocation();
+  useEffect(() => {
+    setShowProfileMenu(false);
+  }, [location.key]);
 
   const accentColor = mode === "creator" ? "text-electric" : "text-foreground";
 
