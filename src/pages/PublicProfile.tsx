@@ -49,7 +49,6 @@ export default function PublicProfile() {
   // Debug: confirm the route param we are receiving
   console.log("[PublicProfile] param userId:", userId);
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
