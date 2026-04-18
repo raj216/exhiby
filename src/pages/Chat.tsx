@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { navigateBack } from "@/lib/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, BadgeCheck, Loader2, Check, CheckCheck, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -487,12 +488,7 @@ export default function Chat() {
 
   const handleBack = () => {
     triggerHaptic("light");
-    // Use history-based navigation, fallback to /messages if no history
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/messages");
-    }
+    navigateBack(navigate, "/messages");
   };
 
   const handleDeleteClick = () => {
