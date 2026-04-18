@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
 import { useStripeConnect } from "@/hooks/useStripeConnect";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { navigateBack } from "@/lib/navigation";
 import { toast } from "sonner";
 
 function formatCents(cents: number): string {
@@ -41,7 +42,7 @@ export default function EarningsHistory() {
 
   const handleBack = () => {
     triggerClickHaptic();
-    navigate(-1);
+    navigateBack(navigate, "/");
   };
 
   const handlePayoutClick = async () => {
