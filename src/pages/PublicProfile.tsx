@@ -235,45 +235,7 @@ export default function PublicProfile() {
 
   const handleBack = () => {
     triggerHaptic("light");
-    const state = (location.state && typeof location.state === "object" ? location.state as Record<string, unknown> : {}) as Record<string, unknown>;
-    const returnTo = state.returnTo as {
-      pathname: string;
-      search?: string;
-      state?: Record<string, unknown>;
-    } | undefined;
-    if (returnTo?.pathname) {
-      navigate({
-        pathname: returnTo.pathname,
-        search: returnTo.search ?? ""
-      }, { state: returnTo.state ?? undefined });
-      return;
-    }
-    try {
-      const raw = sessionStorage.getItem("exhiby_return_to");
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
-          pathname?: string;
-          search?: string;
-          state?: Record<string, unknown>;
-        };
-        if (parsed?.pathname) {
-          navigate({
-            pathname: parsed.pathname,
-            search: parsed.search ?? ""
-          }, { state: parsed.state ?? undefined });
-          return;
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
-    navigate("/", { state: { openProfile: true }, replace: true });
+    navigateBack(navigate, "/");
   };
 
   const handleEditProfile = () => {
