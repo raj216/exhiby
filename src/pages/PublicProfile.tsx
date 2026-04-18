@@ -304,13 +304,36 @@ export default function PublicProfile() {
   useEffect(() => {
     if (!profile) return;
     const baseTitle = profile.handle ? `${profile.name} (${profile.handle})` : profile.name;
-    const title = `${baseTitle}${isLive ? " is Live" : ""} | Exhiby`;
-    document.title = title.slice(0, 60);
-    const desc = `View ${profile.name}'s profile${isLive ? " and join their live stream" : ""} on Exhiby. Explore their portfolio and follow for future live sessions.`;
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute("content", desc.slice(0, 160));
-
+    const title = `${baseTitle}${isLive ? " is Live 🔴" : ""} | Exhiby`;
+    const shortTitle = title.slice(0, 60);
+    const desc = `View ${profile.name}'s profile${isLive ? " and join their live stream" : ""} on Exhiby. Explore their portfolio and follow for future live sessions.`.slice(0, 160);
     const canonicalHref = `${window.location.origin}/profile/${profile.user_id}`;
+    const image = profile.cover_url || profile.avatar_url || `${window.location.origin}/og-default.png`;
+
+    const setMeta = (selector: string, attr: string, value: string) => {
+      let el = document.querySelector(selector) as HTMLElement | null;
+      if (!el) {
+        el = document.createElement("meta");
+        const match = selector.match(/\[(.*?)="(.*?)"\]/);
+        if (match) el.setAttribute(match[1], match[2]);
+        document.head.appendChild(el);
+      }
+      el.setAttribute(attr, value);
+    };
+
+    document.title = shortTitle;
+    setMeta('meta[name="description"]', "content", desc);
+    setMeta('meta[property="og:title"]', "content", shortTitle);
+    setMeta('meta[property="og:description"]', "content", desc);
+    setMeta('meta[property="og:image"]', "content", image);
+    setMeta('meta[property="og:url"]', "content", canonicalHref);
+    setMeta('meta[property="og:type"]', "content", "profile");
+    setMeta('meta[property="og:site_name"]', "content", "Exhiby");
+    setMeta('meta[name="twitter:card"]', "content", "summary_large_image");
+    setMeta('meta[name="twitter:title"]', "content", shortTitle);
+    setMeta('meta[name="twitter:description"]', "content", desc);
+    setMeta('meta[name="twitter:image"]', "content", image);
+
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!canonical) {
       canonical = document.createElement("link");
