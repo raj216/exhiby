@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ProfilePageSkeleton } from "@/components/ui/loading-skeletons";
 import { triggerHaptic } from "@/lib/haptics";
+import { navigateBack } from "@/lib/navigation";
 import { safeExternalUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { FollowListModal } from "@/components/FollowListModal";
