@@ -56,6 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setIsLoading(false);
 
+        // CRITICAL: Push access token to Realtime so postgres_changes RLS works.
+        // Without this, channels on RLS-protected tables fail with CHANNEL_ERROR.
+        if (session?.access_token) {
+          supabase.realtime.setAuth(session.access_token);
+        } else {
+          supabase.realtime.setAuth(null as unknown as string);
+        }
+
         // Ensure profile exists when user signs in
         if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
           setTimeout(() => {
@@ -71,6 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+
+      // Push token to Realtime for the existing session as well
+      if (session?.access_token) {
+        supabase.realtime.setAuth(session.access_token);
+      }
 
       // Ensure profile exists for existing session
       if (session?.user) {
