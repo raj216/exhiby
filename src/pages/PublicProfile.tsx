@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Edit2, Users, BadgeCheck, Share } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ProfilePageSkeleton } from "@/components/ui/loading-skeletons";
 import { triggerHaptic } from "@/lib/haptics";
+import { navigateBack } from "@/lib/navigation";
 import { safeExternalUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { FollowListModal } from "@/components/FollowListModal";
@@ -48,7 +49,6 @@ export default function PublicProfile() {
   // Debug: confirm the route param we are receiving
   console.log("[PublicProfile] param userId:", userId);
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -235,45 +235,7 @@ export default function PublicProfile() {
 
   const handleBack = () => {
     triggerHaptic("light");
-    const state = (location.state && typeof location.state === "object" ? location.state as Record<string, unknown> : {}) as Record<string, unknown>;
-    const returnTo = state.returnTo as {
-      pathname: string;
-      search?: string;
-      state?: Record<string, unknown>;
-    } | undefined;
-    if (returnTo?.pathname) {
-      navigate({
-        pathname: returnTo.pathname,
-        search: returnTo.search ?? ""
-      }, { state: returnTo.state ?? undefined });
-      return;
-    }
-    try {
-      const raw = sessionStorage.getItem("exhiby_return_to");
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
-          pathname?: string;
-          search?: string;
-          state?: Record<string, unknown>;
-        };
-        if (parsed?.pathname) {
-          navigate({
-            pathname: parsed.pathname,
-            search: parsed.search ?? ""
-          }, { state: parsed.state ?? undefined });
-          return;
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
-    navigate("/", { state: { openProfile: true }, replace: true });
+    navigateBack(navigate, "/");
   };
 
   const handleEditProfile = () => {
