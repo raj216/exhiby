@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CATEGORIES, getCategoryId, getCategoryName } from "@/lib/categories";
 import { getUpcomingSessions, UpcomingSessionWithCreator } from "@/data/getUpcomingSessions";
 import { triggerHaptic } from "@/lib/haptics";
+import { navigateBack } from "@/lib/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
@@ -183,7 +184,7 @@ export default function Schedule() {
       <header className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/20">
         <div className="flex items-center gap-4 px-4 lg:px-6 py-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigateBack(navigate, "/")}
             className="w-10 h-10 rounded-full flex items-center justify-center bg-muted/30 hover:bg-muted/50 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />

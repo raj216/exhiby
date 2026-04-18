@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { triggerClickHaptic } from "@/lib/haptics";
+import { navigateBack } from "@/lib/navigation";
 
 export default function TicketsHistory() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function TicketsHistory() {
 
   const handleBack = () => {
     triggerClickHaptic();
-    navigate(-1);
+    navigateBack(navigate, "/");
   };
 
   if (authLoading || loading) {
