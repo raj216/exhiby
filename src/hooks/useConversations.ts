@@ -71,6 +71,7 @@ export function useConversations() {
           // Refetch conversations immediately when new message arrives
           // This updates unread counts and latest message preview
           const newMsg = payload.new as { sender_id: string; conversation_id: string };
+          if (newMsg.sender_id === user?.id) return;
           console.log("[useConversations] New message INSERT - refetching for unread badge update");
           fetchConversations();
         }

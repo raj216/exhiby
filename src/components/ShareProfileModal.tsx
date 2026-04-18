@@ -113,7 +113,7 @@ export function ShareProfileModal({ isOpen, onClose, handle, userId }: ShareProf
       }
     }
     
-    window.open(links[platform], "_blank");
+    window.open(links[platform], "_blank", "noopener,noreferrer");
   };
 
   const handleToggleQR = () => {
