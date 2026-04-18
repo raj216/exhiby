@@ -123,7 +123,15 @@ export function AudienceProfile({
   const displayHandle = localProfile?.handle ? localProfile.handle : user ? "..." : fallbackUser.username;
   const displayMemberSince = localProfile?.memberSince || (user ? "..." : fallbackUser.memberSince);
   const displayBio = localProfile?.bio;
-  const [activeTab, setActiveTab] = useState<TabType>("tickets");
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const saved = sessionStorage.getItem("audienceProfile_activeTab");
+    return (saved === "tickets" || saved === "collection") ? saved as TabType : "tickets";
+  });
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    sessionStorage.setItem("audienceProfile_activeTab", tab);
+  };
   const displayAvatar = localProfile?.avatarUrl;
   const displayCover = localProfile?.coverUrl;
   const tabs: {
@@ -292,7 +300,7 @@ export function AudienceProfile({
           <div className="flex max-w-2xl mx-auto lg:justify-center lg:gap-4 px-4">
             {tabs.map(tab => <button key={tab.id} onClick={() => {
             triggerClickHaptic();
-            setActiveTab(tab.id);
+            handleTabChange(tab.id);
           }} className={`flex-1 min-w-[100px] lg:min-w-[140px] py-3 text-xs font-semibold relative transition-colors flex flex-col items-center gap-1 ${activeTab === tab.id ? "text-foreground" : "text-muted-foreground"}`}>
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
