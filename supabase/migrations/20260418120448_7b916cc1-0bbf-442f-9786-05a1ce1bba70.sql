@@ -1,0 +1,1 @@
+DELETE FROM events WHERE id IN ('f400c2e2-ec38-4b16-91e0-2915e9a94a11', '62641b5d-feb7-4982-a8e2-85dcf0d38bb9');
