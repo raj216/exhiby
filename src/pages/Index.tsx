@@ -160,14 +160,12 @@ function IndexContent() {
     if (state?.openProfile) {
       console.log("[Index] Opening own profile from navigation state");
       navigateToScreen("profile");
-      setActiveTab(mode === "audience" ? "passport" : "profile");
       // Clear the state to prevent re-triggering
       navigate(location.pathname, { replace: true, state: {} });
     }
     if (state?.openEditProfile) {
       console.log("[Index] Opening edit profile from navigation state");
       navigateToScreen("profile");
-      setActiveTab(mode === "audience" ? "passport" : "profile");
       // Clear the state
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -207,12 +205,12 @@ function IndexContent() {
     } else if (tab === "home" || tab === "studio") {
       setTransitionDirection("backward");
       goHome();
+      navigate({ pathname: "/", search: "" }, { replace: false });
     } else {
       toast.info("Coming Soon", {
         description: `${tab.charAt(0).toUpperCase() + tab.slice(1)} feature is under development`,
       });
     }
-    setActiveTab(tab);
   };
 
   const handleLogout = () => {
@@ -286,19 +284,17 @@ function IndexContent() {
               onViewCreatorProfile={() => navigateToScreen("creatorProfile")}
               onViewAudienceProfile={() => {
                 navigateToScreen("profile");
-                setActiveTab(mode === "audience" ? "passport" : "profile");
               }}
               onOpenStudio={() => {
                 setMode("creator");
                 navigateToScreen("profile");
-                setActiveTab("profile");
               }}
               onOpenSearch={() => setShowSearch(true)}
               onLogout={handleLogout}
               onGoHome={() => {
                 setTransitionDirection("backward");
                 goHome();
-                setActiveTab(mode === "audience" ? "home" : "studio");
+                navigate({ pathname: "/", search: "" }, { replace: false });
               }}
             />
           </PageTransition>
@@ -311,8 +307,6 @@ function IndexContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Toaster position="top-center" />
-      
       {/* App content with scale effect when modals open */}
       <motion.div
         animate={{
@@ -323,7 +317,7 @@ function IndexContent() {
         style={{ willChange: "transform, filter", transformOrigin: "center center" }}
         className="min-h-screen"
       >
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="wait">
           {renderScreen()}
         </AnimatePresence>
       </motion.div>
@@ -337,12 +331,10 @@ function IndexContent() {
         onOpenCategories={() => setShowCategories(true)}
         onViewProfile={() => {
           navigateToScreen("profile");
-          setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
         onOpenStudio={() => {
           setMode("creator");
           navigateToScreen("profile");
-          setActiveTab("profile");
         }}
         onGoLive={() => setShowWizard(true)}
         onLogout={handleLogout}
@@ -372,7 +364,6 @@ function IndexContent() {
         onOpenOwnProfile={() => {
           setShowSearch(false);
           navigateToScreen("profile");
-          setActiveTab(mode === "audience" ? "passport" : "profile");
         }}
       />
 
