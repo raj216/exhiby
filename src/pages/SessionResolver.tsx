@@ -181,6 +181,19 @@ export default function SessionResolver() {
     setMeta('meta[name="twitter:title"]', "content", title);
     setMeta('meta[name="twitter:description"]', "content", desc);
     setMeta('meta[name="twitter:image"]', "content", image);
+
+    // TEMP DEBUG
+    console.log("[SEO-Session]", JSON.stringify({
+      status,
+      title: document.title,
+      description: document.querySelector('meta[name="description"]')?.getAttribute("content"),
+      ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content"),
+      ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute("content"),
+      ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute("content"),
+      twitterCard: document.querySelector('meta[name="twitter:card"]')?.getAttribute("content"),
+      twitterTitle: document.querySelector('meta[name="twitter:title"]')?.getAttribute("content"),
+      twitterImage: document.querySelector('meta[name="twitter:image"]')?.getAttribute("content"),
+    }));
   }, [session, status]);
 
   // Loading state
