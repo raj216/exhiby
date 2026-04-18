@@ -16,7 +16,7 @@ import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationHistory, type Screen } from "@/hooks/useNavigationHistory";
 import { supabase } from "@/integrations/supabase/client";
-import { Toaster } from "@/components/ui/sonner";
+
 import { toast } from "sonner";
 
 import { EventData } from "@/components/GoLiveWizard";
