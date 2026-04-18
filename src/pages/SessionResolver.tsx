@@ -141,6 +141,48 @@ export default function SessionResolver() {
     // For scheduled and ended, we show a UI (don't auto-navigate)
   }, [status, isLoading, session, navigate]);
 
+  // SEO meta tags
+  useEffect(() => {
+    if (!session) return;
+    const isLiveSession = status === "live";
+    const isScheduledSession = status === "scheduled";
+    const creatorLabel = session.creator_name ? ` by ${session.creator_name}` : "";
+    const statusLabel = isLiveSession ? " 🔴 Live Now" : isScheduledSession ? " — Upcoming" : "";
+    const title = `${session.title}${statusLabel}${creatorLabel} | Exhiby`.slice(0, 60);
+    const desc = [
+      session.creator_name ? `Join ${session.creator_name}'s` : "Join this",
+      isLiveSession ? "live art session" : "upcoming art session",
+      "on Exhiby.",
+      session.is_free ? "Free to attend." : `$${session.price} ticket.`,
+    ].join(" ").slice(0, 160);
+    const image = session.cover_url || `${window.location.origin}/og-default.png`;
+    const url = `${window.location.origin}/s/${session.id}`;
+
+    const setMeta = (selector: string, attr: string, value: string) => {
+      let el = document.querySelector(selector) as HTMLElement | null;
+      if (!el) {
+        el = document.createElement("meta");
+        const match = selector.match(/\[(.*?)="(.*?)"\]/);
+        if (match) el.setAttribute(match[1], match[2]);
+        document.head.appendChild(el);
+      }
+      el.setAttribute(attr, value);
+    };
+
+    document.title = title;
+    setMeta('meta[name="description"]', "content", desc);
+    setMeta('meta[property="og:title"]', "content", title);
+    setMeta('meta[property="og:description"]', "content", desc);
+    setMeta('meta[property="og:image"]', "content", image);
+    setMeta('meta[property="og:url"]', "content", url);
+    setMeta('meta[property="og:type"]', "content", "website");
+    setMeta('meta[property="og:site_name"]', "content", "Exhiby");
+    setMeta('meta[name="twitter:card"]', "content", "summary_large_image");
+    setMeta('meta[name="twitter:title"]', "content", title);
+    setMeta('meta[name="twitter:description"]', "content", desc);
+    setMeta('meta[name="twitter:image"]', "content", image);
+  }, [session, status]);
+
   // Loading state
   if (authLoading || isLoading) {
     return (
