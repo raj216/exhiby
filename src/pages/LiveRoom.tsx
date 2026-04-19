@@ -15,6 +15,7 @@ import { useLiveChat } from "@/hooks/useLiveChat";
 import { useEventTicket } from "@/hooks/useEventTicket";
 import { useSavedSessions } from "@/hooks/useSavedSessions";
 import { toast } from "sonner";
+import { toast as toastShadcn } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { triggerClickHaptic } from "@/lib/haptics";
 import featureFlags from "@/lib/featureFlags";
