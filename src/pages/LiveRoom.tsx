@@ -672,6 +672,38 @@ export default function LiveRoom() {
     setShowMaterials(false);
   };
 
+  // Share live link handler
+  const handleShare = useCallback(async () => {
+    if (!event) return;
+    triggerClickHaptic();
+
+    const shareUrl = `${window.location.origin}/s/${event.id}`;
+    const shareData = {
+      title: event.title,
+      text: `Join "${event.title}" live on Exhiby`,
+      url: shareUrl,
+    };
+
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          console.error("Share failed:", err);
+        }
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Live link copied to clipboard");
+    } catch (err) {
+      console.error("Clipboard failed:", err);
+      toast.error("Could not copy link");
+    }
+  }, [event]);
+
   const handleAddMaterial = async (name: string, brand?: string, spec?: string) => {
     return await addMaterial(name, brand, spec);
   };
@@ -1467,6 +1499,7 @@ export default function LiveRoom() {
             onOpenHandRaises={handleOpenHandRaises}
             onOpenStudioCamera={isCreator ? () => setShowAddCameraSheet(true) : undefined}
             studioCameraConnected={studioCameraConnected}
+            onShare={handleShare}
           />
 
           {/* Add Studio Camera QR Sheet (Creator Only) */}
