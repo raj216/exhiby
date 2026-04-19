@@ -11,6 +11,7 @@ import {
   VideoOff,
   SwitchCamera,
   Smartphone,
+  Share2,
   LogOut,
 } from "lucide-react";
 import {
@@ -43,6 +44,7 @@ interface LiveRoomControlsProps {
   // Studio camera (second camera via phone QR)
   onOpenStudioCamera?: () => void;
   studioCameraConnected?: boolean;
+  onShare?: () => void;
 }
 
 export function LiveRoomControls({
@@ -66,6 +68,7 @@ export function LiveRoomControls({
   onOpenHandRaises,
   onOpenStudioCamera,
   studioCameraConnected = false,
+  onShare,
 }: LiveRoomControlsProps) {
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -265,6 +268,24 @@ export function LiveRoomControls({
                     <p>Materials</p>
                   </TooltipContent>
                 </Tooltip>
+
+                {/* Share — Both Host and Viewer */}
+                {onShare && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={onShare}
+                        disabled={isEnding}
+                        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                      >
+                        <Share2 className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p>Share live link</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
 
                 {/* Hand Raises - Host Only */}
                 {isHost && onOpenHandRaises && (
