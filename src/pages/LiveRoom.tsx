@@ -800,7 +800,7 @@ export default function LiveRoom() {
     setShowPaymentDrawer(false);
     // For free events, the ticket was created by create-checkout-session
     // Refetch to pick it up
-    refetchTicket();
+    await refetchTicket();
     toast.success("Access granted! Joining stream...");
   };
 
