@@ -672,35 +672,27 @@ export default function LiveRoom() {
     setShowMaterials(false);
   };
 
-  // Share live link handler
   const handleShare = useCallback(async () => {
     if (!event) return;
-    triggerClickHaptic();
-
     const shareUrl = `${window.location.origin}/s/${event.id}`;
     const shareData = {
       title: event.title,
-      text: `Join "${event.title}" live on Exhiby`,
+      text: "I'm live on Exhiby — join me now!",
       url: shareUrl,
     };
-
     if (navigator.share && navigator.canShare?.(shareData)) {
       try {
         await navigator.share(shareData);
+        return;
       } catch (err) {
-        if ((err as Error).name !== "AbortError") {
-          console.error("Share failed:", err);
-        }
+        if ((err as Error).name === "AbortError") return;
       }
-      return;
     }
-
     try {
       await navigator.clipboard.writeText(shareUrl);
-      toast.success("Live link copied to clipboard");
-    } catch (err) {
-      console.error("Clipboard failed:", err);
-      toast.error("Could not copy link");
+      toast.success("Live link copied — share it with your audience");
+    } catch {
+      toast.error("Couldn't copy link");
     }
   }, [event]);
 
