@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import { triggerSuccessHaptic, triggerClickHaptic } from "@/lib/haptics";
@@ -21,8 +21,19 @@ export function SlideToAction({
   const x = useMotionValue(0);
   const [trackWidth, setTrackWidth] = useState(0);
 
+  useEffect(() => {
+    const el = constraintsRef.current;
+    if (!el) return;
+    setTrackWidth(el.offsetWidth);
+    const observer = new ResizeObserver(() => {
+      setTrackWidth(el.offsetWidth);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const thumbWidth = 56;
-  const maxSlide = trackWidth - thumbWidth - 8;
+  const maxSlide = Math.max(0, trackWidth - thumbWidth - 8);
 
   const backgroundOpacity = useTransform(x, [0, maxSlide], [0, 1]);
   const textOpacity = useTransform(x, [0, maxSlide * 0.5], [1, 0]);
@@ -49,11 +60,6 @@ export function SlideToAction({
     <div
       ref={constraintsRef}
       className="relative h-16 rounded-full overflow-hidden bg-obsidian"
-      onLoad={() => {
-        if (constraintsRef.current) {
-          setTrackWidth(constraintsRef.current.offsetWidth);
-        }
-      }}
       style={{ touchAction: "none" }}
     >
       {/* Track background - Hot Metal Gradient */}
@@ -91,11 +97,6 @@ export function SlideToAction({
           dragElastic={0}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
-          onViewportEnter={() => {
-            if (constraintsRef.current) {
-              setTrackWidth(constraintsRef.current.offsetWidth);
-            }
-          }}
         >
           {icon || <ChevronRight className="w-6 h-6 text-white" />}
         </motion.div>
