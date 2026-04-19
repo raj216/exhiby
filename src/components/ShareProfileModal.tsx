@@ -122,8 +122,6 @@ export function ShareProfileModal({ isOpen, onClose, handle, userId }: ShareProf
     if (!showQR) setShowShareOptions(false);
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
       {isOpen && (
