@@ -194,8 +194,6 @@ export function ShareStudioModal({ isOpen, onClose, handle, userId, creatorName 
     if (!showQR) setShowShareOptions(false);
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
       {isOpen && (
