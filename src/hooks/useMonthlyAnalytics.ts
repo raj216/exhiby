@@ -193,16 +193,16 @@ export function useMonthlyAnalytics(userId: string | undefined) {
     if (!userId) return;
 
     const channel = supabase
-      .channel("monthly-analytics")
+      .channel(`monthly-analytics-${userId}`)
       .on(
         "postgres_changes",
         {
-          event: "*", // Listen to INSERT, UPDATE, DELETE
+          event: "INSERT",
           schema: "public",
-          table: "tickets",
+          table: "creator_earnings",
+          filter: `creator_id=eq.${userId}`,
         },
         () => {
-          // Refetch analytics when tickets change
           fetchAnalytics();
         }
       )
