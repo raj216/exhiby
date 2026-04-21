@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, Wifi, WifiOff, Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { Send, X, Wifi, WifiOff, Loader2, RefreshCw, AlertCircle, Pin, PinOff } from "lucide-react";
 import { format } from "date-fns";
 import type { LiveMessage } from "@/hooks/useLiveChat";
 
@@ -16,6 +16,11 @@ interface LiveRoomChatProps {
   onReload?: () => void;
   isAuthenticated?: boolean;
   isSending?: boolean;
+  isCreator?: boolean;
+  pinnedMessage?: LiveMessage | null;
+  pinnedMessageId?: string | null;
+  onPinMessage?: (messageId: string) => void | Promise<void>;
+  onUnpinMessage?: () => void | Promise<void>;
 }
 
 export function LiveRoomChat({
@@ -30,6 +35,11 @@ export function LiveRoomChat({
   onReload,
   isAuthenticated = true,
   isSending = false,
+  isCreator = false,
+  pinnedMessage = null,
+  pinnedMessageId = null,
+  onPinMessage,
+  onUnpinMessage,
 }: LiveRoomChatProps) {
   const [inputValue, setInputValue] = useState("");
   const [localSending, setLocalSending] = useState(false);
@@ -232,6 +242,37 @@ export function LiveRoomChat({
             </button>
           </div>
 
+          {/* Pinned message banner */}
+          {pinnedMessage && (
+            <div className="px-4 pt-3">
+              <div className="rounded-lg bg-gold/10 border border-gold/30 px-3 py-2 flex items-start gap-2">
+                <Pin className="w-3.5 h-3.5 text-gold mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-gold text-[10px] uppercase tracking-wider font-semibold">
+                      Pinned
+                    </span>
+                    <span className="text-white/80 text-xs font-medium truncate">
+                      {pinnedMessage.display_name || "Viewer"}
+                    </span>
+                  </div>
+                  <p className="text-white/90 text-sm break-words mt-0.5">
+                    {pinnedMessage.message}
+                  </p>
+                </div>
+                {isCreator && onUnpinMessage && (
+                  <button
+                    onClick={() => onUnpinMessage()}
+                    className="shrink-0 p-1 rounded hover:bg-white/10 text-gold/80 hover:text-gold transition-colors"
+                    title="Unpin"
+                  >
+                    <PinOff className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Messages */}
           <div
             ref={messagesContainerRef}
@@ -244,36 +285,62 @@ export function LiveRoomChat({
               </div>
             ) : (
               <AnimatePresence initial={false}>
-                {messages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ 
-                      opacity: msg._status === "sending" ? 0.7 : 1, 
-                      y: 0 
-                    }}
-                    exit={{ opacity: 0 }}
-                    className={`flex flex-col gap-0.5 ${
-                      msg._status === "failed" ? "opacity-60" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-electric font-medium text-sm shrink-0">
-                        {msg.display_name || "Viewer"}
-                      </span>
-                      {msg.role === "creator" && (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gold/20 text-gold border border-gold/30">
-                          Host
+                {messages.map((msg) => {
+                  const isPinned = msg.id === pinnedMessageId;
+                  const canPin = isCreator && msg._status !== "sending" && msg._status !== "failed" && !msg.id.startsWith("optimistic-");
+                  return (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ 
+                        opacity: msg._status === "sending" ? 0.7 : 1, 
+                        y: 0 
+                      }}
+                      exit={{ opacity: 0 }}
+                      className={`group flex flex-col gap-0.5 ${
+                        msg._status === "failed" ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-electric font-medium text-sm shrink-0">
+                          {msg.display_name || "Viewer"}
                         </span>
-                      )}
-                      <span className="text-white/30 text-[10px] ml-auto">
-                        {format(new Date(msg.created_at), "HH:mm")}
-                      </span>
-                      <MessageStatus message={msg} />
-                    </div>
-                    <span className="text-white/90 text-sm break-words">{msg.message}</span>
-                  </motion.div>
-                ))}
+                        {msg.role === "creator" && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gold/20 text-gold border border-gold/30">
+                            Host
+                          </span>
+                        )}
+                        {isPinned && (
+                          <Pin className="w-3 h-3 text-gold" />
+                        )}
+                        <span className="text-white/30 text-[10px] ml-auto">
+                          {format(new Date(msg.created_at), "HH:mm")}
+                        </span>
+                        <MessageStatus message={msg} />
+                        {canPin && (
+                          isPinned ? (
+                            <button
+                              onClick={() => onUnpinMessage?.()}
+                              className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10 text-gold"
+                              title="Unpin message"
+                            >
+                              <PinOff className="w-3 h-3" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => onPinMessage?.(msg.id)}
+                              className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10 text-white/60 hover:text-gold"
+                              title="Pin message"
+                            >
+                              <Pin className="w-3 h-3" />
+                            </button>
+                          )
+                        )}
+                      </div>
+                      <span className="text-white/90 text-sm break-words">{msg.message}</span>
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             )}
             <div ref={messagesEndRef} />
