@@ -57,6 +57,7 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
   const [lastSeenMessageId, setLastSeenMessageId] = useState<string | null>(null);
   const [latestUnreadMessage, setLatestUnreadMessage] = useState<UnreadMessageInfo | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(null);
   
   // Track which messages we've already processed (by server ID and client ID)
   const processedServerIds = useRef<Set<string>>(new Set());
@@ -127,6 +128,36 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
     } finally {
       setIsLoading(false);
     }
+  }, [eventId]);
+
+  // Fetch initial pinned message id
+  useEffect(() => {
+    if (!eventId) return;
+    supabase
+      .from("events")
+      .select("pinned_message_id")
+      .eq("id", eventId)
+      .single()
+      .then(({ data }) => {
+        if (data) setPinnedMessageId(data.pinned_message_id ?? null);
+      });
+  }, [eventId]);
+
+  // Subscribe to realtime pin/unpin updates
+  useEffect(() => {
+    if (!eventId) return;
+    const pinChannel = supabase
+      .channel(`event-pin-${eventId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "events", filter: `id=eq.${eventId}` },
+        (payload) => {
+          const updated = payload.new as { pinned_message_id?: string | null };
+          setPinnedMessageId(updated.pinned_message_id ?? null);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(pinChannel); };
   }, [eventId]);
 
   // Mark messages as seen when chat opens
@@ -426,6 +457,18 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
     }
   }, [isChatOpen, messages]);
 
+  const pinMessage = useCallback(async (messageId: string) => {
+    if (!eventId || !isCreator) return;
+    setPinnedMessageId(messageId); // Optimistic update
+    await supabase.from("events").update({ pinned_message_id: messageId }).eq("id", eventId);
+  }, [eventId, isCreator]);
+
+  const unpinMessage = useCallback(async () => {
+    if (!eventId || !isCreator) return;
+    setPinnedMessageId(null); // Optimistic update
+    await supabase.from("events").update({ pinned_message_id: null }).eq("id", eventId);
+  }, [eventId, isCreator]);
+
   // Send a message with optimistic update
   const sendMessage = useCallback(
     async (messageText: string): Promise<boolean> => {
@@ -595,5 +638,9 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
     closeChat,
     clearLatestUnread,
     markAsSeen,
+    pinnedMessageId,
+    pinnedMessage: messages.find(m => m.id === pinnedMessageId) ?? null,
+    pinMessage,
+    unpinMessage,
   };
 }
