@@ -46,6 +46,8 @@ export function LiveRoomMaterials({
   const [formBrand, setFormBrand] = useState("");
   const [formSpec, setFormSpec] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Material | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const resetForm = () => {
     setFormName("");
