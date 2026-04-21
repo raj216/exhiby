@@ -86,8 +86,21 @@ export function LiveRoomMaterials({
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    await onDeleteMaterial?.(id);
+  const handleDelete = (material: Material) => {
+    setDeleteTarget(material);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const success = await onDeleteMaterial?.(deleteTarget.id);
+      if (success) {
+        setDeleteTarget(null);
+      }
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
