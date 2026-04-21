@@ -163,6 +163,10 @@ export default function LiveRoom() {
     openChat,
     closeChat,
     clearLatestUnread,
+    pinnedMessage,
+    pinnedMessageId,
+    pinMessage,
+    unpinMessage,
   } = useLiveChat({
     eventId: eventId || null,
     creatorId: event?.creator_id || null,
@@ -1456,6 +1460,11 @@ export default function LiveRoom() {
             onSendMessage={handleSendMessage}
             onReload={reconnectRealtime}
             isAuthenticated={!!user}
+            isCreator={isCreator}
+            pinnedMessage={pinnedMessage}
+            pinnedMessageId={pinnedMessageId}
+            onPinMessage={pinMessage}
+            onUnpinMessage={unpinMessage}
           />
 
           {/* Materials Panel */}
