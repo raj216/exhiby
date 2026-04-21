@@ -235,7 +235,7 @@ export function LiveRoomMaterials({
                           <Pencil className="w-3 h-3 text-white" />
                         </button>
                         <button
-                          onClick={() => handleDelete(material.id)}
+                          onClick={() => handleDelete(material)}
                           className="w-7 h-7 rounded-full bg-destructive/30 flex items-center justify-center hover:bg-destructive/50 transition-colors"
                         >
                           <Trash2 className="w-3 h-3 text-white" />
