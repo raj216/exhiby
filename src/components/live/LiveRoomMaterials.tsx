@@ -3,6 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Palette, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export interface Material {
   id: string;
@@ -36,6 +46,8 @@ export function LiveRoomMaterials({
   const [formBrand, setFormBrand] = useState("");
   const [formSpec, setFormSpec] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Material | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const resetForm = () => {
     setFormName("");
@@ -74,8 +86,21 @@ export function LiveRoomMaterials({
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    await onDeleteMaterial?.(id);
+  const handleDelete = (material: Material) => {
+    setDeleteTarget(material);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const success = await onDeleteMaterial?.(deleteTarget.id);
+      if (success) {
+        setDeleteTarget(null);
+      }
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -210,7 +235,7 @@ export function LiveRoomMaterials({
                           <Pencil className="w-3 h-3 text-white" />
                         </button>
                         <button
-                          onClick={() => handleDelete(material.id)}
+                          onClick={() => handleDelete(material)}
                           className="w-7 h-7 rounded-full bg-destructive/30 flex items-center justify-center hover:bg-destructive/50 transition-colors"
                         >
                           <Trash2 className="w-3 h-3 text-white" />
@@ -231,6 +256,32 @@ export function LiveRoomMaterials({
           </div>
         </motion.div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && !isDeleting && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete material?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? (
+                <>Remove <span className="font-medium text-foreground">{deleteTarget.name}</span> from this session's materials? This can't be undone.</>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AnimatePresence>
   );
 }
