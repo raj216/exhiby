@@ -264,6 +264,7 @@ export type Database = {
           is_live: boolean | null
           live_ended_at: string | null
           live_started_at: string | null
+          pinned_message_id: string | null
           price: number | null
           scheduled_at: string
           title: string
@@ -284,6 +285,7 @@ export type Database = {
           is_live?: boolean | null
           live_ended_at?: string | null
           live_started_at?: string | null
+          pinned_message_id?: string | null
           price?: number | null
           scheduled_at: string
           title: string
@@ -304,13 +306,22 @@ export type Database = {
           is_live?: boolean | null
           live_ended_at?: string | null
           live_started_at?: string | null
+          pinned_message_id?: string | null
           price?: number | null
           scheduled_at?: string
           title?: string
           updated_at?: string
           viewer_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_pinned_message_id_fkey"
+            columns: ["pinned_message_id"]
+            isOneToOne: false
+            referencedRelation: "live_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       follows: {
         Row: {
