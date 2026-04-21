@@ -77,7 +77,7 @@ export function useHandRaises({ eventId, isCreator }: UseHandRaisesOptions) {
   useEffect(() => {
     if (!eventId) return;
 
-    const channelName = `hand_raises_${eventId}_${Date.now()}`;
+    const channelName = `hand_raises_${eventId}`;
     console.log("[useHandRaises] Setting up realtime subscription:", channelName);
 
     const channel = supabase
