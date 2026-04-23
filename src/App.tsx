@@ -58,6 +58,11 @@ const App = () => {
                     <LiveRoomEntry />
                   </RequireAuth>
                 } />
+                <Route path="/studio-camera/:eventId" element={
+                  <RequireAuth>
+                    <StudioCameraPage />
+                  </RequireAuth>
+                } />
                 {/* Messages Routes - Protected */}
                 <Route path="/messages" element={
                   <RequireAuth>
