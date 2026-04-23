@@ -166,7 +166,7 @@ export function LiveRoomControls({
                         <button
                           onClick={onToggleCamera}
                           disabled={isEnding}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             isCameraOn
                               ? "bg-white/10 text-white hover:bg-white/20"
                               : "bg-destructive/80 text-white hover:bg-destructive"
@@ -191,7 +191,7 @@ export function LiveRoomControls({
                           <button
                             onClick={onSwitchCamera}
                             disabled={isEnding}
-                            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                           >
                             <SwitchCamera className="w-5 h-5" />
                           </button>
@@ -204,27 +204,29 @@ export function LiveRoomControls({
 
                     {/* Studio Camera (phone as second camera) */}
                     {onOpenStudioCamera && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={onOpenStudioCamera}
-                            disabled={isEnding}
-                            className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
-                              studioCameraConnected
-                                ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                                : "bg-white/10 text-white hover:bg-white/20"
-                            }`}
-                          >
-                            <Smartphone className="w-5 h-5" />
-                            {studioCameraConnected && (
-                              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-400 ring-2 ring-black/40" />
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>{studioCameraConnected ? "Studio camera connected" : "Add studio camera"}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <div className="hidden sm:contents">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={onOpenStudioCamera}
+                              disabled={isEnding}
+                              className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                                studioCameraConnected
+                                  ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                                  : "bg-white/10 text-white hover:bg-white/20"
+                              }`}
+                            >
+                              <Smartphone className="w-5 h-5" />
+                              {studioCameraConnected && (
+                                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-400 ring-2 ring-black/40" />
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>{studioCameraConnected ? "Studio camera connected" : "Add studio camera"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     )}
 
                     <div className="w-px h-6 bg-white/20 mx-1" />
@@ -271,20 +273,22 @@ export function LiveRoomControls({
 
                 {/* Share — Both Host and Viewer */}
                 {onShare && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={onShare}
-                        disabled={isEnding}
-                        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
-                      >
-                        <Share2 className="w-5 h-5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p>Share live link</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className="hidden sm:contents">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={onShare}
+                          disabled={isEnding}
+                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                        >
+                          <Share2 className="w-5 h-5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Share live link</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 )}
 
                 {/* Hand Raises - Host Only */}
