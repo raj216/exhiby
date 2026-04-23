@@ -1509,6 +1509,7 @@ export default function LiveRoom() {
               isOpen={showAddCameraSheet}
               onClose={() => setShowAddCameraSheet(false)}
               cameraUrl={`${window.location.origin}/studio-camera/${event.id}`}
+              companionUrl={`${window.location.origin}/live/${event.id}?companion=1`}
               isConnected={studioCameraConnected}
             />
           )}
