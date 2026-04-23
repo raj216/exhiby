@@ -41,12 +41,12 @@ export function AddCameraSheet({
     {
       icon: ScanLine,
       title: "Scan the QR code",
-      body: "Point at this screen until a link appears.",
+      body: "Point at this screen until a link appears, then tap it.",
     },
     {
       icon: Hand,
-      title: "Tap the link",
-      body: "Your phone joins as the studio camera. Keep this laptop open.",
+      title: "Log in and go live",
+      body: "Sign in if prompted — your phone joins as the studio camera. Keep this screen open to manage chat and materials.",
     },
   ];
 
