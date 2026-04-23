@@ -132,7 +132,7 @@ export function LiveRoomControls({
           {/* Control Bar - Frosted Glass Pill */}
           <TooltipProvider delayDuration={300}>
             <div className="flex items-center justify-center gap-2">
-              <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
+              <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
                 {/* HOST Controls */}
                 {isHost && (
                   <>
@@ -142,7 +142,7 @@ export function LiveRoomControls({
                         <button
                           onClick={onToggleMic}
                           disabled={isEnding}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             isMicOn
                               ? "bg-white/10 text-white hover:bg-white/20"
                               : "bg-destructive/80 text-white hover:bg-destructive"
