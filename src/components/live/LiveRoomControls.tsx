@@ -132,7 +132,7 @@ export function LiveRoomControls({
           {/* Control Bar - Frosted Glass Pill */}
           <TooltipProvider delayDuration={300}>
             <div className="flex items-center justify-center gap-2">
-              <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
+              <div className="flex items-center gap-1 lg:gap-1.5 px-2.5 py-2 lg:px-4 lg:py-2.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
                 {/* HOST Controls */}
                 {isHost && (
                   <>
@@ -142,7 +142,7 @@ export function LiveRoomControls({
                         <button
                           onClick={onToggleMic}
                           disabled={isEnding}
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                          className={`w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             isMicOn
                               ? "bg-white/10 text-white hover:bg-white/20"
                               : "bg-destructive/80 text-white hover:bg-destructive"
@@ -166,7 +166,7 @@ export function LiveRoomControls({
                         <button
                           onClick={onToggleCamera}
                           disabled={isEnding}
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                          className={`w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             isCameraOn
                               ? "bg-white/10 text-white hover:bg-white/20"
                               : "bg-destructive/80 text-white hover:bg-destructive"
@@ -191,7 +191,7 @@ export function LiveRoomControls({
                           <button
                             onClick={onSwitchCamera}
                             disabled={isEnding}
-                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                          className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                           >
                             <SwitchCamera className="w-5 h-5" />
                           </button>
@@ -204,13 +204,13 @@ export function LiveRoomControls({
 
                     {/* Studio Camera (phone as second camera) */}
                     {onOpenStudioCamera && (
-                      <div className="hidden sm:contents">
+                      <div className="hidden lg:contents">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               onClick={onOpenStudioCamera}
                               disabled={isEnding}
-                              className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                              className={`relative w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                                 studioCameraConnected
                                   ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
                                   : "bg-white/10 text-white hover:bg-white/20"
@@ -239,7 +239,7 @@ export function LiveRoomControls({
                     <button
                       onClick={onOpenChat}
                       disabled={isEnding}
-                      className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                      className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                     >
                       <MessageCircle className="w-5 h-5" />
                       {/* Unread badge */}
@@ -261,7 +261,7 @@ export function LiveRoomControls({
                     <button
                       onClick={onOpenMaterials}
                       disabled={isEnding}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                      className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                     >
                       <Palette className="w-5 h-5" />
                     </button>
@@ -273,13 +273,13 @@ export function LiveRoomControls({
 
                 {/* Share — Both Host and Viewer */}
                 {onShare && (
-                  <div className="hidden sm:contents">
+                  <div className="hidden lg:contents">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           onClick={onShare}
                           disabled={isEnding}
-                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                          className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                         >
                           <Share2 className="w-5 h-5" />
                         </button>
@@ -298,7 +298,7 @@ export function LiveRoomControls({
                       <button
                         onClick={onOpenHandRaises}
                         disabled={isEnding}
-                        className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                        className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                       >
                         <Hand className="w-5 h-5" />
                         {/* Badge for raised hands count */}
@@ -323,7 +323,7 @@ export function LiveRoomControls({
                         <button
                           onClick={onRaiseHand}
                           disabled={isEnding}
-                          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
+                          className={`w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
                             handRaised
                               ? "bg-gold/80 text-background"
                               : "bg-white/10 text-white hover:bg-white/20"
@@ -343,7 +343,7 @@ export function LiveRoomControls({
                         <button
                           onClick={onSwipeToPay}
                           disabled={isEnding}
-                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                          className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gold/80 flex items-center justify-center text-background hover:bg-gold transition-colors disabled:opacity-60 disabled:pointer-events-none"
                         >
                           <DollarSign className="w-5 h-5" />
                         </button>
@@ -361,7 +361,7 @@ export function LiveRoomControls({
                         <button
                           onClick={onLeave || onEndStream}
                           disabled={isEnding}
-                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
+                          className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors disabled:opacity-60 disabled:pointer-events-none"
                         >
                           <LogOut className="w-5 h-5" />
                         </button>
