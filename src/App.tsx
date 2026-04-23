@@ -24,6 +24,7 @@ import Messages from "./pages/Messages";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import ProfileResolver from "./pages/ProfileResolver";
+import StudioCameraPage from "@/pages/StudioCameraPage";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
