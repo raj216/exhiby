@@ -226,6 +226,18 @@ export default function EarningsHistory() {
             <span>{getPayoutButtonText()}</span>
           </motion.button>
 
+          {hasChecked && !isUS && !countryLoading && (
+            <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-2xl bg-muted/20 border border-border/30">
+              <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Studio hosting is US-only right now</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Stripe Connect payouts are currently available for US-based artists only. Stay tuned — more regions are coming.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Connect status hints */}
           {connectStatus === "active" && (
             <div className="mt-3 space-y-2">
