@@ -35,38 +35,34 @@ export function useStripeConnect(userId: string | undefined) {
     fetchStatus();
   }, [fetchStatus]);
 
-  const startOnboarding = async (): Promise<string | null> => {
+  const startOnboarding = async (): Promise<{ url: string | null; usOnly?: boolean }> => {
     setLoading(true);
     try {
-      // Step 1: Create account if needed
       if (status === "not_connected") {
-        const { error: createError } = await supabase.functions.invoke("stripe-connect", {
-          body: { action: "create_account" },
-        });
+        const { error: createError, data: createData } = await supabase.functions.invoke(
+          "stripe-connect", { body: { action: "create_account" } }
+        );
+        const errData = createData as { error?: string } | null;
+        if (errData?.error === "us_only") {
+          setLoading(false);
+          return { url: null, usOnly: true };
+        }
         if (createError) {
           console.error("[useStripeConnect] Create error:", createError);
           setLoading(false);
-          return null;
+          return { url: null };
         }
       }
-
-      // Step 2: Get onboarding link
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "create_onboarding_link" },
       });
-
-      if (error || !data?.url) {
-        console.error("[useStripeConnect] Onboarding link error:", error);
-        setLoading(false);
-        return null;
-      }
-
       setLoading(false);
-      return data.url;
+      if (error || !data?.url) return { url: null };
+      return { url: data.url };
     } catch (err) {
       console.error("[useStripeConnect] Error:", err);
       setLoading(false);
-      return null;
+      return { url: null };
     }
   };
 

@@ -95,6 +95,23 @@ serve(async (req) => {
       }
 
       case "create_account": {
+        // US-only enforcement — server-side country check
+        const { data: profileData } = await supabaseAdmin
+          .from("profiles")
+          .select("country_code")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (profileData?.country_code && profileData.country_code !== "US") {
+          return new Response(
+            JSON.stringify({
+              error: "us_only",
+              message: "Studio hosting is currently available in the US only. Stay tuned for your region.",
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
         // Create a new Express connected account
         if (connectedAccountId) {
           return new Response(
@@ -105,6 +122,7 @@ serve(async (req) => {
 
         const account = await stripe.accounts.create({
           type: "express",
+          country: "US",
           email: userEmail,
           metadata: { user_id: userId },
           capabilities: {
