@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Calendar, Clock, ExternalLink, Loader2, CheckCircle, AlertCircle, Coins } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Calendar, Clock, ExternalLink, Loader2, CheckCircle, AlertCircle, Coins, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
 import { useStripeConnect } from "@/hooks/useStripeConnect";
+import { useCountryCheck } from "@/hooks/useCountryCheck";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { navigateBack } from "@/lib/navigation";
 import { toast } from "sonner";
@@ -20,6 +21,7 @@ export default function EarningsHistory() {
   const { user, isLoading: authLoading } = useAuth();
   const { data: earnings, isLoading: loading, refetch: refetchEarnings } = useCreatorEarnings(user?.id);
   const { status: connectStatus, loading: connectLoading, startOnboarding, getDashboardLink, requestPayout, refetchStatus } = useStripeConnect(user?.id);
+  const { isUS, isLoading: countryLoading, hasChecked } = useCountryCheck(user?.id);
   const [payoutLoading, setPayoutLoading] = useState(false);
 
   useEffect(() => {
@@ -49,9 +51,13 @@ export default function EarningsHistory() {
     triggerClickHaptic();
 
     if (connectStatus === "not_connected" || connectStatus === "onboarding_incomplete") {
-      const url = await startOnboarding();
-      if (url) {
-        window.location.href = url;
+      const result = await startOnboarding();
+      if (result.usOnly) {
+        toast.error("Studio hosting is currently available in the US only. Stay tuned for your region.");
+        return;
+      }
+      if (result.url) {
+        window.location.href = result.url;
       } else {
         toast.error("Could not start Stripe onboarding. Please try again.");
       }
@@ -219,6 +225,18 @@ export default function EarningsHistory() {
             {(connectStatus === "not_connected" || connectStatus === "onboarding_incomplete") && <ExternalLink className="w-4 h-4" />}
             <span>{getPayoutButtonText()}</span>
           </motion.button>
+
+          {hasChecked && !isUS && !countryLoading && (
+            <div className="mt-4 flex items-start gap-3 px-4 py-3 rounded-2xl bg-muted/20 border border-border/30">
+              <MapPin className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Studio hosting is US-only right now</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Stripe Connect payouts are currently available for US-based artists only. Stay tuned — more regions are coming.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Connect status hints */}
           {connectStatus === "active" && (

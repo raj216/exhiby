@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SlideToAction } from "./SlideToAction";
 import { calculateProcessingFee } from "@/lib/processingFee";
+import { useCurrencyDisplay } from "@/hooks/useCurrencyDisplay";
 
 interface SavedPaymentMethod {
   id: string;
@@ -48,6 +49,7 @@ export function PaymentDrawer({
   const effectivelyFree = isFree || price <= 0;
   const processingFee = effectivelyFree ? 0 : calculateProcessingFee(price);
   const buyerTotal = effectivelyFree ? 0 : price + processingFee;
+  const { localAmountStr } = useCurrencyDisplay(effectivelyFree ? null : buyerTotal);
 
   // Check for saved payment method when drawer opens (paid events only)
   useEffect(() => {
@@ -260,9 +262,14 @@ export function PaymentDrawer({
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-border">
                   <span className="text-sm font-semibold text-foreground">Total</span>
-                  <span className="text-lg font-bold text-primary">
-                    {effectivelyFree ? "Free" : `$${buyerTotal.toFixed(2)}`}
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-lg font-bold text-primary">
+                      {effectivelyFree ? "Free" : `$${buyerTotal.toFixed(2)}`}
+                    </span>
+                    {localAmountStr && (
+                      <span className="text-[11px] text-muted-foreground/80 mt-0.5">{localAmountStr}</span>
+                    )}
+                  </div>
                 </div>
                 {!effectivelyFree && (
                   <p className="text-[11px] text-muted-foreground/70 mt-2">
