@@ -492,56 +492,32 @@ export function HomeScreen({
                       </div>
                     </section>}
 
-                  {/* Artist Recruitment Section */}
+                  {/* FOR ARTISTS: Open Your Studio CTA */}
                   {!isVerifiedCreator && (
                     <section
-                      style={{
-                        borderTop: '1px solid rgba(255,255,255,0.06)',
-                        padding: '80px 48px',
-                        backgroundColor: 'transparent',
-                      }}
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '80px', paddingBottom: '80px' }}
+                      className="px-4 lg:px-6"
                     >
-                      <p
-                        style={{
-                          fontSize: '12px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.15em',
-                          color: 'rgba(255,107,88,0.65)',
-                          marginBottom: '12px',
-                        }}
-                      >
+                      <p style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,107,88,0.65)' }}>
                         For Artists
                       </p>
-                      <h2
-                        style={{
-                          fontSize: '42px',
-                          fontWeight: 800,
-                          color: '#F5F2EC',
-                          marginBottom: '16px',
-                          lineHeight: 1.1,
-                        }}
-                      >
-                        Open your studio.<br />Earn from what you already do.
+                      <h2 style={{ fontSize: '42px', fontWeight: 800, color: '#F5F2EC', lineHeight: 1.1, marginTop: '12px' }}>
+                        Open your studio. Earn from what you already do.
                       </h2>
-                      <p
-                        style={{
-                          fontSize: '17px',
-                          color: 'rgba(255,255,255,0.50)',
-                          marginBottom: '28px',
-                        }}
-                      >
+                      <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.50)', marginTop: '16px' }}>
                         Free to join. No commission for your first 3 months.
                       </p>
                       <button
                         onClick={() => setShowArtistActivation(true)}
                         style={{
-                          backgroundColor: '#FF6B58',
+                          background: '#FF6B58',
                           color: '#0F0F11',
                           fontWeight: 600,
                           fontSize: '14px',
                           borderRadius: '8px',
                           padding: '14px 28px',
                           border: 'none',
+                          marginTop: '28px',
                           cursor: 'pointer',
                         }}
                       >
