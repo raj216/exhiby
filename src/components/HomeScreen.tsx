@@ -495,69 +495,58 @@ export function HomeScreen({
                   {/* Artist Recruitment Section */}
                   {!isVerifiedCreator && (
                     <section
-                      className="px-4 lg:px-6"
                       style={{
-                        paddingTop: '80px',
-                        paddingBottom: '80px',
                         borderTop: '1px solid rgba(255,255,255,0.06)',
+                        padding: '80px 48px',
+                        backgroundColor: 'transparent',
                       }}
                     >
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-left"
-                        style={{ maxWidth: '700px' }}
+                      <p
+                        style={{
+                          fontSize: '12px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.15em',
+                          color: 'rgba(255,107,88,0.65)',
+                          marginBottom: '12px',
+                        }}
                       >
-                        <p
-                          style={{
-                            fontSize: '12px',
-                            letterSpacing: '0.15em',
-                            color: 'rgba(255,107,88,0.65)',
-                            textTransform: 'uppercase',
-                            fontWeight: 600,
-                          }}
-                        >
-                          FOR ARTISTS
-                        </p>
-                        <h3
-                          style={{
-                            fontFamily: '"Syne", sans-serif',
-                            fontWeight: 800,
-                            fontSize: '42px',
-                            color: '#F5F2EC',
-                            marginTop: '12px',
-                            lineHeight: 1.1,
-                            letterSpacing: '-0.01em',
-                          }}
-                        >
-                          Open your studio. Earn from what you already do.
-                        </h3>
-                        <p
-                          style={{
-                            marginTop: '16px',
-                            fontSize: '17px',
-                            color: 'rgba(255,255,255,0.50)',
-                          }}
-                        >
-                          Free to join. No commission for your first 3 months.
-                        </p>
-                        <button
-                          onClick={() => setShowArtistActivation(true)}
-                          className="transition-opacity duration-200 hover:opacity-90"
-                          style={{
-                            marginTop: '28px',
-                            backgroundColor: '#FF6B58',
-                            color: '#0F0F11',
-                            fontWeight: 600,
-                            fontSize: '14px',
-                            borderRadius: '8px',
-                            padding: '14px 28px',
-                            border: 'none',
-                          }}
-                        >
-                          Open Your Studio Free
-                        </button>
-                      </motion.div>
+                        For Artists
+                      </p>
+                      <h2
+                        style={{
+                          fontSize: '42px',
+                          fontWeight: 800,
+                          color: '#F5F2EC',
+                          marginBottom: '16px',
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        Open your studio.<br />Earn from what you already do.
+                      </h2>
+                      <p
+                        style={{
+                          fontSize: '17px',
+                          color: 'rgba(255,255,255,0.50)',
+                          marginBottom: '28px',
+                        }}
+                      >
+                        Free to join. No commission for your first 3 months.
+                      </p>
+                      <button
+                        onClick={() => setShowArtistActivation(true)}
+                        style={{
+                          backgroundColor: '#FF6B58',
+                          color: '#0F0F11',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          borderRadius: '8px',
+                          padding: '14px 28px',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Open Your Studio Free
+                      </button>
                     </section>
                   )}
                 </motion.div>
