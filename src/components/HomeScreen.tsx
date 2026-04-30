@@ -78,7 +78,8 @@ export function HomeScreen({
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
-    mode
+    mode,
+    isVerifiedCreator
   } = useUserMode();
   const [activeTab, setActiveTab] = useState(mode === "audience" ? "home" : "studio");
   const [portalEvent, setPortalEvent] = useState<ContentItem | null>(null);
@@ -87,6 +88,7 @@ export function HomeScreen({
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [showArtistActivation, setShowArtistActivation] = useState(false);
 
   // Ticket check for paid events - prevents double charging
   const { hasValidTicket, isLoading: ticketLoading, purchaseTicket } = useEventTicket(
