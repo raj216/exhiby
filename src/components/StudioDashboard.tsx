@@ -317,11 +317,11 @@ export function StudioDashboard({
           opacity: 1
         }} transition={{
           delay: 0.35
-        }} className="text-xs text-muted-foreground mt-4">
+        }} className="mt-4" style={{ fontSize: "13px", color: "rgba(255,107,88,0.70)" }}>
           {localProfile?.isFoundingMember ? <>
-              <span className="text-gold font-semibold">Founding Member</span>
+              <span className="font-semibold">✦ Founding Member</span>
               <span> · Since {displayMemberSince}</span>
-            </> : <>Creator's Passport · Since {displayMemberSince}</>}
+            </> : <span className="text-muted-foreground">Creator's Passport · Since {displayMemberSince}</span>}
         </motion.p>
       </div>
 

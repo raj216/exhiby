@@ -347,7 +347,7 @@ export function EditProfileModal({
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value.slice(0, 150))}
-                placeholder="Tell us about yourself"
+                placeholder="Tell people what you create and why they should watch."
                 rows={3}
                 className="w-full px-4 py-3 rounded-xl bg-obsidian border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric/50 resize-none"
               />

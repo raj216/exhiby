@@ -65,9 +65,13 @@ export function LeftSidebar({ onSelectCategory, activeCategory = "All" }: LeftSi
                 {/* Hover glow */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
-                <IconComponent className={`relative z-10 w-4 h-4 transition-colors duration-300 ${
-                  isActive ? "text-primary/80" : "text-muted-foreground group-hover:text-foreground/70"
-                }`} />
+                <IconComponent
+                  size={18}
+                  strokeWidth={1.5}
+                  className={`relative z-10 shrink-0 transition-colors duration-300 ${
+                    isActive ? "text-primary/80" : "text-muted-foreground group-hover:text-foreground/70"
+                  }`}
+                />
                 <span className="relative z-10">{cat.name}</span>
                 
                 {/* Active indicator dot with subtle glow */}

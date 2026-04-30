@@ -394,10 +394,10 @@ export function HomeScreen({
                           <Clock className="w-8 h-8 text-muted-foreground/60" />
                         </div>
                         <h3 className="relative font-display text-lg text-foreground mb-2">
-                          {selectedCategory === "All" ? "The studio is quiet." : `No ${selectedCategory} studios open`}
+                          {selectedCategory === "All" ? "No one's live right now." : `No ${selectedCategory} studios open`}
                         </h3>
                         <p className="relative text-sm text-muted-foreground/80 max-w-sm mx-auto mb-4">
-                          {selectedCategory === "All" ? "Discover open and upcoming artist studios." : "Try selecting a different category or check back later."}
+                          {selectedCategory === "All" ? "Check back soon — or open your own studio." : "Try selecting a different category or check back later."}
                         </p>
                         
                         {/* Explore Studios CTA - only on audience home when no live sessions */}
