@@ -494,37 +494,65 @@ export function HomeScreen({
 
                   {/* Artist Recruitment Section */}
                   {!isVerifiedCreator && (
-                    <section className="px-4 lg:px-6" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
+                    <section
+                      className="px-4 lg:px-6"
+                      style={{
+                        paddingTop: '80px',
+                        paddingBottom: '80px',
+                        borderTop: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-left max-w-3xl"
+                        className="text-left"
+                        style={{ maxWidth: '700px' }}
                       >
                         <p
-                          className="text-xs font-semibold uppercase tracking-[0.15em] mb-4"
-                          style={{ color: 'rgba(255,107,88,0.60)' }}
+                          style={{
+                            fontSize: '12px',
+                            letterSpacing: '0.15em',
+                            color: 'rgba(255,107,88,0.65)',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                          }}
                         >
-                          For Artists
+                          FOR ARTISTS
                         </p>
                         <h3
-                          className="text-3xl sm:text-4xl lg:text-5xl text-white mb-4 tracking-tight leading-tight"
-                          style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800 }}
+                          style={{
+                            fontFamily: '"Syne", sans-serif',
+                            fontWeight: 800,
+                            fontSize: '42px',
+                            color: '#F5F2EC',
+                            marginTop: '12px',
+                            lineHeight: 1.1,
+                            letterSpacing: '-0.01em',
+                          }}
                         >
                           Open your studio. Earn from what you already do.
                         </h3>
                         <p
-                          className="text-base mb-8"
-                          style={{ color: 'rgba(255,255,255,0.50)' }}
+                          style={{
+                            marginTop: '16px',
+                            fontSize: '17px',
+                            color: 'rgba(255,255,255,0.50)',
+                          }}
                         >
                           Free to join. No commission for your first 3 months.
                         </p>
                         <button
                           onClick={() => setShowArtistActivation(true)}
-                          className="px-6 py-3 text-sm font-medium transition-opacity duration-200 hover:opacity-90"
+                          className="transition-opacity duration-200 hover:opacity-90"
                           style={{
+                            marginTop: '28px',
                             backgroundColor: '#FF6B58',
                             color: '#0F0F11',
+                            fontWeight: 600,
+                            fontSize: '14px',
                             borderRadius: '8px',
+                            padding: '14px 28px',
+                            border: 'none',
                           }}
                         >
                           Open Your Studio Free
