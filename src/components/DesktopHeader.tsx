@@ -44,7 +44,6 @@ export function DesktopHeader({
   const [showConfetti, setShowConfetti] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
-  const { mode } = useUserMode();
 
   // Check for welcome banner on mount
   useEffect(() => {
