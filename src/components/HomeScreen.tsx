@@ -489,56 +489,46 @@ export function HomeScreen({
                       </div>
                     </section>}
 
-                  {/* Hero Card: Auctions Coming Soon - Always visible */}
-                  <section className="px-4 lg:px-6 py-8">
-                    <motion.div initial={{
-                    opacity: 0,
-                    y: 20
-                  }} animate={{
-                    opacity: 1,
-                    y: 0
-                  }} className="relative w-full rounded-2xl overflow-hidden border border-border/30" style={{
-                    background: 'linear-gradient(145deg, hsl(var(--carbon)) 0%, hsl(var(--obsidian)) 40%, hsl(var(--carbon)) 100%)'
-                  }}>
-                      {/* Abstract background layers - dark gradient with texture */}
-                      <div className="absolute inset-0">
-                        {/* Deep radial vignette for depth */}
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,hsl(var(--muted)/0.08)_0%,transparent_50%)]" />
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,hsl(var(--muted)/0.05)_0%,transparent_40%)]" />
-                        
-                        {/* Subtle grain texture */}
-                        <div className="absolute inset-0 opacity-[0.02]" style={{
-                        backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-                        backgroundSize: '128px 128px'
-                      }} />
-                        
-                        {/* Soft studio-light shadow from top */}
-                        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/[0.02] to-transparent" />
-                        
-                        {/* Edge vignette */}
-                        <div className="absolute inset-0 shadow-[inset_0_0_80px_rgba(0,0,0,0.4)]" />
-                      </div>
-                      
-                      {/* Content */}
-                      <div className="relative z-10 p-8 sm:p-10 lg:p-14">
-                        <div className="max-w-lg">
-                          <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl text-foreground mb-3 tracking-tight">
-                            Live Art Exhibitions
-                          </h3>
-                          <p className="text-sm sm:text-base text-muted-foreground/90 mb-6 leading-relaxed">Monetizing the exhibition experience — not just the art.</p>
-                          <motion.button onClick={handleJoinWaitlist} whileHover={{
-                          scale: 1.02
-                        }} whileTap={{
-                          scale: 0.98
-                        }} className="group relative px-6 py-3 text-sm font-medium rounded-lg bg-transparent border border-electric/50 text-electric transition-all duration-300 hover:border-electric hover:bg-electric/5">
-                            {/* Subtle red glow on hover only */}
-                            <span className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_20px_hsl(var(--electric)/0.15)]" />
-                            <span className="relative z-10">Request Exhibition Access</span>
-                          </motion.button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </section>
+                  {/* Artist Recruitment Section */}
+                  {!isVerifiedCreator && (
+                    <section className="px-4 lg:px-6" style={{ paddingTop: '80px', paddingBottom: '80px' }}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-left max-w-3xl"
+                      >
+                        <p
+                          className="text-xs font-semibold uppercase tracking-[0.15em] mb-4"
+                          style={{ color: 'rgba(255,107,88,0.60)' }}
+                        >
+                          For Artists
+                        </p>
+                        <h3
+                          className="text-3xl sm:text-4xl lg:text-5xl text-white mb-4 tracking-tight leading-tight"
+                          style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800 }}
+                        >
+                          Open your studio. Earn from what you already do.
+                        </h3>
+                        <p
+                          className="text-base mb-8"
+                          style={{ color: 'rgba(255,255,255,0.50)' }}
+                        >
+                          Free to join. No commission for your first 3 months.
+                        </p>
+                        <button
+                          onClick={() => setShowArtistActivation(true)}
+                          className="px-6 py-3 text-sm font-medium transition-opacity duration-200 hover:opacity-90"
+                          style={{
+                            backgroundColor: '#FF6B58',
+                            color: '#0F0F11',
+                            borderRadius: '8px',
+                          }}
+                        >
+                          Open Your Studio Free
+                        </button>
+                      </motion.div>
+                    </section>
+                  )}
                 </motion.div>
               </AnimatePresence>
               )}
