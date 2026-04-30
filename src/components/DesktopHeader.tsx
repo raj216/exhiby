@@ -36,7 +36,7 @@ export function DesktopHeader({
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { user } = useAuth();
-  const { isVerifiedCreator } = useUserMode();
+  const { isVerifiedCreator, mode, setMode } = useUserMode();
   const { unreadCount } = useNotifications();
   const { hasUnread: hasUnreadMessages } = useUnreadMessages();
   const [showActivationModal, setShowActivationModal] = useState(false);
