@@ -5,6 +5,7 @@ import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { UpcomingEventCard } from "./UpcomingEventCard";
 import { LiveStudioView, StudioRoom } from "./studio";
 import { PaymentDrawer } from "./PaymentDrawer";
+import { CreatorActivationModal } from "./CreatorActivationModal";
 import { DesktopHeader } from "./DesktopHeader";
 import { MobileHeader } from "./MobileHeader";
 import { LeftSidebar } from "./LeftSidebar";
