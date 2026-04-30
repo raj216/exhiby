@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { SlideToAction } from "./SlideToAction";
 import { calculateProcessingFee } from "@/lib/processingFee";
 import { useCurrencyDisplay } from "@/hooks/useCurrencyDisplay";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCountryCheck } from "@/hooks/useCountryCheck";
 
 interface SavedPaymentMethod {
   id: string;
@@ -49,7 +51,9 @@ export function PaymentDrawer({
   const effectivelyFree = isFree || price <= 0;
   const processingFee = effectivelyFree ? 0 : calculateProcessingFee(price);
   const buyerTotal = effectivelyFree ? 0 : price + processingFee;
-  const { localAmountStr } = useCurrencyDisplay(effectivelyFree ? null : buyerTotal);
+  const { user } = useAuth();
+  const { countryCode } = useCountryCheck(user?.id);
+  const { localAmountStr } = useCurrencyDisplay(effectivelyFree ? null : buyerTotal, countryCode);
 
   // Check for saved payment method when drawer opens (paid events only)
   useEffect(() => {
