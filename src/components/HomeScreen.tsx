@@ -560,5 +560,15 @@ export function HomeScreen({
         viewers: portalEvent.viewers
       }} onClose={handleCloseLiveRoom} />}
       </AnimatePresence>
+
+      <CreatorActivationModal
+        isOpen={showArtistActivation}
+        onClose={() => setShowArtistActivation(false)}
+        onSuccess={() => {
+          setShowArtistActivation(false);
+          localStorage.setItem("showCreatorWelcome", "true");
+          window.location.reload();
+        }}
+      />
     </div>;
 }
