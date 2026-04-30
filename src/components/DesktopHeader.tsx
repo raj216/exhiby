@@ -36,7 +36,7 @@ export function DesktopHeader({
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { user } = useAuth();
-  const { isVerifiedCreator } = useUserMode();
+  const { isVerifiedCreator, mode, setMode } = useUserMode();
   const { unreadCount } = useNotifications();
   const { hasUnread: hasUnreadMessages } = useUnreadMessages();
   const [showActivationModal, setShowActivationModal] = useState(false);
@@ -44,7 +44,6 @@ export function DesktopHeader({
   const [showConfetti, setShowConfetti] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
-  const { mode } = useUserMode();
 
   // Check for welcome banner on mount
   useEffect(() => {
@@ -99,11 +98,37 @@ export function DesktopHeader({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
+          {/* Mode Switch Pill - only for verified creators */}
+          {isVerifiedCreator && (
+            <div className="flex items-center p-1 rounded-full bg-obsidian border border-border/30">
+              <button
+                onClick={() => setMode("audience")}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200 ${
+                  mode === "audience"
+                    ? "bg-carbon text-primary"
+                    : "text-muted-foreground hover:text-foreground/70"
+                }`}
+              >
+                Audience
+              </button>
+              <button
+                onClick={() => setMode("creator")}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200 ${
+                  mode === "creator"
+                    ? "bg-carbon text-primary"
+                    : "text-muted-foreground hover:text-foreground/70"
+                }`}
+              >
+                Studio
+              </button>
+            </div>
+          )}
+
           {/* Open Studio Button - only for creators */}
           {isVerifiedCreator && (
             <button
               onClick={onGoLive}
-              className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-200"
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-200"
             >
               Open Studio
             </button>

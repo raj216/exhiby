@@ -225,7 +225,13 @@ export function AudienceProfile({
               {localProfile?.isVerified === true && <BadgeCheck className="w-5 h-5 text-gold fill-gold/20" />}
             </div>
             <p className="text-muted-foreground text-sm mt-0.5">{displayName}</p>
-            {displayBio && <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>}
+            {displayBio ? (
+              <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>
+            ) : (
+              <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.30)" }}>
+                Tell people what you create and why they should watch.
+              </p>
+            )}
           </motion.div>
 
           {/* Stats Row - Following/Followers then Attended/Collected */}
@@ -287,11 +293,11 @@ export function AudienceProfile({
           opacity: 1
         }} transition={{
           delay: 0.35
-        }} className="text-xs text-muted-foreground mt-4">
+        }} className="mt-4" style={{ fontSize: "13px", color: "rgba(255,107,88,0.70)" }}>
             {localProfile?.isFoundingMember ? <>
-                <span className="text-gold font-semibold">Founding Member</span>
+                <span className="font-semibold">✦ Founding Member</span>
                 <span> · Since {displayMemberSince}</span>
-              </> : <>Collector's Passport · Since {displayMemberSince}</>}
+              </> : <span className="text-muted-foreground">Collector's Passport · Since {displayMemberSince}</span>}
           </motion.p>
         </div>
 
