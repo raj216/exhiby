@@ -255,7 +255,7 @@ export function StudioDashboard({
           {displayBio && <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>}
         </motion.div>
 
-        {/* Stats Row - Followers, Following, and Ratings */}
+        {/* Stats Row - Sessions hosted · Rating · Followers · Following (standardized) */}
         <motion.div initial={{
           opacity: 0,
           y: 10
@@ -264,7 +264,23 @@ export function StudioDashboard({
           y: 0
         }} transition={{
           delay: 0.2
-        }} className="flex items-center flex-wrap gap-x-1 text-sm text-muted-foreground mt-3">
+        }} className="flex items-center flex-wrap gap-x-1.5 text-sm text-muted-foreground mt-3" style={{ fontVariantNumeric: "tabular-nums" }}>
+          <span>
+            <span className="text-foreground font-medium">{creatorStats.sessionsHosted}</span> Sessions hosted
+          </span>
+          <span>·</span>
+          <span className="inline-flex items-center gap-1">
+            <Star className="w-3.5 h-3.5 text-gold fill-gold" />
+            {ratings.totalRatings > 0 ? (
+              <>
+                <span className="text-foreground font-medium">{ratings.averageRating.toFixed(1)}</span>
+                <span className="text-muted-foreground">({ratings.totalRatings})</span>
+              </>
+            ) : (
+              <span className="text-muted-foreground/70">No ratings</span>
+            )}
+          </span>
+          <span>·</span>
           <button onClick={() => {
             triggerClickHaptic();
             setShowFollowList("followers");
@@ -278,16 +294,6 @@ export function StudioDashboard({
           }} className="hover:underline">
             <span className="text-foreground font-medium">{followStats.followingCount}</span> Following
           </button>
-          {ratings.totalRatings > 0 && (
-            <>
-              <span>·</span>
-              <span className="inline-flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 text-gold fill-gold" />
-                <span className="text-foreground font-medium">{ratings.averageRating.toFixed(1)}</span>
-                <span className="text-muted-foreground">({ratings.totalRatings})</span>
-              </span>
-            </>
-          )}
         </motion.div>
 
         {/* Action Buttons (matches Audience) */}
