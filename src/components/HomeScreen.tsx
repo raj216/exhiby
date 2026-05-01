@@ -531,8 +531,8 @@ export function HomeScreen({
                     >
                       <div
                         style={{
-                          background: '#0F0F11',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          background: '#1A1A1C',
+                          border: '1px solid rgba(255,255,255,0.08)',
                           borderRadius: '16px',
                           padding: '32px',
                         }}
