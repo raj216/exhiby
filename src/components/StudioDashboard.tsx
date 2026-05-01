@@ -14,6 +14,7 @@ import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { useFollowStats } from "@/hooks/useFollowStats";
 import { useCreatorRatings } from "@/hooks/useCreatorRatings";
+import { useCreatorStats } from "@/hooks/useCreatorStats";
 import featureFlags from "@/lib/featureFlags";
 import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface ScheduledEvent {
