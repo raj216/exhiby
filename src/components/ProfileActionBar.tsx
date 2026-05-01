@@ -85,12 +85,13 @@ export function ProfileActionBar({
         Message
       </motion.button>
 
-      {/* Tip Button - With icon, Gold accent (only for creators) */}
+      {/* Tip Button - Ghost style (only for creators) */}
       {showTipButton && (
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handleSupport}
-          className="h-11 rounded-2xl bg-gold text-sm font-medium flex items-center justify-center gap-2 text-carbon hover:bg-gold/90 transition-colors"
+          className="h-11 rounded-2xl bg-transparent text-sm font-medium flex items-center justify-center gap-2 text-white hover:bg-white/5 transition-colors"
+          style={{ border: "1px solid rgba(255,255,255,0.2)" }}
         >
           <Heart className="w-4 h-4" />
           Tip
