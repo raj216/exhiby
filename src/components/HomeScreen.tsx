@@ -492,8 +492,8 @@ export function HomeScreen({
                       </div>
                     </section>}
 
-                  {/* FOR ARTISTS: Open Your Studio CTA */}
-                  {!isVerifiedCreator && (
+                  {/* FOR ARTISTS: Open Your Studio CTA / Studio Pulse for verified creators */}
+                  {!isVerifiedCreator ? (
                     <section
                       style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '48px', paddingBottom: '48px' }}
                       className="px-4 lg:px-6"
@@ -523,6 +523,76 @@ export function HomeScreen({
                       >
                         Open Your Studio Free
                       </button>
+                    </section>
+                  ) : (
+                    <section
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '48px', paddingBottom: '48px' }}
+                      className="px-4 lg:px-6"
+                    >
+                      <div
+                        style={{
+                          background: '#0F0F11',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: '16px',
+                          padding: '32px',
+                        }}
+                      >
+                        <h2
+                          style={{
+                            fontFamily: '"Syne", sans-serif',
+                            fontWeight: 800,
+                            fontSize: '28px',
+                            color: '#FFFFFF',
+                            lineHeight: 1.1,
+                          }}
+                        >
+                          Your studio is live.
+                        </h2>
+                        <p
+                          style={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontWeight: 400,
+                            fontSize: '17px',
+                            color: '#F5F2EC',
+                            marginTop: '12px',
+                          }}
+                        >
+                          Go live or schedule your next session.
+                        </p>
+                        <div style={{ marginTop: '28px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={onGoLive}
+                            style={{
+                              background: '#FF6B58',
+                              color: '#0F0F11',
+                              fontWeight: 600,
+                              fontSize: '14px',
+                              borderRadius: '8px',
+                              padding: '14px 28px',
+                              border: 'none',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Go Live Now
+                          </button>
+                          <button
+                            onClick={onOpenStudio}
+                            style={{
+                              background: 'transparent',
+                              color: '#F5F2EC',
+                              fontWeight: 500,
+                              fontSize: '14px',
+                              border: 'none',
+                              padding: 0,
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                              textUnderlineOffset: '4px',
+                            }}
+                          >
+                            Schedule a Session
+                          </button>
+                        </div>
+                      </div>
                     </section>
                   )}
                 </motion.div>
