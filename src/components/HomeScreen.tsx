@@ -495,13 +495,13 @@ export function HomeScreen({
                   {/* FOR ARTISTS: Open Your Studio CTA */}
                   {!isVerifiedCreator && (
                     <section
-                      style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '80px', paddingBottom: '80px' }}
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '48px', paddingBottom: '48px' }}
                       className="px-4 lg:px-6"
                     >
                       <p style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,107,88,0.65)' }}>
                         For Artists
                       </p>
-                      <h2 style={{ fontSize: '42px', fontWeight: 800, color: '#F5F2EC', lineHeight: 1.1, marginTop: '12px' }}>
+                      <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#F5F2EC', lineHeight: 1.1, marginTop: '12px' }}>
                         Open your studio. Earn from what you already do.
                       </h2>
                       <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.50)', marginTop: '16px' }}>
