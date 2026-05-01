@@ -308,7 +308,6 @@ export default function PublicProfile() {
     return (
       <div className="min-h-screen bg-carbon flex flex-col items-center justify-center px-4">
         <p className="text-muted-foreground mb-4">{error || "Profile not found"}</p>
-        <p className="text-xs text-muted-foreground/50 mb-4">ID: {userId}</p>
         <Button variant="outline" onClick={handleBack}>
           Go Back
         </Button>
