@@ -421,11 +421,25 @@ export function UpcomingSessionsPreview({ creatorUserId }: UpcomingSessionsPrevi
                     Join Live
                   </Button>
                 ) : !isOwnProfile && user && session.status === "upcoming" ? (
-                  <AddToSessionsButton
-                    eventId={session.id}
-                    creatorId={session.creator_id}
-                    variant="compact"
-                  />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <AddToSessionsButton
+                      eventId={session.id}
+                      creatorId={session.creator_id}
+                      variant="compact"
+                    />
+                    <Button
+                      size="sm"
+                      className="text-xs h-8 px-3 font-medium text-white hover:opacity-90"
+                      style={{ backgroundColor: "#FF6B58" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        triggerClickHaptic();
+                        navigate(`/live/${session.id}`);
+                      }}
+                    >
+                      Get Ticket
+                    </Button>
+                  </div>
                 ) : null}
               </motion.div>
             );
