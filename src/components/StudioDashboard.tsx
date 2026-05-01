@@ -384,7 +384,7 @@ export function StudioDashboard({
                 <DollarSign className="w-5 h-5 text-gold" />
                 <span className="text-sm text-muted-foreground">Earnings</span>
               </div>
-              <p className="font-display text-3xl text-gold">
+              <p className="font-display text-3xl text-gold" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {showEarnings ? `$${lifetimeEarningsDollars.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "••••"}
               </p>
             </motion.button> : <div className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left">
