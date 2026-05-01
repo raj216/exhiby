@@ -78,6 +78,7 @@ export function StudioDashboard({
   const {
     ratings
   } = useCreatorRatings(user?.id);
+  const { stats: creatorStats } = useCreatorStats(user?.id);
   const [showEarnings, setShowEarnings] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
