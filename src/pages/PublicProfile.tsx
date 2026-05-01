@@ -161,11 +161,6 @@ export default function PublicProfile() {
           return;
         }
 
-        if (user && profileData.user_id === user.id) {
-          console.log("[PublicProfile] Detected own profile, redirecting to own profile screen");
-          navigate("/", { state: { openProfile: true }, replace: true });
-          return;
-        }
         setProfile(profileData);
 
         console.log("AUDIENCE PROFILE FETCH:", profileData);
