@@ -409,8 +409,8 @@ export function StudioDashboard({
               <Ticket className="w-5 h-5 text-electric" />
               <span className="text-sm text-muted-foreground">Tickets</span>
             </div>
-            <p className="font-display text-3xl text-foreground">
-              {analytics.totalTickets}
+            <p className="font-display text-3xl text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {Number(analytics.totalTickets ?? 0).toLocaleString()}
             </p>
           </motion.button>
         </div>
