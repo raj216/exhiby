@@ -210,7 +210,7 @@ export function StudioDashboard({
             triggerClickHaptic();
             onSwitchMode();
           }} className="px-4 py-2 rounded-full bg-carbon/80 backdrop-blur-sm border border-border/50 flex items-center gap-2">
-            <span className="text-xs text-muted-foreground font-medium">Switch to Buying</span>
+            <span className="text-xs text-muted-foreground font-medium">Audience Mode</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </motion.button>
         </div>
