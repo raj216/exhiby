@@ -877,15 +877,28 @@ function TransactionHistoryView({ onBack }: { onBack: () => void }) {
     (async () => {
       setPurchasesLoading(true);
       try {
+        // Only confirmed purchases — exclude pending/abandoned checkouts
         const { data: ticketRows, error } = await supabase
-          .from("tickets").select("id, event_id, amount, created_at")
-          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(200);
+          .from("tickets")
+          .select("id, event_id, amount, created_at, payment_status")
+          .eq("user_id", user.id)
+          .in("payment_status", ["paid", "free"])
+          .gt("amount", 0)
+          .order("created_at", { ascending: false })
+          .limit(200);
         if (error) throw error;
         if (!ticketRows?.length) { setPurchases([]); return; }
         const eventIds = [...new Set(ticketRows.map((t) => t.event_id))];
         const { data: events } = await supabase.from("events").select("id, title").in("id", eventIds);
         const evMap = new Map((events ?? []).map((e) => [e.id, e.title]));
-        setPurchases(ticketRows.map((t) => ({ id: t.id, event_id: t.event_id, event_title: evMap.get(t.event_id) ?? "Session", amount: t.amount ?? 0, created_at: t.created_at })));
+        // tickets.amount is stored in dollars (numeric); convert to cents for unified formatting
+        setPurchases(ticketRows.map((t) => ({
+          id: t.id,
+          event_id: t.event_id,
+          event_title: evMap.get(t.event_id) ?? "Session",
+          amount: Math.round(Number(t.amount ?? 0) * 100),
+          created_at: t.created_at,
+        })));
       } catch (err) {
         console.error("[TransactionHistory]", err);
         setPurchases([]);
