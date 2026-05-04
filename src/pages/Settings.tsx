@@ -498,22 +498,503 @@ function PrivacyContent() {
     </div>;
 }
 
-// Payments Settings Content
+// ─── Sub-view router types ─────────────────────────────────────────────
+type PaymentSubView = "menu" | "methods" | "payout" | "history";
+type HistoryTab = "all" | "purchases" | "earnings";
+
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+const BRAND_STYLE: Record<string, string> = {
+  visa:       "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  mastercard: "bg-red-500/20 text-red-400 border-red-500/30",
+  amex:       "bg-sky-500/20 text-sky-400 border-sky-500/30",
+  discover:   "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  jcb:        "bg-green-500/20 text-green-400 border-green-500/30",
+  unionpay:   "bg-rose-500/20 text-rose-400 border-rose-500/30",
+};
+
+// ── TOP-LEVEL ROUTER ─────────────────────────────────────────────────
 function PaymentsContent() {
-  return <div className="space-y-4">
-      <SettingsCard title="Payment Methods" description="Manage your saved payment methods" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Payments",
-      description: "Payment methods coming soon"
-    })} />
-      <SettingsCard title="Payout Settings" description="Set up how you receive your earnings" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Payouts",
-      description: "Payout settings coming soon"
-    })} />
-      <SettingsCard title="Transaction History" description="View your payment and payout history" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "History",
-      description: "Transaction history coming soon"
-    })} />
-    </div>;
+  const [subView, setSubView] = useState<PaymentSubView>("menu");
+
+  return (
+    <AnimatePresence mode="wait">
+      {subView === "menu" && (
+        <motion.div key="menu" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
+          <PaymentsMenuView onNavigate={setSubView} />
+        </motion.div>
+      )}
+      {subView === "methods" && (
+        <motion.div key="methods" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
+          <PaymentMethodsView onBack={() => setSubView("menu")} />
+        </motion.div>
+      )}
+      {subView === "payout" && (
+        <motion.div key="payout" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
+          <PayoutSettingsView onBack={() => setSubView("menu")} />
+        </motion.div>
+      )}
+      {subView === "history" && (
+        <motion.div key="history" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
+          <TransactionHistoryView onBack={() => setSubView("menu")} />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function PaymentsMenuView({ onNavigate }: { onNavigate: (v: PaymentSubView) => void }) {
+  return (
+    <div className="space-y-4">
+      <SettingsCard
+        title="Payment Methods"
+        description="Manage your saved payment methods"
+        action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+        onClick={() => { triggerClickHaptic(); onNavigate("methods"); }}
+      />
+      <SettingsCard
+        title="Payout Settings"
+        description="Set up how you receive your earnings"
+        action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+        onClick={() => { triggerClickHaptic(); onNavigate("payout"); }}
+      />
+      <SettingsCard
+        title="Transaction History"
+        description="View your payment and payout history"
+        action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+        onClick={() => { triggerClickHaptic(); onNavigate("history"); }}
+      />
+    </div>
+  );
+}
+
+// ── 1 of 3 — PAYMENT METHODS ─────────────────────────────────────────
+interface SavedCard {
+  id: string;
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  isDefault: boolean;
+}
+
+function PaymentMethodsView({ onBack }: { onBack: () => void }) {
+  const { user } = useAuth();
+  const [cards, setCards] = useState<SavedCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const fetchCards = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-payment-methods", { body: { action: "list" } });
+      if (error) throw error;
+      setCards(data?.paymentMethods ?? []);
+    } catch {
+      toast({ title: "Error", description: "Could not load payment methods", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchCards(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user?.id]);
+
+  const handleSetDefault = async (id: string) => {
+    setActionLoading(`${id}_default`);
+    try {
+      const { error } = await supabase.functions.invoke("manage-payment-methods", { body: { action: "set_default", paymentMethodId: id } });
+      if (error) throw error;
+      setCards((prev) => prev.map((c) => ({ ...c, isDefault: c.id === id })));
+      toast({ title: "Default card updated" });
+    } catch {
+      toast({ title: "Error", description: "Could not update default", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    setActionLoading(`${id}_remove`);
+    try {
+      const { error } = await supabase.functions.invoke("manage-payment-methods", { body: { action: "remove", paymentMethodId: id } });
+      if (error) throw error;
+      setCards((prev) => prev.filter((c) => c.id !== id));
+      toast({ title: "Card removed" });
+    } catch {
+      toast({ title: "Error", description: "Could not remove card", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleAddCard = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-payment-methods", { body: { action: "create_portal_session" } });
+      if (error || !data?.url) throw new Error("Could not open portal");
+      window.location.href = data.url;
+    } catch {
+      toast({ title: "Error", description: "Could not open payment portal", variant: "destructive" });
+      setPortalLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button onClick={() => { triggerClickHaptic(); onBack(); }} className="w-9 h-9 rounded-full bg-obsidian flex items-center justify-center hover:bg-muted/40 transition-colors">
+          <ArrowLeft className="w-4 h-4 text-foreground" />
+        </button>
+        <h3 className="font-display text-lg text-foreground">Payment Methods</h3>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-electric" />
+        </div>
+      ) : cards.length === 0 ? (
+        <div className="p-8 bg-carbon rounded-xl border border-border/20 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-electric/10 flex items-center justify-center">
+            <CreditCard className="w-6 h-6 text-electric" />
+          </div>
+          <p className="text-foreground font-medium mb-1">No saved cards</p>
+          <p className="text-sm text-muted-foreground">Add a card for faster checkout at sessions</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {cards.map((card) => {
+            const brandStyle = BRAND_STYLE[card.brand] ?? "bg-muted/20 text-muted-foreground border-border/30";
+            const isDefaulting = actionLoading === `${card.id}_default`;
+            const isRemoving = actionLoading === `${card.id}_remove`;
+            return (
+              <div key={card.id} className="p-4 bg-carbon rounded-xl border border-border/20 space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className={cn("text-xs uppercase font-semibold px-2 py-1 rounded border", brandStyle)}>{card.brand}</span>
+                  <div className="flex-1">
+                    <p className="text-foreground text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>•••• {card.last4}</p>
+                    <p className="text-xs text-muted-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
+                      Expires {String(card.exp_month).padStart(2, "0")}/{card.exp_year}
+                    </p>
+                  </div>
+                  {card.isDefault && (
+                    <span className="text-xs px-2 py-1 rounded bg-electric/10 text-electric border border-electric/20">Default</span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {!card.isDefault && (
+                    <button
+                      onClick={() => handleSetDefault(card.id)}
+                      disabled={!!actionLoading}
+                      className="flex-1 text-sm py-2 rounded-lg bg-electric/10 text-electric border border-electric/20 hover:bg-electric/20 transition-colors disabled:opacity-50 flex items-center justify-center"
+                    >
+                      {isDefaulting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Set as Default"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleRemove(card.id)}
+                    disabled={!!actionLoading}
+                    className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  >
+                    {isRemoving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <button
+        onClick={handleAddCard}
+        disabled={portalLoading}
+        className="w-full flex items-center justify-center gap-2 p-4 bg-electric/10 text-electric border border-electric/30 rounded-xl hover:bg-electric/20 transition-colors disabled:opacity-50"
+      >
+        {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+        {portalLoading ? "Opening portal…" : "Add Payment Method"}
+      </button>
+      <p className="text-xs text-muted-foreground text-center">Payment methods are stored securely by Stripe</p>
+    </div>
+  );
+}
+
+// ── 2 of 3 — PAYOUT SETTINGS ─────────────────────────────────────────
+function PayoutSettingsView({ onBack }: { onBack: () => void }) {
+  const { user } = useAuth();
+  const { status, loading: connectLoading, startOnboarding, getDashboardLink, requestPayout, refetchStatus } = useStripeConnect(user?.id);
+  const { isUS, isLoading: countryLoading, hasChecked } = useCountryCheck(user?.id);
+  const { data: earningsData } = useCreatorEarnings(user?.id);
+  const [payoutLoading, setPayoutLoading] = useState(false);
+
+  const data = earningsData ?? { availableToPayout: 0, totalPaidOut: 0, lifetimeEarnings: 0 };
+
+  const handleCTA = async () => {
+    triggerClickHaptic();
+    if (status === "not_connected" || status === "onboarding_incomplete") {
+      const result = await startOnboarding();
+      if (result.usOnly) { toast({ title: "US Only", description: "Studio hosting is US-only for now. More regions coming soon.", variant: "destructive" }); return; }
+      if (result.url) window.location.href = result.url;
+      else toast({ title: "Error", description: "Could not start Stripe setup", variant: "destructive" });
+      return;
+    }
+    if (status === "pending_verification") { toast({ title: "Pending", description: "Stripe is reviewing your account — usually 1–2 business days." }); return; }
+    if (status === "active" && data.availableToPayout > 0) {
+      setPayoutLoading(true);
+      const result = await requestPayout();
+      setPayoutLoading(false);
+      if (result.success) { toast({ title: "Payout Requested!", description: `${formatCents(result.amount ?? 0)} is on its way to your bank.` }); refetchStatus(); }
+      else toast({ title: "Payout Failed", description: result.error ?? "Please try again", variant: "destructive" });
+    }
+  };
+
+  const handleDashboard = async () => {
+    triggerClickHaptic();
+    const url = await getDashboardLink();
+    if (url) window.open(url, "_blank");
+    else toast({ title: "Error", description: "Could not open Stripe dashboard", variant: "destructive" });
+  };
+
+  const isDisabled = payoutLoading || connectLoading || status === "pending_verification" || (status === "active" && data.availableToPayout === 0);
+  const ctaIsGold = !isDisabled && status === "active" && data.availableToPayout > 0;
+  const ctaIsElectric = !isDisabled && (status === "not_connected" || status === "onboarding_incomplete");
+  const ctaLabel = payoutLoading ? "Processing…" : connectLoading ? "Loading…" : status === "not_connected" ? "Connect Bank Account" : status === "onboarding_incomplete" ? "Continue Setup" : status === "pending_verification" ? "Verification in Progress" : status === "active" && data.availableToPayout > 0 ? `Payout ${formatCents(data.availableToPayout)}` : "No Balance Available";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button onClick={() => { triggerClickHaptic(); onBack(); }} className="w-9 h-9 rounded-full bg-obsidian flex items-center justify-center hover:bg-muted/40 transition-colors">
+          <ArrowLeft className="w-4 h-4 text-foreground" />
+        </button>
+        <h3 className="font-display text-lg text-foreground">Payout Settings</h3>
+      </div>
+
+      <div className="p-4 bg-carbon rounded-xl border border-border/20">
+        <div className="flex items-start gap-3">
+          {status === "loading" && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground shrink-0 mt-0.5" />}
+          {status === "active" && <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />}
+          {status === "pending_verification" && <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />}
+          {(status === "not_connected" || status === "onboarding_incomplete") && <AlertCircle className="w-5 h-5 text-electric shrink-0 mt-0.5" />}
+          <div className="flex-1">
+            <p className="text-foreground font-medium text-sm">
+              {status === "loading" ? "Checking status…" : status === "active" ? "Payouts Enabled" : status === "pending_verification" ? "Verification Pending" : status === "onboarding_incomplete" ? "Setup Incomplete" : "Not Connected"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {status === "active" ? "Your Stripe account is verified and ready for payouts." : status === "pending_verification" ? "Stripe is reviewing your account — usually 1–2 business days." : status === "onboarding_incomplete" ? "Complete Stripe onboarding to start receiving payouts." : "Connect a bank account to receive your earnings."}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {status === "active" && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 bg-carbon rounded-xl border border-border/20">
+            <p className="text-xs text-muted-foreground mb-1">Available</p>
+            <p className="text-xl font-display text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{formatCents(data.availableToPayout)}</p>
+          </div>
+          <div className="p-4 bg-carbon rounded-xl border border-border/20">
+            <p className="text-xs text-muted-foreground mb-1">Paid Out</p>
+            <p className="text-xl font-display text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{formatCents(data.totalPaidOut)}</p>
+          </div>
+        </div>
+      )}
+
+      {status !== "loading" && (
+        <button
+          onClick={handleCTA}
+          disabled={isDisabled}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 p-4 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+            ctaIsGold && "bg-electric text-carbon hover:bg-electric/90",
+            ctaIsElectric && "bg-electric/10 text-electric border border-electric/30 hover:bg-electric/20",
+            !ctaIsGold && !ctaIsElectric && "bg-muted/20 text-muted-foreground border border-border/30"
+          )}
+        >
+          {(payoutLoading || connectLoading) && <Loader2 className="w-4 h-4 animate-spin" />}
+          {!payoutLoading && !connectLoading && ctaIsGold && <DollarSign className="w-4 h-4" />}
+          {!payoutLoading && !connectLoading && ctaIsElectric && <Landmark className="w-4 h-4" />}
+          {ctaLabel}
+        </button>
+      )}
+
+      {status === "active" && (
+        <button
+          onClick={handleDashboard}
+          className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-obsidian text-foreground border border-border/20 hover:border-border/40 transition-colors text-sm"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Open Stripe Dashboard
+        </button>
+      )}
+
+      {hasChecked && !isUS && !countryLoading && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-amber-400 font-medium">Studio hosting is US-only right now</p>
+            <p className="text-xs text-amber-400/80 mt-1">Stripe Connect payouts are available for US-based artists only. More regions coming soon.</p>
+          </div>
+        </div>
+      )}
+
+      <div className="p-3 bg-obsidian/50 rounded-lg border border-border/10">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Exhiby takes a 10% platform fee. You keep 90% of every ticket sale and tip. First payout typically processes within 7 days.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── 3 of 3 — TRANSACTION HISTORY ──────────────────────────────────────
+interface FanPurchase {
+  id: string;
+  event_id: string;
+  event_title: string;
+  amount: number;
+  created_at: string;
+}
+
+interface HistoryRow {
+  id: string;
+  event_title: string;
+  amount: number;
+  created_at: string;
+  kind: "ticket_sold" | "tip_received" | "ticket_bought";
+}
+
+function TransactionHistoryView({ onBack }: { onBack: () => void }) {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<HistoryTab>("all");
+  const [purchases, setPurchases] = useState<FanPurchase[]>([]);
+  const [purchasesLoading, setPurchasesLoading] = useState(true);
+  const { data: earningsData, isLoading: earningsLoading } = useCreatorEarnings(user?.id);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      setPurchasesLoading(true);
+      try {
+        const { data: ticketRows, error } = await supabase
+          .from("tickets").select("id, event_id, amount, created_at")
+          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(200);
+        if (error) throw error;
+        if (!ticketRows?.length) { setPurchases([]); return; }
+        const eventIds = [...new Set(ticketRows.map((t) => t.event_id))];
+        const { data: events } = await supabase.from("events").select("id, title").in("id", eventIds);
+        const evMap = new Map((events ?? []).map((e) => [e.id, e.title]));
+        setPurchases(ticketRows.map((t) => ({ id: t.id, event_id: t.event_id, event_title: evMap.get(t.event_id) ?? "Session", amount: t.amount ?? 0, created_at: t.created_at })));
+      } catch (err) {
+        console.error("[TransactionHistory]", err);
+        setPurchases([]);
+      } finally {
+        setPurchasesLoading(false);
+      }
+    })();
+  }, [user?.id]);
+
+  const earningRows: HistoryRow[] = (earningsData?.transactions ?? []).map((tx) => ({ id: tx.id, event_title: tx.event_title, amount: tx.amount_net, created_at: tx.created_at, kind: tx.type === "tip" ? "tip_received" : "ticket_sold" }));
+  const purchaseRows: HistoryRow[] = purchases.map((p) => ({ id: p.id, event_title: p.event_title, amount: p.amount, created_at: p.created_at, kind: "ticket_bought" }));
+  const allRows: HistoryRow[] = [...earningRows, ...purchaseRows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const displayRows = activeTab === "all" ? allRows : activeTab === "earnings" ? earningRows : purchaseRows;
+  const isLoading = purchasesLoading || earningsLoading;
+  const totalEarned = earningRows.reduce((s, r) => s + r.amount, 0);
+  const totalSpent = purchaseRows.reduce((s, r) => s + r.amount, 0);
+  const tabs: { id: HistoryTab; label: string; count: number }[] = [
+    { id: "all", label: "All", count: allRows.length },
+    { id: "purchases", label: "Purchases", count: purchaseRows.length },
+    { id: "earnings", label: "Earnings", count: earningRows.length },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button onClick={() => { triggerClickHaptic(); onBack(); }} className="w-9 h-9 rounded-full bg-obsidian flex items-center justify-center hover:bg-muted/40 transition-colors">
+          <ArrowLeft className="w-4 h-4 text-foreground" />
+        </button>
+        <h3 className="font-display text-lg text-foreground">Transaction History</h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="p-4 bg-carbon rounded-xl border border-border/20">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <p className="text-xs text-muted-foreground">Total Earned</p>
+          </div>
+          <p className="text-lg font-display text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{formatCents(totalEarned)}</p>
+        </div>
+        <div className="p-4 bg-carbon rounded-xl border border-border/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Ticket className="w-3.5 h-3.5 text-electric" />
+            <p className="text-xs text-muted-foreground">Total Spent</p>
+          </div>
+          <p className="text-lg font-display text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>{formatCents(totalSpent)}</p>
+        </div>
+      </div>
+
+      <div className="flex gap-1 p-1 bg-carbon rounded-xl border border-border/20">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => { triggerClickHaptic(); setActiveTab(tab.id); }}
+            className={cn(
+              "flex-1 py-2 px-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5",
+              activeTab === tab.id ? "bg-obsidian text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab.label}
+            {tab.count > 0 && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-muted/30" style={{ fontVariantNumeric: "tabular-nums" }}>{tab.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-electric" />
+        </div>
+      ) : displayRows.length === 0 ? (
+        <div className="p-8 bg-carbon rounded-xl border border-border/20 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted/20 flex items-center justify-center">
+            <History className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-foreground font-medium mb-1">No transactions yet</p>
+          <p className="text-sm text-muted-foreground">
+            {activeTab === "earnings" ? "Host paid sessions to start earning" : activeTab === "purchases" ? "Buy tickets to sessions to see them here" : "Your transactions will appear here"}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {displayRows.map((row) => {
+            const isTip = row.kind === "tip_received";
+            const isEarning = row.kind === "ticket_sold" || isTip;
+            return (
+              <div key={`${row.kind}-${row.id}`} className="flex items-center gap-3 p-3 bg-carbon rounded-xl border border-border/20">
+                <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0", isTip ? "bg-amber-500/10" : isEarning ? "bg-emerald-500/10" : "bg-electric/10")}>
+                  {isTip ? <Coins className="w-4 h-4 text-amber-400" /> : isEarning ? <DollarSign className="w-4 h-4 text-emerald-400" /> : <Ticket className="w-4 h-4 text-electric" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground text-sm truncate">{row.event_title}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className={cn("px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide", isTip ? "bg-amber-500/10 text-amber-400" : isEarning ? "bg-emerald-500/10 text-emerald-400" : "bg-electric/10 text-electric")}>
+                      {isTip ? "Tip" : isEarning ? "Sale" : "Purchase"}
+                    </span>
+                    <span>{format(new Date(row.created_at), "MMM d, yyyy")}</span>
+                  </div>
+                </div>
+                <div className={cn("text-sm font-medium shrink-0", isEarning ? "text-emerald-400" : "text-foreground")} style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {isEarning ? "+" : "−"}{formatCents(row.amount)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Vacation Mode Content
