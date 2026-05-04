@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare } from "lucide-react";
+import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare, Plus, TrendingUp, ShoppingBag, History, ExternalLink, CheckCircle2, Zap } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { openSupportEmail } from "@/lib/supportContact";
@@ -14,6 +14,9 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmailModal, ChangePasswordModal, DeleteAccountModal, ReportBugModal } from "@/components/settings";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
+import { useStripeConnect } from "@/hooks/useStripeConnect";
 
 // Menu category types
 type SettingsCategory = "account" | "notifications" | "privacy" | "payments" | "vacation" | "shipping" | "help" | "guidelines";
@@ -493,22 +496,472 @@ function PrivacyContent() {
     </div>;
 }
 
-// Payments Settings Content
+// ─────────────────────────────────────────────────────────────────────────────
+// PAYMENTS CONTENT — 3 sub-views: Methods | Payouts | History
+// ─────────────────────────────────────────────────────────────────────────────
+type PaymentsView = "menu" | "methods" | "payouts" | "history";
+
 function PaymentsContent() {
-  return <div className="space-y-4">
-      <SettingsCard title="Payment Methods" description="Manage your saved payment methods" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Payments",
-      description: "Payment methods coming soon"
-    })} />
-      <SettingsCard title="Payout Settings" description="Set up how you receive your earnings" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Payouts",
-      description: "Payout settings coming soon"
-    })} />
-      <SettingsCard title="Transaction History" description="View your payment and payout history" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "History",
-      description: "Transaction history coming soon"
-    })} />
-    </div>;
+  const [view, setView] = useState<PaymentsView>("menu");
+
+  if (view === "methods") return <PaymentMethodsView onBack={() => setView("menu")} />;
+  if (view === "payouts") return <PayoutSettingsView onBack={() => setView("menu")} />;
+  if (view === "history") return <TransactionHistoryView onBack={() => setView("menu")} />;
+
+  return (
+    <div className="space-y-4">
+      <SettingsCard
+        title="Payment Methods"
+        description="Manage your saved cards"
+        action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+        onClick={() => setView("methods")}
+      />
+      <SettingsCard
+        title="Payout Settings"
+        description="Set up how you receive your earnings"
+        action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+        onClick={() => setView("payouts")}
+      />
+      <SettingsCard
+        title="Transaction History"
+        description="View your payment and payout history"
+        action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+        onClick={() => setView("history")}
+      />
+    </div>
+  );
+}
+
+// ── Brand logo helper ──────────────────────────────────────────────────────
+function CardBrandBadge({ brand }: { brand: string }) {
+  const upper = brand.toUpperCase();
+  const colors: Record<string, string> = {
+    VISA: "bg-blue-600",
+    MASTERCARD: "bg-orange-500",
+    AMEX: "bg-indigo-600",
+    DISCOVER: "bg-yellow-500",
+  };
+  const bg = colors[upper] || "bg-muted";
+  return (
+    <span className={`${bg} text-white text-[10px] font-bold px-2 py-0.5 rounded`}>
+      {upper === "MASTERCARD" ? "MC" : upper.slice(0, 4)}
+    </span>
+  );
+}
+
+// ── Payment Methods sub-view ───────────────────────────────────────────────
+interface SavedCard {
+  id: string;
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  is_default: boolean;
+}
+
+function PaymentMethodsView({ onBack }: { onBack: () => void }) {
+  const [cards, setCards] = useState<SavedCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
+
+  const fetchCards = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-payment-methods", {
+        body: { action: "list" },
+      });
+      if (error) throw error;
+      setCards(data.cards || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to load cards", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchCards(); }, [fetchCards]);
+
+  const handleSetDefault = async (pmId: string) => {
+    setActionId(pmId);
+    try {
+      const { error } = await supabase.functions.invoke("manage-payment-methods", {
+        body: { action: "set_default", payment_method_id: pmId },
+      });
+      if (error) throw error;
+      toast({ title: "Default updated" });
+      await fetchCards();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleRemove = async (pmId: string) => {
+    setActionId(pmId + "-remove");
+    try {
+      const { error } = await supabase.functions.invoke("manage-payment-methods", {
+        body: { action: "remove", payment_method_id: pmId },
+      });
+      if (error) throw error;
+      toast({ title: "Card removed" });
+      await fetchCards();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleBillingPortal = async () => {
+    setActionId("portal");
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-payment-methods", {
+        body: { action: "billing_portal", return_url: window.location.href },
+      });
+      if (error) throw error;
+      window.location.href = data.url;
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setActionId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Back row */}
+      <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back to Payments
+      </button>
+
+      <h3 className="text-lg font-semibold text-foreground">Payment Methods</h3>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+        </div>
+      ) : cards.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
+          <CreditCard className="w-10 h-10 opacity-30" />
+          <p className="text-sm">No saved cards yet.</p>
+          <button
+            onClick={handleBillingPortal}
+            disabled={actionId === "portal"}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-electric text-black text-sm font-semibold"
+          >
+            {actionId === "portal" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            Add Card
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="space-y-3">
+            {cards.map(card => (
+              <div
+                key={card.id}
+                className="flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/20"
+              >
+                <div className="flex items-center gap-3">
+                  <CardBrandBadge brand={card.brand} />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      •••• {card.last4}
+                      {card.is_default && (
+                        <span className="ml-2 text-[10px] font-semibold text-electric bg-electric/10 px-1.5 py-0.5 rounded">
+                          Default
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Expires {String(card.exp_month).padStart(2, "0")}/{String(card.exp_year).slice(-2)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!card.is_default && (
+                    <button
+                      onClick={() => handleSetDefault(card.id)}
+                      disabled={!!actionId}
+                      className="text-xs text-electric hover:underline disabled:opacity-50"
+                    >
+                      {actionId === card.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Set default"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleRemove(card.id)}
+                    disabled={!!actionId}
+                    className="text-xs text-destructive hover:underline disabled:opacity-50"
+                  >
+                    {actionId === card.id + "-remove" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add via Billing Portal */}
+          <button
+            onClick={handleBillingPortal}
+            disabled={actionId === "portal"}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border/40 text-sm text-muted-foreground hover:text-foreground hover:border-border/70 transition-colors"
+          >
+            {actionId === "portal" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Add or manage cards via Stripe
+                <ExternalLink className="w-3 h-3 opacity-50" />
+              </>
+            )}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Payout Settings sub-view ───────────────────────────────────────────────
+function PayoutSettingsView({ onBack }: { onBack: () => void }) {
+  const { user } = useAuth();
+  const { status, loading, startOnboarding, getDashboardLink, requestPayout } = useStripeConnect(user?.id);
+  const { data: earningsData } = useCreatorEarnings(user?.id);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const statusConfig = {
+    loading: { label: "Loading…", color: "text-muted-foreground", bg: "bg-muted/30" },
+    not_connected: { label: "Not Connected", color: "text-destructive", bg: "bg-destructive/10" },
+    onboarding_incomplete: { label: "Setup Incomplete", color: "text-yellow-400", bg: "bg-yellow-400/10" },
+    pending_verification: { label: "Pending Verification", color: "text-yellow-400", bg: "bg-yellow-400/10" },
+    active: { label: "Active", color: "text-green-400", bg: "bg-green-400/10" },
+  };
+  const cfg = statusConfig[status];
+
+  const handleOnboarding = async () => {
+    setActionLoading(true);
+    const url = await startOnboarding();
+    if (url) window.location.href = url;
+    setActionLoading(false);
+  };
+
+  const handleDashboard = async () => {
+    setActionLoading(true);
+    const url = await getDashboardLink();
+    if (url) window.open(url, "_blank");
+    setActionLoading(false);
+  };
+
+  const handlePayout = async () => {
+    setActionLoading(true);
+    const result = await requestPayout();
+    if (result.success) {
+      toast({ title: "Payout requested!", description: `$${((result.amount || 0) / 100).toFixed(2)} will arrive in 2–5 days` });
+    } else {
+      toast({ title: "Payout failed", description: result.error || "Try again later", variant: "destructive" });
+    }
+    setActionLoading(false);
+  };
+
+  const available = earningsData?.availableToPayout || 0;
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back to Payments
+      </button>
+
+      <h3 className="text-lg font-semibold text-foreground">Payout Settings</h3>
+
+      {/* Status badge */}
+      <div className="flex items-center gap-2 p-4 rounded-xl bg-obsidian border border-border/20">
+        <Zap className="w-5 h-5 text-electric" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-foreground">Stripe Connect Status</p>
+          <p className="text-xs text-muted-foreground">Powered by Stripe — US accounts only</p>
+        </div>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.color}`}>
+          {cfg.label}
+        </span>
+      </div>
+
+      {/* Balance */}
+      {earningsData && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 rounded-xl bg-obsidian border border-border/20">
+            <p className="text-xs text-muted-foreground mb-1">Lifetime Earnings</p>
+            <p className="text-xl font-bold text-foreground">${(earningsData.lifetimeEarnings / 100).toFixed(2)}</p>
+          </div>
+          <div className="p-4 rounded-xl bg-obsidian border border-border/20">
+            <p className="text-xs text-muted-foreground mb-1">Available to Pay Out</p>
+            <p className="text-xl font-bold text-electric">${(available / 100).toFixed(2)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      {status === "active" ? (
+        <div className="space-y-3">
+          <button
+            onClick={handlePayout}
+            disabled={actionLoading || available === 0}
+            className="w-full py-3.5 rounded-xl bg-electric text-black font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
+            {available === 0 ? "No earnings to pay out" : `Pay Out $${(available / 100).toFixed(2)}`}
+          </button>
+          <button
+            onClick={handleDashboard}
+            disabled={actionLoading}
+            className="w-full py-3 rounded-xl border border-border/30 text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+          >
+            <ExternalLink className="w-4 h-4" /> View Stripe Dashboard
+          </button>
+        </div>
+      ) : status === "not_connected" || status === "onboarding_incomplete" ? (
+        <button
+          onClick={handleOnboarding}
+          disabled={actionLoading || loading}
+          className="w-full py-3.5 rounded-xl bg-electric text-black font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+          {status === "onboarding_incomplete" ? "Complete Setup" : "Connect Stripe"}
+        </button>
+      ) : status === "pending_verification" ? (
+        <div className="p-4 rounded-xl bg-yellow-400/5 border border-yellow-400/20 text-sm text-yellow-300 text-center">
+          Your account is under review. Stripe will notify you by email once verified.
+        </div>
+      ) : null}
+
+      {/* Disclosures */}
+      <div className="text-xs text-muted-foreground space-y-1 px-1">
+        <p>• Exhiby takes a 10% platform fee on all earnings.</p>
+        <p>• Payouts are processed in USD and require a US bank account.</p>
+        <p>• Funds typically arrive within 2–5 business days.</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Transaction History sub-view ───────────────────────────────────────────
+type TxTab = "all" | "purchases" | "earnings";
+
+interface PurchaseTx {
+  id: string;
+  event_title: string;
+  purchased_at: string;
+  amount_cents: number | null;
+}
+
+function TransactionHistoryView({ onBack }: { onBack: () => void }) {
+  const { user } = useAuth();
+  const [tab, setTab] = useState<TxTab>("all");
+  const [purchases, setPurchases] = useState<PurchaseTx[]>([]);
+  const [purchasesLoading, setPurchasesLoading] = useState(true);
+
+  const { data: earningsData, isLoading: earningsLoading } = useCreatorEarnings(user?.id);
+
+  useEffect(() => {
+    if (!user) return;
+    setPurchasesLoading(true);
+    supabase
+      .from("tickets")
+      .select("id, purchased_at, event:events(title, ticket_price)")
+      .eq("user_id", user.id)
+      .order("purchased_at", { ascending: false })
+      .then(({ data }) => {
+        setPurchases(
+          (data || []).map((t: any) => ({
+            id: t.id,
+            event_title: t.event?.title || "Untitled",
+            purchased_at: t.purchased_at,
+            amount_cents: t.event?.ticket_price ?? null,
+          }))
+        );
+        setPurchasesLoading(false);
+      });
+  }, [user]);
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const earningRows = earningsData?.transactions || [];
+  const allRows: Array<{ id: string; label: string; date: string; amount: number; type: "earning" | "purchase" }> = [
+    ...earningRows.map(e => ({ id: e.id, label: e.event_title, date: e.created_at, amount: e.amount_net, type: "earning" as const })),
+    ...purchases.map(p => ({ id: p.id, label: p.event_title, date: p.purchased_at, amount: p.amount_cents || 0, type: "purchase" as const })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const rows = tab === "all" ? allRows : tab === "earnings" ? allRows.filter(r => r.type === "earning") : allRows.filter(r => r.type === "purchase");
+  const isLoading = purchasesLoading || earningsLoading;
+
+  const tabs: { id: TxTab; label: string; icon: React.ElementType }[] = [
+    { id: "all", label: "All", icon: History },
+    { id: "purchases", label: "Purchases", icon: ShoppingBag },
+    { id: "earnings", label: "Earnings", icon: TrendingUp },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back to Payments
+      </button>
+
+      <h3 className="text-lg font-semibold text-foreground">Transaction History</h3>
+
+      {/* Tab bar */}
+      <div className="flex gap-1 p-1 bg-obsidian rounded-xl border border-border/20">
+        {tabs.map(t => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors",
+                tab === t.id ? "bg-electric/10 text-electric" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
+          <History className="w-10 h-10 opacity-30" />
+          <p className="text-sm">No transactions yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rows.map(row => (
+            <div key={row.id} className="flex items-center justify-between p-4 bg-obsidian rounded-xl border border-border/20">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", row.type === "earning" ? "bg-green-500/10" : "bg-blue-500/10")}>
+                  {row.type === "earning" ? (
+                    <TrendingUp className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <ShoppingBag className="w-4 h-4 text-blue-400" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{row.label}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(row.date)}</p>
+                </div>
+              </div>
+              <p className={cn("text-sm font-semibold flex-shrink-0", row.type === "earning" ? "text-green-400" : "text-foreground")}>
+                {row.type === "earning" ? "+" : "−"}${(row.amount / 100).toFixed(2)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Vacation Mode Content
