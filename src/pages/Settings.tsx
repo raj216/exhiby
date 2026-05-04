@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare } from "lucide-react";
+import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare, Plus, CheckCircle, AlertCircle, ExternalLink, DollarSign, Ticket, Coins, TrendingUp, History, Landmark, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useStripeConnect } from "@/hooks/useStripeConnect";
+import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
+import { useCountryCheck } from "@/hooks/useCountryCheck";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { openSupportEmail } from "@/lib/supportContact";
