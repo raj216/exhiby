@@ -36,22 +36,65 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Require an authenticated user
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const jwt = authHeader.replace(/^Bearer\s+/i, "");
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await userClient.auth.getUser(jwt);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const audienceUserId = userData.user.id;
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { event_id, creator_id, rating } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const event_id = body?.event_id;
 
-    if (!event_id || !creator_id || !rating) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+    if (!event_id) {
+      return new Response(JSON.stringify({ error: "Missing event_id" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Look up the actual feedback row authored by this user — never trust client values
+    const { data: feedback, error: feedbackError } = await supabase
+      .from("session_feedback")
+      .select("rating, creator_id")
+      .eq("event_id", event_id)
+      .eq("audience_user_id", audienceUserId)
+      .maybeSingle();
+
+    if (feedbackError || !feedback || !feedback.rating) {
+      return new Response(JSON.stringify({ error: "Feedback not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const rating = feedback.rating;
+    const creator_id = feedback.creator_id;
+
     // Fetch event details
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .select("id, title")
+      .select("id, title, creator_id")
       .eq("id", event_id)
       .single();
 
@@ -59,6 +102,14 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Event not found:", eventError);
       return new Response(JSON.stringify({ error: "Event not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify the creator_id from feedback matches the event's creator
+    if (event.creator_id !== creator_id) {
+      return new Response(JSON.stringify({ error: "Creator mismatch" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -71,9 +122,9 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     // Fetch creator email from auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(creator_id);
-    if (authError || !authUser?.user?.email) {
-      console.error("Creator email not found:", authError);
+    const { data: authUser, error: authUserError } = await supabase.auth.admin.getUserById(creator_id);
+    if (authUserError || !authUser?.user?.email) {
+      console.error("Creator email not found:", authUserError);
       return new Response(JSON.stringify({ error: "Creator email not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
