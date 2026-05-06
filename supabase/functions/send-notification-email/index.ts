@@ -94,6 +94,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Internal-only endpoint: require the service role key as a bearer token.
+    // All internal callers (notify-followers, check-starting-soon, create-live-room)
+    // already authenticate this way. This blocks unauthenticated public callers.
+    const authHeader = req.headers.get("Authorization") || "";
+    const providedToken = authHeader.replace(/^Bearer\s+/i, "");
+    if (!providedToken || providedToken !== supabaseServiceKey) {
+      console.warn("[send-notification-email] Rejected unauthenticated request");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { event_id, email_type }: EmailRequest = await req.json();
