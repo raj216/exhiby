@@ -857,12 +857,38 @@ function PaymentMethodsView({ onBack }: { onBack: () => void }) {
 }
 
 // ── 2 of 3 — PAYOUT SETTINGS ─────────────────────────────────────────
+interface PayoutRecord {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+}
+
 function PayoutSettingsView({ onBack }: { onBack: () => void }) {
   const { user } = useAuth();
   const { status, loading: connectLoading, startOnboarding, getDashboardLink, requestPayout, refetchStatus } = useStripeConnect(user?.id);
   const { isUS, isLoading: countryLoading, hasChecked } = useCountryCheck(user?.id);
   const { data: earningsData } = useCreatorEarnings(user?.id);
   const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payouts, setPayouts] = useState<PayoutRecord[]>([]);
+  const [payoutsLoading, setPayoutsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      setPayoutsLoading(true);
+      try {
+        const { data } = await supabase
+          .from("creator_payouts")
+          .select("id, amount, status, created_at")
+          .eq("creator_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        setPayouts(data || []);
+      } catch { setPayouts([]); }
+      finally { setPayoutsLoading(false); }
+    })();
+  }, [user?.id]);
 
   const data = earningsData ?? { availableToPayout: 0, totalPaidOut: 0, lifetimeEarnings: 0 };
 
@@ -976,8 +1002,51 @@ function PayoutSettingsView({ onBack }: { onBack: () => void }) {
 
       <div className="p-3 bg-obsidian/50 rounded-lg border border-border/10">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Exhiby takes a 10% platform fee. You keep 90% of every ticket sale and tip. First payout typically processes within 7 days.
+          Exhiby takes a platform fee based on your plan (8% Free · 4% Pro/Plus). First payout typically processes within 7 days.
         </p>
+      </div>
+
+      {/* Payout / Withdrawal History */}
+      <div>
+        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <History className="w-4 h-4 text-muted-foreground" />
+          Withdrawal History
+        </h4>
+        {payoutsLoading ? (
+          <div className="space-y-2">
+            {[1, 2].map(i => (
+              <div key={i} className="h-14 bg-obsidian rounded-xl border border-border/20 animate-pulse" />
+            ))}
+          </div>
+        ) : payouts.length === 0 ? (
+          <div className="p-4 bg-obsidian rounded-xl border border-border/20 text-center">
+            <p className="text-sm text-muted-foreground">No withdrawals yet</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Your payout history will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {payouts.map(p => (
+              <div key={p.id} className="flex items-center justify-between px-4 py-3 bg-obsidian rounded-xl border border-border/20">
+                <div>
+                  <p className="text-sm font-semibold text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {formatCents(p.amount)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(p.created_at), "MMM d, yyyy")}
+                  </p>
+                </div>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider",
+                  p.status === "paid" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                  : p.status === "pending" ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                  : "bg-destructive/15 text-destructive border border-destructive/20"
+                )}>
+                  {p.status.toUpperCase()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1195,8 +1264,44 @@ function ShippingContent() {
 }
 
 // Help Center Content
+const FAQ_ITEMS = [
+  {
+    q: "How do I start a live session?",
+    a: "Tap 'Open Studio' on your creator profile, set your session title and price, then go live. Your followers get notified automatically.",
+  },
+  {
+    q: "When do I get paid?",
+    a: "Earnings are processed via Stripe Connect. Once your account is verified, you can request a payout anytime from Settings → Payments & Payouts. First payout usually arrives within 7 days.",
+  },
+  {
+    q: "What is the platform fee?",
+    a: "Free plan: 8% commission (first 10 sessions are 0% commission). Pro & Plus plans: 4% commission. Fees are deducted from each transaction automatically.",
+  },
+  {
+    q: "How do ticket refunds work?",
+    a: "Refunds are handled through Stripe. Contact support with your ticket ID and we'll process a refund within 5 business days if the session hasn't started.",
+  },
+  {
+    q: "Can I schedule sessions in advance?",
+    a: "Yes — tap 'Schedule' on your creator profile to set a future date, time, price and cover image. Followers receive an email notification when you schedule.",
+  },
+  {
+    q: "What's the attendee limit?",
+    a: "Free plan: up to 50 concurrent viewers. Pro and Plus plans have unlimited attendees.",
+  },
+  {
+    q: "How do I upgrade my plan?",
+    a: "Go to Settings → Payments & Payouts, or tap your plan badge in your profile. Upgrading unlocks unlimited attendees, 4% fees, and advanced analytics.",
+  },
+  {
+    q: "Is Stripe Connect available internationally?",
+    a: "Currently, Studio hosting and payouts are available for US-based artists only. International support is coming soon.",
+  },
+];
+
 function HelpContent() {
   const [showBugModal, setShowBugModal] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handleContactSupport = () => {
     openSupportEmail();
@@ -1204,22 +1309,59 @@ function HelpContent() {
 
   return (
     <>
-      <div className="space-y-4">
-        <SettingsCard 
-          title="Contact Support" 
-          description="Get help from our team" 
-          action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
-          onClick={handleContactSupport}
-        />
-        <SettingsCard 
-          title="Report a Bug" 
-          description="Help us improve by reporting issues" 
-          action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} 
-          onClick={() => {
-            triggerClickHaptic();
-            setShowBugModal(true);
-          }} 
-        />
+      <div className="space-y-6">
+        {/* Quick actions */}
+        <div className="space-y-3">
+          <SettingsCard
+            title="Contact Support"
+            description="Get help from our team — we reply within 24 hours"
+            action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+            onClick={handleContactSupport}
+          />
+          <SettingsCard
+            title="Report a Bug"
+            description="Help us improve by reporting issues"
+            action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+            onClick={() => { triggerClickHaptic(); setShowBugModal(true); }}
+          />
+        </div>
+
+        {/* FAQ */}
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Frequently Asked Questions
+          </h3>
+          <div className="space-y-2">
+            {FAQ_ITEMS.map((item, i) => (
+              <div key={i} className="bg-obsidian rounded-xl border border-border/20 overflow-hidden">
+                <button
+                  onClick={() => { triggerClickHaptic(); setOpenFaq(openFaq === i ? null : i); }}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+                >
+                  <span className="text-sm font-medium text-foreground">{item.q}</span>
+                  <ChevronDown className={cn("w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200", openFaq === i && "rotate-180")} />
+                </button>
+                <AnimatePresence>
+                  {openFaq === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <p className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-border/20 pt-3">
+                        {item.a}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Version */}
+        <p className="text-center text-xs text-muted-foreground/40">Exhiby · Beta v0.1</p>
       </div>
 
       {/* Modals */}

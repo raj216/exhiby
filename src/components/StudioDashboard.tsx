@@ -509,6 +509,35 @@ export function StudioDashboard({
           </div>
         </div>
 
+        {/* Best Performing Session */}
+        {featureFlags.paymentsEnabled && (() => {
+          // Compute best session from lifetime earnings transactions
+          const txMap = new Map<string, { title: string; net: number }>();
+          for (const tx of (earningsData?.transactions ?? [])) {
+            const existing = txMap.get(tx.event_id);
+            if (existing) { existing.net += tx.amount_net; }
+            else { txMap.set(tx.event_id, { title: tx.event_title, net: tx.amount_net }); }
+          }
+          const bestEntry = txMap.size > 0
+            ? [...txMap.values()].reduce((a, b) => a.net > b.net ? a : b)
+            : null;
+
+          if (!bestEntry) return null;
+          return (
+            <div className="mt-3 bg-obsidian rounded-2xl p-4 border border-gold/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-4 h-4 text-gold fill-gold/30" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Best Session</span>
+              </div>
+              <p className="text-sm font-semibold text-foreground truncate">{bestEntry.title}</p>
+              <p className="font-display text-2xl text-gold mt-1" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {showEarnings ? `$${(bestEntry.net / 100).toFixed(2)}` : "••••"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">highest single session earned</p>
+            </div>
+          );
+        })()}
+
         {/* Advanced Analytics Upsell — Free plan users */}
         {!hasAdvancedAnalytics && (
           <motion.div

@@ -8,7 +8,17 @@ const corsHeaders = {
 
 interface EmailRequest {
   event_id: string;
-  email_type: "studio_scheduled" | "studio_live" | "studio_starting_soon" | "studio_starting_now";
+  email_type: "studio_scheduled" | "studio_live" | "studio_starting_soon" | "studio_starting_now" | "ticket_purchased";
+  // ticket_purchased direct-send fields (bypass follower lookup)
+  recipient_email?: string;
+  recipient_name?: string;
+  event_title?: string;
+  creator_name?: string;
+  scheduled_at?: string;
+  session_url?: string;
+  is_free?: boolean;
+  price_cents?: number;
+  calendar_ics_base64?: string;
 }
 
 interface FollowerWithPrefs {
@@ -110,8 +120,117 @@ const handler = async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { event_id, email_type }: EmailRequest = await req.json();
+    const body: EmailRequest = await req.json();
+    const { email_type } = body;
+    const event_id = body.event_id;
     console.log(`Processing ${email_type} notification for event: ${event_id}`);
+
+    // ── DIRECT TRANSACTIONAL: ticket_purchased ──────────────────────────
+    if (email_type === "ticket_purchased") {
+      const {
+        recipient_email,
+        recipient_name,
+        event_title,
+        creator_name,
+        scheduled_at,
+        session_url,
+        is_free,
+        price_cents,
+        calendar_ics_base64,
+      } = body;
+
+      if (!recipient_email || !event_title) {
+        return new Response(JSON.stringify({ error: "Missing recipient_email or event_title" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+      if (!brevoApiKey) throw new Error("BREVO_API_KEY not configured");
+
+      const formattedDate = scheduled_at
+        ? new Date(scheduled_at).toLocaleString("en-US", {
+            month: "long", day: "numeric", year: "numeric",
+            hour: "numeric", minute: "2-digit", timeZone: "America/New_York",
+          }) + " ET"
+        : "Live — coming soon";
+
+      const priceDisplay = is_free ? "Free" : `$${((price_cents ?? 0) / 100).toFixed(2)}`;
+
+      const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0F0F11;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;">
+  <div style="max-width:520px;margin:0 auto;padding:40px 24px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <span style="font-size:24px;font-weight:800;color:#FF6B58;letter-spacing:-0.5px;">Exhiby</span>
+    </div>
+    <div style="background:#1C1C1F;border-radius:16px;padding:32px;border:1px solid rgba(255,255,255,0.08);">
+      <div style="text-align:center;margin-bottom:24px;">
+        <span style="font-size:40px;">🎟️</span>
+        <h1 style="margin:12px 0 4px;font-size:22px;font-weight:700;color:#FFFFFF;">You're in!</h1>
+        <p style="margin:0;font-size:15px;color:rgba(255,255,255,0.6);">Your ticket is confirmed</p>
+      </div>
+      <div style="background:#0F0F11;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid rgba(255,255,255,0.06);">
+        <h2 style="margin:0 0 8px;font-size:18px;font-weight:700;color:#FFFFFF;">${escapeHtml(event_title)}</h2>
+        <p style="margin:0 0 4px;font-size:14px;color:rgba(255,255,255,0.5);">with ${escapeHtml(creator_name ?? "the artist")}</p>
+        <p style="margin:12px 0 0;font-size:14px;color:rgba(255,255,255,0.7);">📅 ${formattedDate}</p>
+        <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.7);">🎫 Ticket: ${priceDisplay}</p>
+      </div>
+      ${session_url ? `
+      <a href="${session_url}" style="display:block;text-align:center;background:linear-gradient(135deg,#FF6B58,#FF0040);color:#FFFFFF;font-weight:700;font-size:15px;padding:14px 24px;border-radius:12px;text-decoration:none;margin-bottom:16px;">
+        Join Session →
+      </a>` : ""}
+      ${calendar_ics_base64 ? `
+      <p style="text-align:center;margin:0;font-size:13px;color:rgba(255,255,255,0.4);">
+        📆 A calendar invite is attached to this email
+      </p>` : ""}
+    </div>
+    <p style="text-align:center;margin-top:24px;font-size:12px;color:rgba(255,255,255,0.25);">
+      Exhiby · Built for artists, collectors, and fans.
+    </p>
+  </div>
+</body>
+</html>`;
+
+      const emailPayload: Record<string, unknown> = {
+        sender: { name: "Exhiby", email: "noreply@exhiby.app" },
+        to: [{ email: recipient_email, name: recipient_name ?? recipient_email }],
+        subject: `Your ticket for "${escapeHtml(event_title)}"`,
+        htmlContent: htmlBody,
+      };
+
+      if (calendar_ics_base64) {
+        emailPayload.attachment = [{
+          content: calendar_ics_base64,
+          name: "session.ics",
+        }];
+      }
+
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: { "api-key": brevoApiKey, "Content-Type": "application/json" },
+        body: JSON.stringify(emailPayload),
+      });
+
+      if (response.ok) {
+        console.log(`[ticket_purchased] Confirmation sent to ${recipient_email}`);
+        return new Response(JSON.stringify({ sent: 1 }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } else {
+        const errText = await response.text();
+        console.error("[ticket_purchased] Brevo error:", errText);
+        return new Response(JSON.stringify({ error: errText }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    // ── END ticket_purchased ─────────────────────────────────────────────
 
     // Fetch event details with creator profile
     const { data: event, error: eventError } = await supabase

@@ -20,17 +20,53 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 const uuidRegex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Generate an RFC 5545 .ics calendar event string */
+function generateICS(params: {
+  uid: string;
+  title: string;
+  description: string;
+  startAt: Date;
+  endAt: Date;
+  url: string;
+  organizerName: string;
+}): string {
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Exhiby//Studio Session//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${params.uid}@exhiby.app`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(params.startAt)}`,
+    `DTEND:${fmt(params.endAt)}`,
+    `SUMMARY:${params.title}`,
+    `DESCRIPTION:${params.description.replace(/\n/g, "\\n")}`,
+    `URL:${params.url}`,
+    `ORGANIZER;CN=${params.organizerName}:MAILTO:noreply@exhiby.app`,
+    "BEGIN:VALARM",
+    "TRIGGER:-PT15M",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Your Exhiby session starts in 15 minutes",
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+}
+
 serve(async (req) => {
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Require auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -66,10 +102,10 @@ serve(async (req) => {
       });
     }
 
-    // Fetch event details
+    // Fetch event details — include fields needed for confirmation email
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .select("id, is_free, price, creator_id")
+      .select("id, title, is_free, price, creator_id, scheduled_at, duration_minutes, category")
       .eq("id", event_id)
       .single();
 
@@ -82,18 +118,10 @@ serve(async (req) => {
 
     const isFree = !!event.is_free || Number(event.price ?? 0) <= 0;
 
-    // If the event is paid, do NOT mint tickets without verified payment.
-    // (Payment provider verification should be added here when monetization is enabled.)
     if (!isFree && event.creator_id !== user.id) {
       return new Response(
-        JSON.stringify({
-          error: "Payment verification required",
-          code: "PAYMENT_NOT_CONFIGURED",
-        }),
-        {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Payment verification required", code: "PAYMENT_NOT_CONFIGURED" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -101,15 +129,8 @@ serve(async (req) => {
     const { data: ticket, error: ticketError } = await supabase
       .from("tickets")
       .upsert(
-        {
-          event_id,
-          user_id: user.id,
-          purchased_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "event_id,user_id",
-          ignoreDuplicates: false,
-        }
+        { event_id, user_id: user.id, purchased_at: new Date().toISOString() },
+        { onConflict: "event_id,user_id", ignoreDuplicates: false }
       )
       .select("id")
       .single();
@@ -120,6 +141,65 @@ serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── Send ticket confirmation email (fire-and-forget) ─────────────────
+    try {
+      // Fetch creator profile and buyer email in parallel
+      const [profileRes, emailRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("name")
+          .eq("user_id", event.creator_id)
+          .maybeSingle(),
+        supabase.auth.admin.getUserById(user.id),
+      ]);
+
+      const creatorName = profileRes.data?.name ?? "the artist";
+      const buyerEmail = emailRes.data?.user?.email;
+      const buyerName =
+        emailRes.data?.user?.user_metadata?.name ??
+        buyerEmail?.split("@")[0] ??
+        "there";
+
+      if (buyerEmail && event.scheduled_at) {
+        const startAt = new Date(event.scheduled_at);
+        const durationMs = (event.duration_minutes ?? 60) * 60 * 1000;
+        const endAt = new Date(startAt.getTime() + durationMs);
+        const sessionUrl = `${Deno.env.get("PUBLIC_SITE_URL") ?? "https://exhiby.app"}/s/${event_id}`;
+
+        // Build .ics data URI
+        const icsContent = generateICS({
+          uid: ticket.id,
+          title: event.title,
+          description: `Studio session by ${creatorName} on Exhiby.\n\nJoin at: ${sessionUrl}`,
+          startAt,
+          endAt,
+          url: sessionUrl,
+          organizerName: creatorName,
+        });
+        const icsBase64 = btoa(icsContent);
+
+        // Call send-notification-email with ticket_purchased type
+        await supabase.functions.invoke("send-notification-email", {
+          body: {
+            email_type: "ticket_purchased",
+            recipient_email: buyerEmail,
+            recipient_name: buyerName,
+            event_id,
+            event_title: event.title,
+            creator_name: creatorName,
+            scheduled_at: event.scheduled_at,
+            session_url: sessionUrl,
+            is_free: isFree,
+            price_cents: isFree ? 0 : Math.round(Number(event.price ?? 0) * 100),
+            calendar_ics_base64: icsBase64,
+          },
+        });
+      }
+    } catch (emailErr) {
+      // Non-fatal — ticket was already created, email failure shouldn't block response
+      console.warn("[purchase-ticket] confirmation email failed:", emailErr);
     }
 
     return new Response(JSON.stringify({ ticket_id: ticket.id }), {
