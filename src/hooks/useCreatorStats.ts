@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface CreatorStats {
@@ -12,12 +13,14 @@ export interface CreatorStats {
 const DEBUG_STATS = import.meta.env.DEV && localStorage.getItem("debug_creator_stats") === "1";
 
 export function useCreatorStats(userId: string | undefined) {
+  const queryClient = useQueryClient();
+
   const { data: stats = { sessionsHosted: 0, followersCount: 0, uniqueGuests: 0, earnings: 0, ticketsSold: 0 }, isLoading: loading, refetch } = useQuery({
     queryKey: ["creator-stats", userId],
     queryFn: async (): Promise<CreatorStats> => {
       if (!userId) return { sessionsHosted: 0, followersCount: 0, uniqueGuests: 0, earnings: 0, ticketsSold: 0 };
 
-      // First get creator's event IDs for ticket counting
+      // Get all event IDs created by this creator
       const { data: creatorEvents } = await supabase.from("events").select("id").eq("creator_id", userId);
       const eventIds = (creatorEvents || []).map(e => e.id);
 
@@ -25,12 +28,12 @@ export function useCreatorStats(userId: string | undefined) {
       const [sessionStatsResult, followersResult, ticketsSoldResult] = await Promise.all([
         supabase.rpc("get_creator_session_stats", { target_creator_id: userId }),
         supabase.rpc("get_follower_count", { target_user_id: userId }),
-        // Count real sold tickets (only Stripe-confirmed, excluding self-purchases)
+        // Count ALL tickets (paid + free), excluding self-tickets (creator's own)
         eventIds.length > 0
           ? supabase
               .from("tickets")
               .select("id", { count: "exact", head: true })
-              .eq("payment_status", "paid")
+              .in("payment_status", ["paid", "free"])
               .neq("user_id", userId)
               .in("event_id", eventIds)
           : Promise.resolve({ count: 0 } as any),
@@ -46,9 +49,10 @@ export function useCreatorStats(userId: string | undefined) {
 
       if (DEBUG_STATS) {
         console.log("[CreatorStats] userId:", userId);
-        console.log("[CreatorStats] sessionsHosted:", sessionsHosted, "(from get_creator_session_stats RPC - counts events with live_ended_at IS NOT NULL)");
-        console.log("[CreatorStats] uniqueGuests:", uniqueGuests, "(from get_creator_session_stats RPC - counts DISTINCT user_id from live_viewers)");
+        console.log("[CreatorStats] sessionsHosted:", sessionsHosted, "(events with live_ended_at IS NOT NULL)");
+        console.log("[CreatorStats] uniqueGuests:", uniqueGuests, "(DISTINCT user_id from live_viewers)");
         console.log("[CreatorStats] followersCount:", followersResult.data ?? 0);
+        console.log("[CreatorStats] ticketsSold:", ticketsSoldResult.count ?? 0, "(all paid+free, excl. self)");
         if (sessionStatsResult.error) {
           console.error("[CreatorStats] sessionStatsResult error:", sessionStatsResult.error);
         }
@@ -63,9 +67,46 @@ export function useCreatorStats(userId: string | undefined) {
       };
     },
     enabled: !!userId,
-    staleTime: 30 * 1000, // 30 seconds - more responsive updates
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 15_000, // 15 seconds — more responsive
+    gcTime: 5 * 60_000,
   });
+
+  // ── Realtime: invalidate when new earnings or tickets land ────────────────
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`creator-stats-rt-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "creator_earnings",
+          filter: `creator_id=eq.${userId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["creator-stats", userId] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "creator_earnings",
+          filter: `creator_id=eq.${userId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["creator-stats", userId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, queryClient]);
 
   return { stats, loading, refetch };
 }

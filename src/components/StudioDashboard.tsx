@@ -463,7 +463,7 @@ export function StudioDashboard({
             </div>
           )}
 
-          {/* Tickets Sold */}
+          {/* Tickets Sold — lifetime total (paid + free, excl. self) */}
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => { triggerClickHaptic(); navigate("/tickets-history"); }}
@@ -474,9 +474,9 @@ export function StudioDashboard({
               <span className="text-xs text-muted-foreground">Tickets Sold</span>
             </div>
             <p className="font-display text-2xl text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
-              {Number(analytics.totalTickets ?? 0).toLocaleString()}
+              {creatorStats.ticketsSold.toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">this month</p>
+            <p className="text-xs text-muted-foreground mt-1">lifetime total</p>
           </motion.button>
         </div>
 

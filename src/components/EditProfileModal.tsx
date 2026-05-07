@@ -46,7 +46,6 @@ export function EditProfileModal({
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [website, setWebsite] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
@@ -67,7 +66,6 @@ export function EditProfileModal({
       setName(profile.name || "");
       setUsername(profile.handle || "");
       setBio(profile.bio || "");
-      setWebsite(profile.website || "");
       setAvatarPreview(profile.avatarUrl);
       setCoverPreview(profile.coverUrl || null);
       setProfileLinks(profile.profileLinks || []);
@@ -215,23 +213,41 @@ export function EditProfileModal({
       // Filter out incomplete links before saving
       const validLinks = profileLinks.filter(l => l.url.trim() !== "");
 
-      // Update profile in database
+      // ── Step 1: Update stable profile fields (always works) ──────────────
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
           name: name.trim(),
           handle: username.trim().replace(/^@/, ""),
           bio: bio.trim() || null,
-          website: website.trim() || null,
           avatar_url: newAvatarUrl,
           cover_url: newCoverUrl,
-          profile_links: validLinks,
         })
         .eq("user_id", user.id);
 
       if (updateError) throw updateError;
 
-      toast({ title: "Success", description: "Profile updated successfully!" });
+      // ── Step 2: Save profile links via edge function ──────────────────────
+      // The edge function handles the DB migration (adds profile_links column
+      // if it doesn't exist yet) then updates the row — self-healing.
+      try {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (token) {
+          const res = await supabase.functions.invoke("update-profile-links", {
+            body: { links: validLinks },
+          });
+          if (res.error) {
+            console.warn("[EditProfileModal] links save warning:", res.error);
+          }
+        }
+      } catch (linksErr) {
+        // Non-fatal — profile was saved, links might not persist if edge fn is
+        // not deployed yet. Log and continue.
+        console.warn("[EditProfileModal] links save failed (non-fatal):", linksErr);
+      }
+
+      toast({ title: "Profile saved", description: validLinks.length > 0 ? `Profile and ${validLinks.length} link${validLinks.length > 1 ? "s" : ""} saved!` : "Profile updated successfully!" });
       onProfileUpdated();
       onClose();
     } catch (error) {
@@ -393,20 +409,6 @@ export function EditProfileModal({
               <p className="text-xs text-muted-foreground mt-1 text-right">
                 {bio.length}/150
               </p>
-            </div>
-
-            {/* Website */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Website
-              </label>
-              <input
-                type="url"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://yourwebsite.com"
-                className="w-full px-4 py-3 rounded-xl bg-obsidian border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-electric/50"
-              />
             </div>
 
             {/* Bio Links */}

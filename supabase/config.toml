@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.verify-checkout-session]
 verify_jwt = false
+
+[functions.update-profile-links]
+verify_jwt = false

@@ -7,9 +7,12 @@
  *   VIP       — attended 5+ sessions
  *   REPEAT    — attended 2–4 sessions
  *   NEW       — attended 1 session
+ *
+ * Realtime: subscribes to tickets INSERT/UPDATE so the audience tab updates
+ * instantly when new attendees purchase tickets.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AttendeeSegment = "VIP" | "REPEAT" | "NEW";
@@ -39,6 +42,10 @@ export function useCreatorAudience(creatorId: string | undefined) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
+  // Keep a stable ref to the event IDs so the realtime subscription doesn't
+  // need to be recreated every time the list changes.
+  const eventIdsRef = useRef<string[]>([]);
+
   const fetchAudience = useCallback(async () => {
     if (!creatorId) {
       setIsLoading(false);
@@ -54,14 +61,18 @@ export function useCreatorAudience(creatorId: string | undefined) {
         .eq("creator_id", creatorId);
 
       if (!events || events.length === 0) {
+        setAttendees([]);
+        setStats({ uniqueAttendees: 0, vipFans: 0, repeatAttendees: 0 });
         setIsLoading(false);
         return;
       }
 
       const eventIds = events.map((e) => e.id);
+      eventIdsRef.current = eventIds;
       const priceMap = new Map(events.map((e) => [e.id, Number(e.price) || 0]));
 
       // 2. Get all tickets for those events (exclude self-tickets from creator)
+      //    Count both paid and free tickets — all are valid audience members.
       const { data: tickets } = await supabase
         .from("tickets")
         .select("id, event_id, user_id, purchased_at, attended_at, payment_status")
@@ -70,6 +81,8 @@ export function useCreatorAudience(creatorId: string | undefined) {
         .in("payment_status", ["paid", "free"]);
 
       if (!tickets || tickets.length === 0) {
+        setAttendees([]);
+        setStats({ uniqueAttendees: 0, vipFans: 0, repeatAttendees: 0 });
         setIsLoading(false);
         return;
       }
@@ -163,6 +176,49 @@ export function useCreatorAudience(creatorId: string | undefined) {
   useEffect(() => {
     fetchAudience();
   }, [fetchAudience]);
+
+  // ── Realtime subscription: re-fetch when any ticket for this creator changes
+  useEffect(() => {
+    if (!creatorId) return;
+
+    // Subscribe to creator_earnings so we're notified of any ticket purchase
+    // (earnings are created by the purchase-ticket edge function on success).
+    const channel = supabase
+      .channel(`audience-rt-${creatorId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "creator_earnings",
+          filter: `creator_id=eq.${creatorId}`,
+        },
+        () => {
+          // Debounce slightly to batch rapid purchases
+          setTimeout(() => fetchAudience(), 300);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "tickets",
+        },
+        (payload) => {
+          // Only refetch if ticket is for one of this creator's events
+          const eventId = (payload.new as { event_id?: string })?.event_id;
+          if (eventId && eventIdsRef.current.includes(eventId)) {
+            setTimeout(() => fetchAudience(), 300);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [creatorId, fetchAudience]);
 
   return { attendees, stats, isLoading, refetch: fetchAudience };
 }
