@@ -47,21 +47,25 @@ export function useProfile() {
         year: "numeric",
       });
 
-      // profile_links lives in a newer column — fetch separately so a missing
-      // column (migration pending) never breaks the core profile load.
+      // Try DB column first (available once migration is applied).
+      // Fall back to auth user_metadata — this is the primary save path used
+      // by EditProfileModal so it always has the latest links even without the
+      // DB column.
       let profileLinks: ProfileLink[] = [];
-      try {
-        const { data: linksRow, error: linksError } = await supabase
-          .from("profiles")
-          .select("profile_links")
-          .eq("user_id", user.id)
-          .maybeSingle();
+      const { data: linksRow, error: linksError } = await supabase
+        .from("profiles")
+        .select("profile_links")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-        if (!linksError && linksRow?.profile_links) {
-          profileLinks = linksRow.profile_links as ProfileLink[];
+      if (!linksError && linksRow?.profile_links) {
+        profileLinks = linksRow.profile_links as ProfileLink[];
+      } else {
+        const { data: authData } = await supabase.auth.getUser();
+        const metaLinks = authData?.user?.user_metadata?.profile_links;
+        if (Array.isArray(metaLinks)) {
+          profileLinks = metaLinks as ProfileLink[];
         }
-      } catch {
-        // Column not yet migrated — silently continue without links
       }
 
       return {

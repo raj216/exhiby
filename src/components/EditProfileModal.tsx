@@ -229,25 +229,17 @@ export function EditProfileModal({
 
       if (updateError) throw updateError;
 
-      // ── Step 2: Save profile links via edge function ──────────────────────
-      // The edge function handles the DB migration (adds profile_links column
-      // if it doesn't exist yet) then updates the row — self-healing.
-      try {
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token;
-        if (token) {
-          const res = await supabase.functions.invoke("update-profile-links", {
-            body: { links: validLinks },
-          });
-          if (res.error) {
-            console.warn("[EditProfileModal] links save warning:", res.error);
-          }
-        }
-      } catch (linksErr) {
-        // Non-fatal — profile was saved, links might not persist if edge fn is
-        // not deployed yet. Log and continue.
-        console.warn("[EditProfileModal] links save failed (non-fatal):", linksErr);
-      }
+      // ── Step 2: Save profile links ──────────────────────────────────────────
+      // Primary path: Supabase auth user_metadata — works TODAY with zero DB
+      // migrations. Survives page refreshes, persists across sessions.
+      // Secondary path: edge function adds profile_links column + saves to DB
+      // (kicks in once deployed; self-heals the migration).
+      await supabase.auth.updateUser({ data: { profile_links: validLinks } });
+
+      // Fire-and-forget edge function (adds DB column if missing, saves there too).
+      // Non-blocking — the auth metadata save above already guaranteed persistence.
+      supabase.functions.invoke("update-profile-links", { body: { links: validLinks } })
+        .catch(e => console.warn("[EditProfileModal] edge fn non-fatal:", e));
 
       toast({ title: "Profile saved", description: validLinks.length > 0 ? `Profile and ${validLinks.length} link${validLinks.length > 1 ? "s" : ""} saved!` : "Profile updated successfully!" });
       // Pass saved links back so the parent can do an immediate optimistic update.

@@ -93,26 +93,37 @@ export function AudienceProfile({
   // Fetch updated profile data
   const refreshProfile = async () => {
     if (!user) return;
-    console.log("[AudienceProfile] Refreshing profile for user:", user.id);
-    const {
-      data
-    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified").eq("user_id", user.id).maybeSingle();
+    const { data } = await supabase
+      .from("profiles")
+      .select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     if (data) {
-      console.log("[AudienceProfile] ✅ Profile refreshed:", data.name);
+      const { data: linksRow, error: linksError } = await supabase
+        .from("profiles")
+        .select("profile_links")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      let freshLinks: ProfileLink[] | null = null;
+      if (!linksError && linksRow?.profile_links) {
+        freshLinks = linksRow.profile_links as ProfileLink[];
+      } else {
+        const { data: authData } = await supabase.auth.getUser();
+        const metaLinks = authData?.user?.user_metadata?.profile_links;
+        if (Array.isArray(metaLinks) && metaLinks.length > 0) {
+          freshLinks = metaLinks as ProfileLink[];
+        }
+      }
+
       const createdDate = new Date(data.created_at);
       const memberSince = createdDate.toLocaleDateString("en-US", {
         month: "short",
-        year: "numeric"
+        year: "numeric",
       });
-      // Fetch profile_links separately — graceful if column not yet migrated
-      let profileLinks: ProfileLink[] = [];
-      try {
-        const { data: linksRow } = await supabase
-          .from("profiles").select("profile_links").eq("user_id", user.id).maybeSingle();
-        if (linksRow?.profile_links) profileLinks = linksRow.profile_links as ProfileLink[];
-      } catch { /* migration pending */ }
 
-      setLocalProfile({
+      setLocalProfile(prev => ({
         name: data.name,
         handle: data.handle,
         avatarUrl: data.avatar_url,
@@ -123,8 +134,8 @@ export function AudienceProfile({
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
         isVerified: data.is_verified ?? false,
-        profileLinks,
-      });
+        profileLinks: freshLinks !== null ? freshLinks : (prev?.profileLinks ?? []),
+      }));
     } else {
       console.warn("[AudienceProfile] ⚠️ Profile refresh returned null for authenticated user");
     }

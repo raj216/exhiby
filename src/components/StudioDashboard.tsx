@@ -149,24 +149,42 @@ export function StudioDashboard({
   // Fetch updated profile data
   const refreshProfile = async () => {
     if (!user) return;
-    const {
-      data
-    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified").eq("user_id", user.id).maybeSingle();
+    const { data } = await supabase
+      .from("profiles")
+      .select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     if (data) {
-      // Fetch profile_links separately — graceful if column not yet migrated
-      let profileLinks: ProfileLink[] = [];
-      try {
-        const { data: linksRow } = await supabase
-          .from("profiles").select("profile_links").eq("user_id", user.id).maybeSingle();
-        if (linksRow?.profile_links) profileLinks = linksRow.profile_links as ProfileLink[];
-      } catch { /* migration pending */ }
+      // Try DB column first (works once migration is applied).
+      const { data: linksRow, error: linksError } = await supabase
+        .from("profiles")
+        .select("profile_links")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      // Fall back to auth user_metadata if the DB column doesn't exist yet.
+      // auth.updateUser({ data: { profile_links } }) is the primary save path.
+      let freshLinks: ProfileLink[] | null = null;
+      if (!linksError && linksRow?.profile_links) {
+        freshLinks = linksRow.profile_links as ProfileLink[];
+      } else {
+        const { data: authData } = await supabase.auth.getUser();
+        const metaLinks = authData?.user?.user_metadata?.profile_links;
+        if (Array.isArray(metaLinks) && metaLinks.length > 0) {
+          freshLinks = metaLinks as ProfileLink[];
+        }
+      }
 
       const createdDate = new Date(data.created_at);
       const memberSince = createdDate.toLocaleDateString("en-US", {
         month: "short",
-        year: "numeric"
+        year: "numeric",
       });
-      setLocalProfile({
+
+      // Functional update so we can preserve optimistic profileLinks when the
+      // column doesn't exist yet (freshLinks === null means DB returned nothing).
+      setLocalProfile(prev => ({
         name: data.name,
         handle: data.handle,
         avatarUrl: data.avatar_url,
@@ -177,8 +195,10 @@ export function StudioDashboard({
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
         isVerified: data.is_verified ?? false,
-        profileLinks,
-      });
+        // If DB has real links use them; otherwise keep whatever is in local state
+        // (could be an optimistic update from a recent save).
+        profileLinks: freshLinks !== null ? freshLinks : (prev?.profileLinks ?? []),
+      }));
     }
   };
 
