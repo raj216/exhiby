@@ -22,18 +22,18 @@ async function resolveCommissionPct(
 
   if (plan === "pro" || plan === "plus") return 4;
 
-  const { count } = await supabase
+  const { data: earningRows } = await supabase
     .from("creator_earnings")
-    .select("event_id", { count: "exact", head: true })
+    .select("event_id")
     .eq("creator_id", creatorId)
     .eq("status", "succeeded");
 
-  const paidSessionCount = count ?? 0;
-  if (paidSessionCount < 10) {
-    console.log(`[charge-saved-method] Creator ${creatorId} free plan session ${paidSessionCount + 1}/10 → 0% commission`);
+  const distinctSessionCount = new Set((earningRows ?? []).map((r: { event_id: string }) => r.event_id)).size;
+  if (distinctSessionCount < 10) {
+    console.log(`[charge-saved-method] Creator ${creatorId} free plan session ${distinctSessionCount + 1}/10 → 0% commission`);
     return 0;
   }
-  console.log(`[charge-saved-method] Creator ${creatorId} free plan session ${paidSessionCount + 1} → 8% commission`);
+  console.log(`[charge-saved-method] Creator ${creatorId} free plan session ${distinctSessionCount + 1} → 8% commission`);
   return 8;
 }
 

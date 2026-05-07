@@ -423,23 +423,22 @@ async function resolveCommissionPct(
     return 4;
   }
 
-  // Free plan: first 10 sessions are 0%
+  // Free plan: first 10 distinct sessions are 0%
   const FREE_ZERO_COMMISSION_SESSIONS = 10;
-  const { count } = await supabase
+  const { data: earningRows } = await supabase
     .from("creator_earnings")
-    .select("event_id", { count: "exact", head: true })
+    .select("event_id")
     .eq("creator_id", creatorId)
     .eq("status", "succeeded");
 
-  // Count distinct events already paid (rough but fast for MVP)
-  const paidSessionCount = count ?? 0;
+  const distinctSessionCount = new Set((earningRows ?? []).map((r: { event_id: string }) => r.event_id)).size;
 
-  if (paidSessionCount < FREE_ZERO_COMMISSION_SESSIONS) {
-    console.log(`[stripe-webhook] Creator ${creatorId} on free plan — session ${paidSessionCount + 1}/10 (grace period) → 0% commission`);
+  if (distinctSessionCount < FREE_ZERO_COMMISSION_SESSIONS) {
+    console.log(`[stripe-webhook] Creator ${creatorId} on free plan — session ${distinctSessionCount + 1}/10 (grace period) → 0% commission`);
     return 0;
   }
 
-  console.log(`[stripe-webhook] Creator ${creatorId} on free plan — session ${paidSessionCount + 1} → 8% commission`);
+  console.log(`[stripe-webhook] Creator ${creatorId} on free plan — session ${distinctSessionCount + 1} → 8% commission`);
   return 8;
 }
 
