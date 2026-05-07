@@ -88,7 +88,7 @@ export function StudioDashboard({
   const { can } = planGate;
   const hasAdvancedAnalytics = can("hasAdvancedAnalytics");
   const [showEarnings, setShowEarnings] = useState(true);
-  const [activeStudioTab, setActiveStudioTab] = useState<"overview" | "audience">("overview");
+  const [activeStudioTab, setActiveStudioTab] = useState<"overview" | "audience" | "portfolio">("overview");
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -151,8 +151,16 @@ export function StudioDashboard({
     if (!user) return;
     const {
       data
-    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified, profile_links").eq("user_id", user.id).maybeSingle();
+    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified").eq("user_id", user.id).maybeSingle();
     if (data) {
+      // Fetch profile_links separately — graceful if column not yet migrated
+      let profileLinks: ProfileLink[] = [];
+      try {
+        const { data: linksRow } = await supabase
+          .from("profiles").select("profile_links").eq("user_id", user.id).maybeSingle();
+        if (linksRow?.profile_links) profileLinks = linksRow.profile_links as ProfileLink[];
+      } catch { /* migration pending */ }
+
       const createdDate = new Date(data.created_at);
       const memberSince = createdDate.toLocaleDateString("en-US", {
         month: "short",
@@ -169,7 +177,7 @@ export function StudioDashboard({
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
         isVerified: data.is_verified ?? false,
-        profileLinks: (data.profile_links as ProfileLink[]) || [],
+        profileLinks,
       });
     }
   };
@@ -373,18 +381,18 @@ export function StudioDashboard({
       {/* Studio Schedule */}
       <UpcomingEventsList events={upcomingEvents} onEventDeleted={fetchUpcomingEvents} />
 
-      {/* Studio Sub-Tabs: Overview / Audience */}
+      {/* Studio Sub-Tabs: Analytics / Audience / Portfolio */}
       <div className="border-b border-border/30 mt-6">
         <div className="flex px-4">
-          {(["overview", "audience"] as const).map((tab) => (
+          {(["overview", "audience", "portfolio"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { triggerClickHaptic(); setActiveStudioTab(tab); }}
-              className={`py-3 px-4 text-xs font-semibold relative transition-colors capitalize ${
+              className={`py-3 px-4 text-xs font-semibold relative transition-colors ${
                 activeStudioTab === tab ? "text-foreground" : "text-muted-foreground"
               }`}
             >
-              {tab === "overview" ? "Analytics" : "Audience"}
+              {tab === "overview" ? "Analytics" : tab === "audience" ? "Audience" : "Portfolio"}
               {activeStudioTab === tab && (
                 <motion.div
                   layoutId="studioTab"
@@ -527,13 +535,23 @@ export function StudioDashboard({
         )}
       </div>}
 
-      {/* Portfolio Section - only on overview tab */}
-      {activeStudioTab === "overview" && <div className="mt-6 px-4 pb-24">
-        <PortfolioGrid userId={user?.id} isOwner={true} />
-      </div>}
+      {/* Portfolio Tab Content */}
+      <AnimatePresence mode="wait">
+        {activeStudioTab === "portfolio" && (
+          <motion.div
+            key="portfolio-tab"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="px-4 mt-4 pb-24"
+          >
+            <PortfolioGrid userId={user?.id} isOwner={true} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Extra bottom padding for audience tab */}
-      {activeStudioTab === "audience" && <div className="pb-24" />}
+      {/* Bottom padding for non-portfolio tabs */}
+      {activeStudioTab !== "portfolio" && <div className="pb-24" />}
 
       {/* Edit Profile Modal */}
       <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={refreshProfile} />

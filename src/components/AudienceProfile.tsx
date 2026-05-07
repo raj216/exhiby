@@ -96,7 +96,7 @@ export function AudienceProfile({
     console.log("[AudienceProfile] Refreshing profile for user:", user.id);
     const {
       data
-    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified, profile_links").eq("user_id", user.id).maybeSingle();
+    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified").eq("user_id", user.id).maybeSingle();
     if (data) {
       console.log("[AudienceProfile] ✅ Profile refreshed:", data.name);
       const createdDate = new Date(data.created_at);
@@ -104,6 +104,14 @@ export function AudienceProfile({
         month: "short",
         year: "numeric"
       });
+      // Fetch profile_links separately — graceful if column not yet migrated
+      let profileLinks: ProfileLink[] = [];
+      try {
+        const { data: linksRow } = await supabase
+          .from("profiles").select("profile_links").eq("user_id", user.id).maybeSingle();
+        if (linksRow?.profile_links) profileLinks = linksRow.profile_links as ProfileLink[];
+      } catch { /* migration pending */ }
+
       setLocalProfile({
         name: data.name,
         handle: data.handle,
@@ -115,7 +123,7 @@ export function AudienceProfile({
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
         isVerified: data.is_verified ?? false,
-        profileLinks: (data.profile_links as ProfileLink[]) || [],
+        profileLinks,
       });
     } else {
       console.warn("[AudienceProfile] ⚠️ Profile refresh returned null for authenticated user");

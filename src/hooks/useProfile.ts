@@ -25,10 +25,11 @@ export function useProfile() {
     queryFn: async (): Promise<UserProfile | null> => {
       if (!user) return null;
 
+      // Core profile query — uses only stable, long-existing columns
       const { data, error } = await supabase
         .from("profiles")
         .select(
-          "name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified, profile_links"
+          "name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified"
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -46,6 +47,23 @@ export function useProfile() {
         year: "numeric",
       });
 
+      // profile_links lives in a newer column — fetch separately so a missing
+      // column (migration pending) never breaks the core profile load.
+      let profileLinks: ProfileLink[] = [];
+      try {
+        const { data: linksRow, error: linksError } = await supabase
+          .from("profiles")
+          .select("profile_links")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!linksError && linksRow?.profile_links) {
+          profileLinks = linksRow.profile_links as ProfileLink[];
+        }
+      } catch {
+        // Column not yet migrated — silently continue without links
+      }
+
       return {
         name: data.name,
         handle: data.handle,
@@ -57,12 +75,12 @@ export function useProfile() {
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
         isVerified: data.is_verified ?? false,
-        profileLinks: (data.profile_links as ProfileLink[]) || [],
+        profileLinks,
       };
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   return { profile, isLoading };
