@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare, Plus, CheckCircle, AlertCircle, ExternalLink, DollarSign, Ticket, Coins, TrendingUp, History, Landmark, Clock } from "lucide-react";
+import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare, Plus, CheckCircle, AlertCircle, ExternalLink, DollarSign, Ticket, Coins, TrendingUp, History, Landmark, Clock, Zap, Check, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeConnect } from "@/hooks/useStripeConnect";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmailModal, ChangePasswordModal, DeleteAccountModal, ReportBugModal } from "@/components/settings";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlan, PLAN_META, type PlanTier } from "@/hooks/usePlan";
 
 // Menu category types
 type SettingsCategory = "account" | "notifications" | "privacy" | "payments" | "vacation" | "shipping" | "help" | "guidelines";
@@ -546,8 +547,142 @@ function PaymentsContent() {
 }
 
 function PaymentsMenuView({ onNavigate }: { onNavigate: (v: PaymentSubView) => void }) {
+  const navigate = useNavigate();
+  const { plan, tier, isLoading: planLoading, setPlan, isUpdating } = usePlan();
+  const [showDowngradeConfirm, setShowDowngradeConfirm] = useState(false);
+
+  const handleDowngrade = async () => {
+    triggerClickHaptic();
+    await setPlan("free");
+    setShowDowngradeConfirm(false);
+    toast({ title: "Plan updated", description: "You're now on Free Studio." });
+  };
+
+  const planBadgeClass = cn(
+    "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold tracking-wider",
+    tier === "free"
+      ? "bg-muted/50 text-muted-foreground"
+      : tier === "pro"
+      ? "bg-electric/15 text-electric border border-electric/30 shadow-[0_0_10px_hsl(7_100%_67%/0.2)]"
+      : "bg-gold/15 text-gold border border-gold/30 shadow-[0_0_10px_hsl(43_72%_52%/0.2)]"
+  );
+
+  const planFeatures: Record<PlanTier, string[]> = {
+    free: ["Unlimited live sessions", "Built-in ticketing & payments", "8% commission", "Up to 50 attendees"],
+    pro: ["Everything in Free", "Custom studio colors & URL", "Advanced analytics", "Unlimited attendees", "4% commission"],
+    plus: ["Everything in Pro", "Dedicated account manager", "White-label studio room", "API access"],
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* ── YOUR PLAN hero card ── */}
+      <div className={cn(
+        "rounded-2xl border p-5 relative overflow-hidden",
+        tier === "free"
+          ? "border-border/25 bg-obsidian/70"
+          : tier === "pro"
+          ? "border-electric/30 bg-obsidian shadow-[0_0_40px_hsl(7_100%_67%/0.08)]"
+          : "border-gold/30 bg-obsidian shadow-[0_0_40px_hsl(43_72%_52%/0.08)]"
+      )}>
+        {/* Subtle gradient shimmer in top-right */}
+        <div className={cn(
+          "absolute top-0 right-0 w-48 h-48 rounded-full opacity-[0.07] blur-3xl pointer-events-none",
+          tier === "pro" ? "bg-electric" : tier === "plus" ? "bg-gold" : "bg-muted"
+        )} />
+
+        <div className="relative">
+          {/* Plan name + badge */}
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 tracking-wide">Your plan</p>
+              <div className="flex items-center gap-2">
+                {planLoading ? (
+                  <div className="h-7 w-24 bg-muted/30 rounded-full animate-pulse" />
+                ) : (
+                  <>
+                    <h3 className="font-display text-xl font-semibold text-foreground">{plan.label}</h3>
+                    <span className={planBadgeClass}>
+                      {(tier === "pro" || tier === "plus") && <Zap className="w-2.5 h-2.5" />}
+                      {plan.shortLabel}
+                    </span>
+                  </>
+                )}
+              </div>
+              {tier !== "free" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  ${plan.monthlyPrice}/month · {plan.commission} commission
+                </p>
+              )}
+              {tier === "free" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Free forever · {plan.commission} commission · {plan.attendeeLimit}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Feature list */}
+          {!planLoading && (
+            <ul className="space-y-2 mb-5">
+              {planFeatures[tier].map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-sm text-foreground/80">
+                  <span className={cn(
+                    "flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center",
+                    tier === "free" ? "bg-muted/50" : tier === "pro" ? "bg-electric/15" : "bg-gold/15"
+                  )}>
+                    <Check className={cn(
+                      "w-2.5 h-2.5",
+                      tier === "pro" ? "text-electric" : tier === "plus" ? "text-gold" : "text-muted-foreground"
+                    )} strokeWidth={3} />
+                  </span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* CTA row */}
+          <div className="flex items-center gap-3">
+            {tier === "free" ? (
+              <button
+                onClick={() => { triggerClickHaptic(); navigate("/pricing"); }}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-electric text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-[0_4px_20px_hsl(7_100%_67%/0.3)] hover:shadow-[0_6px_28px_hsl(7_100%_67%/0.45)] transition-shadow active:scale-[0.98]"
+              >
+                <Zap className="w-4 h-4" />
+                Upgrade Plan
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => { triggerClickHaptic(); navigate("/pricing"); }}
+                  className="flex-1 py-2.5 rounded-xl border border-border/30 bg-transparent text-sm text-foreground hover:bg-surface-elevated transition-colors"
+                >
+                  View All Plans
+                </button>
+                {!showDowngradeConfirm ? (
+                  <button
+                    onClick={() => { triggerClickHaptic(); setShowDowngradeConfirm(true); }}
+                    className="py-2.5 px-4 rounded-xl text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Downgrade
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleDowngrade}
+                    disabled={isUpdating}
+                    className="py-2.5 px-4 rounded-xl text-xs text-destructive bg-destructive/10 border border-destructive/20 font-semibold flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    Confirm downgrade to Free
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Rest of payment settings ── */}
       <SettingsCard
         title="Payment Methods"
         description="Manage your saved payment methods"

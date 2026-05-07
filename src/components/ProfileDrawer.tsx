@@ -1,8 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { X, User, LayoutDashboard, CreditCard, Settings, LogOut, Palette } from "lucide-react";
+import { X, User, LayoutDashboard, CreditCard, Settings, LogOut, Palette, Zap } from "lucide-react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import featureFlags from "@/lib/featureFlags";
+import { usePlan } from "@/hooks/usePlan";
+import { cn } from "@/lib/utils";
 
 interface ProfileDrawerProps {
   isOpen: boolean;
@@ -31,6 +33,7 @@ export function ProfileDrawer({
 }: ProfileDrawerProps) {
   const navigate = useNavigate();
   useScrollLock(isOpen);
+  const { plan } = usePlan();
 
   const getInitials = (name: string) => {
     return name
@@ -112,7 +115,27 @@ export function ProfileDrawer({
                     {profile?.handle ? profile.handle : displayName}
                   </h2>
                   <p className="text-sm text-muted-foreground">{displayName}</p>
-                  <p className="text-xs text-muted-foreground capitalize mt-0.5">{mode} Mode</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <p className="text-xs text-muted-foreground capitalize">{mode} Mode</p>
+                    <span className="text-muted-foreground/30">·</span>
+                    {/* Plan badge */}
+                    <button
+                      onClick={() => { navigate("/pricing"); setTimeout(() => onClose(), 50); }}
+                      className={cn(
+                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider transition-all",
+                        plan.tier === "free"
+                          ? "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                          : plan.tier === "pro"
+                          ? "bg-electric/15 text-electric border border-electric/30 hover:bg-electric/25 shadow-[0_0_8px_hsl(7_100%_67%/0.2)]"
+                          : "bg-gold/15 text-gold border border-gold/30 hover:bg-gold/25 shadow-[0_0_8px_hsl(43_72%_52%/0.2)]"
+                      )}
+                    >
+                      {(plan.tier === "pro" || plan.tier === "plus") && (
+                        <Zap className="w-2.5 h-2.5" />
+                      )}
+                      {plan.shortLabel}
+                    </button>
+                  </div>
                 </div>
               </div>
 

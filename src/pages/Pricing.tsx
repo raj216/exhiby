@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ArrowLeft, Zap, Mail } from "lucide-react";
+import { Check, ArrowLeft, Zap, Mail, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePlan } from "@/hooks/usePlan";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Plan {
@@ -102,6 +103,7 @@ const itemVariants = {
 export default function Pricing() {
   const navigate = useNavigate();
   const [annual, setAnnual] = useState(true);
+  const { tier: currentTier } = usePlan();
 
   return (
     <div className="min-h-screen bg-carbon text-foreground overflow-x-hidden">
@@ -200,7 +202,7 @@ export default function Pricing() {
           className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5 items-start"
         >
           {PLANS.map((plan) => (
-            <PricingCard key={plan.id} plan={plan} annual={annual} />
+            <PricingCard key={plan.id} plan={plan} annual={annual} currentTier={currentTier} />
           ))}
         </motion.div>
 
@@ -220,12 +222,17 @@ export default function Pricing() {
 }
 
 // ─── Plan Card ────────────────────────────────────────────────────────────────
-function PricingCard({ plan, annual }: { plan: Plan; annual: boolean }) {
+function PricingCard({ plan, annual, currentTier }: { plan: Plan; annual: boolean; currentTier: string }) {
   const navigate = useNavigate();
   const price = annual ? plan.annualMonthlyPrice : plan.monthlyPrice;
   const tagline = annual ? plan.annualTagline : plan.tagline;
+  const isCurrent = plan.id === currentTier;
 
   const handleCta = () => {
+    if (isCurrent) {
+      navigate("/settings");
+      return;
+    }
     if (plan.id === "free") {
       navigate("/auth");
     } else if (plan.ctaHref) {
@@ -322,16 +329,25 @@ function PricingCard({ plan, annual }: { plan: Plan; annual: boolean }) {
         <button
           onClick={handleCta}
           className={cn(
-            "mt-8 w-full py-3.5 rounded-2xl text-sm font-semibold transition-all duration-300 active:scale-[0.98]",
-            plan.isPro
+            "mt-8 w-full py-3.5 rounded-2xl text-sm font-semibold transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2",
+            isCurrent
+              ? "bg-muted/40 border border-border/30 text-muted-foreground cursor-default"
+              : plan.isPro
               ? "bg-gradient-electric text-white shadow-[0_4px_24px_hsl(7_100%_67%/0.35)] hover:shadow-[0_6px_32px_hsl(7_100%_67%/0.5)]"
               : "bg-transparent border border-border/40 text-foreground hover:bg-surface-elevated hover:border-border/70"
           )}
         >
-          {plan.id !== "free" && (
-            <Mail className="w-4 h-4 inline mr-2 -mt-0.5 opacity-70" />
+          {isCurrent ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-electric" />
+              Current Plan
+            </>
+          ) : (
+            <>
+              {plan.id !== "free" && <Mail className="w-4 h-4 opacity-70" />}
+              {plan.cta}
+            </>
           )}
-          {plan.cta}
         </button>
       </div>
     </motion.div>
