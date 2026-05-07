@@ -111,13 +111,13 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
       console.log("[LiveViewers] Checking session capacity...");
 
       // Plan gate: check if the session has capacity before joining
-      const { data: gateResult, error: gateError } = await supabase.rpc(
+      const { data: gateResult, error: gateError } = await (supabase.rpc as any)(
         "can_viewer_join_session",
         { p_event_id: eventId }
       );
 
       if (!gateError && gateResult) {
-        const gate = gateResult as { can_join: boolean; reason?: string; max_viewers?: number };
+        const gate = gateResult as unknown as { can_join: boolean; reason?: string; max_viewers?: number };
         if (!gate.can_join) {
           console.warn(`[LiveViewers] Session full (max ${gate.max_viewers} viewers)`);
           // Dispatch a custom event so the live room UI can show a "Session Full" message

@@ -58,7 +58,7 @@ export function useProfile() {
           .maybeSingle();
 
         if (!linksError && linksRow?.profile_links) {
-          profileLinks = linksRow.profile_links as ProfileLink[];
+          profileLinks = linksRow.profile_links as unknown as ProfileLink[];
         }
       } catch {
         // Column not yet migrated — silently continue without links
