@@ -291,73 +291,98 @@ export default function EarningsHistory() {
               Start hosting paid sessions to earn
             </p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {data.transactions.map((tx) => {
-              const isTip = tx.type === "tip";
-              return (
-                <div
-                  key={tx.id}
-                  className="py-4 px-4 bg-obsidian rounded-2xl border border-border/20"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isTip ? "bg-emerald-500/10" : "bg-gold/10"}`}>
-                      {isTip ? (
-                        <Coins className="w-5 h-5 text-emerald-400" />
-                      ) : (
-                        <Ticket className="w-5 h-5 text-gold" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-foreground font-medium truncate">
-                          {tx.event_title}
-                        </p>
-                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          isTip
-                            ? "bg-emerald-500/15 text-emerald-400"
-                            : "bg-gold/15 text-gold"
-                        }`}>
-                          {isTip ? "Tip" : "Ticket"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Calendar className="w-3 h-3 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(tx.created_at), "MMM d, yyyy")}
-                        </p>
-                        {!isTip && tx.ticket_count > 0 && (
-                          <>
-                            <span className="text-muted-foreground/50">•</span>
-                            <p className="text-xs text-muted-foreground">
-                              {tx.ticket_count} attendee{tx.ticket_count !== 1 ? "s" : ""}
+        ) : (() => {
+          const totalGross = data.transactions.reduce((s, t) => s + t.amount_gross, 0);
+          const totalFees  = data.transactions.reduce((s, t) => s + t.platform_fee, 0);
+          const totalNet   = data.transactions.reduce((s, t) => s + t.amount_net, 0);
+          return (
+            <>
+              <div className="space-y-3">
+                {data.transactions.map((tx) => {
+                  const isTip = tx.type === "tip";
+                  const feeLabel = tx.platform_fee === 0
+                    ? <span className="text-emerald-400/80 font-medium">No Platform Fee · Free Plan</span>
+                    : <span>Platform Fee ({tx.amount_gross > 0 ? Math.round(tx.platform_fee / tx.amount_gross * 100) : 0}%): −{formatCents(tx.platform_fee)}</span>;
+                  return (
+                    <div
+                      key={tx.id}
+                      className="py-4 px-4 bg-obsidian rounded-2xl border border-border/20"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isTip ? "bg-emerald-500/10" : "bg-gold/10"}`}>
+                          {isTip ? (
+                            <Coins className="w-5 h-5 text-emerald-400" />
+                          ) : (
+                            <Ticket className="w-5 h-5 text-gold" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-foreground font-medium truncate">
+                              {tx.event_title}
                             </p>
-                          </>
-                        )}
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              isTip
+                                ? "bg-emerald-500/15 text-emerald-400"
+                                : "bg-gold/15 text-gold"
+                            }`}>
+                              {isTip ? "Tip" : "Ticket"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Calendar className="w-3 h-3 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(tx.created_at), "MMM d, yyyy")}
+                            </p>
+                            {!isTip && tx.ticket_count > 0 && (
+                              <>
+                                <span className="text-muted-foreground/50">•</span>
+                                <p className="text-xs text-muted-foreground">
+                                  {tx.ticket_count} attendee{tx.ticket_count !== 1 ? "s" : ""}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-display text-lg ${isTip ? "text-emerald-400" : "text-gold"}`}>
+                            +{formatCents(tx.amount_net)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 mt-2 ml-16 text-xs text-muted-foreground">
+                        <span>Gross: {formatCents(tx.amount_gross)}</span>
+                        {feeLabel}
+                        <span className={isTip ? "text-emerald-400" : "text-gold"}>Net: {formatCents(tx.amount_net)}</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-display text-lg ${isTip ? "text-emerald-400" : "text-gold"}`}>
-                        +{formatCents(tx.amount_net)}
-                      </p>
-                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Earnings Summary */}
+              <div className="mt-6 rounded-2xl border border-border/30 overflow-hidden">
+                <div className="px-4 py-3 bg-obsidian/80 border-b border-border/20">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Earnings Summary</p>
+                </div>
+                <div className="bg-obsidian/40 divide-y divide-border/15">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-muted-foreground">Total Gross</span>
+                    <span className="text-sm font-medium text-foreground">{formatCents(totalGross)}</span>
                   </div>
-                  <div className="flex items-center gap-4 mt-2 ml-16 text-xs text-muted-foreground">
-                    <span>Gross: {formatCents(tx.amount_gross)}</span>
-                    {tx.platform_fee === 0 ? (
-                      <span className="text-emerald-400/80">No Platform Fee · Free Plan</span>
-                    ) : (
-                      <span>
-                        Platform Fee ({tx.amount_gross > 0 ? Math.round(tx.platform_fee / tx.amount_gross * 100) : 0}%): −{formatCents(tx.platform_fee)}
-                      </span>
-                    )}
-                    <span className={isTip ? "text-emerald-400" : "text-gold"}>Net: {formatCents(tx.amount_net)}</span>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-muted-foreground">Platform Fees Deducted</span>
+                    <span className="text-sm font-medium text-muted-foreground">−{formatCents(totalFees)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3 bg-gold/5">
+                    <span className="text-sm font-semibold text-foreground">You Earned (Net)</span>
+                    <span className="font-display text-lg text-gold">{formatCents(totalNet)}</span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            </>
+          );
+        })()}
       </div>
     </motion.div>
   );

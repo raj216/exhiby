@@ -82,14 +82,20 @@ export function useCreatorEarnings(userId: string | undefined) {
       const groupMap = new Map<string, EarningRecord>();
 
       for (const e of earnings) {
-        const netCents = e.amount_net || 0;
-        lifetimeEarnings += netCents;
+        const gross = e.amount_gross || 0;
+        // Cap legacy rows that were recorded at 10% — free plan max is 8%.
+        // Pro/Plus rows are at 4% so they are never affected by this cap.
+        const maxFee = Math.round(gross * 0.08);
+        const correctedFee = Math.min(e.platform_fee || 0, maxFee);
+        const correctedNet = gross - correctedFee;
+
+        lifetimeEarnings += correctedNet;
 
         const createdAt = new Date(e.created_at);
         if (createdAt >= thisMonthStart) {
-          thisMonthEarnings += netCents;
+          thisMonthEarnings += correctedNet;
         } else if (createdAt >= lastMonthStart && createdAt < lastMonthEnd) {
-          lastMonthEarnings += netCents;
+          lastMonthEarnings += correctedNet;
         }
 
         const isTip = e.ticket_id === null;
@@ -97,9 +103,9 @@ export function useCreatorEarnings(userId: string | undefined) {
 
         if (groupMap.has(key)) {
           const existing = groupMap.get(key)!;
-          existing.amount_gross += e.amount_gross || 0;
-          existing.platform_fee += e.platform_fee || 0;
-          existing.amount_net += netCents;
+          existing.amount_gross += gross;
+          existing.platform_fee += correctedFee;
+          existing.amount_net += correctedNet;
           existing.ticket_count += isTip ? 0 : 1;
         } else {
           groupMap.set(key, {
@@ -107,9 +113,9 @@ export function useCreatorEarnings(userId: string | undefined) {
             event_id: e.event_id,
             event_title: eventMap.get(e.event_id) || "Untitled Session",
             user_id: e.user_id,
-            amount_gross: e.amount_gross || 0,
-            platform_fee: e.platform_fee || 0,
-            amount_net: netCents,
+            amount_gross: gross,
+            platform_fee: correctedFee,
+            amount_net: correctedNet,
             currency: e.currency,
             created_at: e.created_at,
             ticket_count: isTip ? 0 : 1,
