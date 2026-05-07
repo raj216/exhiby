@@ -674,7 +674,10 @@ export function AudienceProfile({
       </div>
 
       {/* Edit Profile Modal */}
-      <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={refreshProfile} />
+      <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={(savedLinks) => {
+        setLocalProfile(prev => prev ? { ...prev, profileLinks: savedLinks } : prev);
+        refreshProfile();
+      }} />
 
       {/* Follow List Modal */}
       {user && <FollowListModal isOpen={showFollowList !== null} onClose={() => setShowFollowList(null)} userId={user.id} type={showFollowList || "followers"} />}

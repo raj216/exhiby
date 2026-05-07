@@ -26,7 +26,9 @@ interface EditProfileModalProps {
     coverUrl?: string | null;
     profileLinks?: ProfileLink[];
   } | null;
-  onProfileUpdated: () => void;
+  /** Called after save. Receives the validated links so callers can do an
+   *  optimistic update without waiting for a DB read-back. */
+  onProfileUpdated: (savedLinks: ProfileLink[]) => void;
 }
 
 const LINK_TYPE_OPTIONS: { value: ProfileLink["type"]; label: string; icon: React.ReactNode }[] = [
@@ -248,7 +250,8 @@ export function EditProfileModal({
       }
 
       toast({ title: "Profile saved", description: validLinks.length > 0 ? `Profile and ${validLinks.length} link${validLinks.length > 1 ? "s" : ""} saved!` : "Profile updated successfully!" });
-      onProfileUpdated();
+      // Pass saved links back so the parent can do an immediate optimistic update.
+      onProfileUpdated(validLinks);
       onClose();
     } catch (error) {
       console.error("Save error:", error);
@@ -270,19 +273,20 @@ export function EditProfileModal({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   const displayAvatar = avatarPreview || profile?.avatarUrl;
   const displayCover = coverPreview || profile?.coverUrl;
 
   return (
+    <>
+    {/* Outer AnimatePresence so the exit slide-down animation actually plays */}
     <AnimatePresence>
-      {/* Main Modal */}
+      {isOpen && (
       <motion.div
+        key="edit-profile-modal"
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        transition={{ type: "spring", damping: 28, stiffness: 300 }}
         className="fixed inset-0 z-50 bg-carbon flex flex-col"
       >
         {/* Header */}
@@ -529,32 +533,33 @@ export function EditProfileModal({
           className="hidden"
         />
       </motion.div>
-
-      {/* Avatar Cropper */}
-      {showAvatarCropper && tempImage && (
-        <ImageCropper
-          imageSrc={tempImage}
-          mode="avatar"
-          onCropComplete={(blob) => handleCropComplete(blob, "avatar")}
-          onCancel={() => {
-            setShowAvatarCropper(false);
-            setTempImage(null);
-          }}
-        />
-      )}
-
-      {/* Cover Cropper */}
-      {showCoverCropper && tempImage && (
-        <ImageCropper
-          imageSrc={tempImage}
-          mode="cover"
-          onCropComplete={(blob) => handleCropComplete(blob, "cover")}
-          onCancel={() => {
-            setShowCoverCropper(false);
-            setTempImage(null);
-          }}
-        />
       )}
     </AnimatePresence>
+
+    {/* Croppers render outside AnimatePresence so they're not affected by the
+        modal's slide animation */}
+    {showAvatarCropper && tempImage && (
+      <ImageCropper
+        imageSrc={tempImage}
+        mode="avatar"
+        onCropComplete={(blob) => handleCropComplete(blob, "avatar")}
+        onCancel={() => {
+          setShowAvatarCropper(false);
+          setTempImage(null);
+        }}
+      />
+    )}
+    {showCoverCropper && tempImage && (
+      <ImageCropper
+        imageSrc={tempImage}
+        mode="cover"
+        onCropComplete={(blob) => handleCropComplete(blob, "cover")}
+        onCancel={() => {
+          setShowCoverCropper(false);
+          setTempImage(null);
+        }}
+      />
+    )}
+    </>
   );
 }

@@ -583,7 +583,11 @@ export function StudioDashboard({
       {activeStudioTab !== "portfolio" && <div className="pb-24" />}
 
       {/* Edit Profile Modal */}
-      <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={refreshProfile} />
+      <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={(savedLinks) => {
+        // Optimistic update: show saved links immediately without waiting for DB read-back
+        setLocalProfile(prev => prev ? { ...prev, profileLinks: savedLinks } : prev);
+        refreshProfile();
+      }} />
 
 
       {/* Follow List Modal */}
