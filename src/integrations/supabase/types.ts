@@ -672,6 +672,7 @@ export type Database = {
           is_verified: boolean
           name: string
           plan: string
+          profile_links: Json
           updated_at: string
           user_id: string
           verified_at: string | null
@@ -690,6 +691,7 @@ export type Database = {
           is_verified?: boolean
           name: string
           plan?: string
+          profile_links?: Json
           updated_at?: string
           user_id: string
           verified_at?: string | null
@@ -708,6 +710,7 @@ export type Database = {
           is_verified?: boolean
           name?: string
           plan?: string
+          profile_links?: Json
           updated_at?: string
           user_id?: string
           verified_at?: string | null
