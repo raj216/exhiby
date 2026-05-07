@@ -34,6 +34,7 @@ const PLANS: Plan[] = [
     tagline: "forever free to start",
     annualTagline: "forever free to start",
     features: [
+      "First 10 sessions — zero commission",
       "Unlimited live sessions",
       "Built-in ticketing & payments",
       "Basic analytics",

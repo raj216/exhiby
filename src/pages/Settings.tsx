@@ -568,7 +568,7 @@ function PaymentsMenuView({ onNavigate }: { onNavigate: (v: PaymentSubView) => v
   );
 
   const planFeatures: Record<PlanTier, string[]> = {
-    free: ["Unlimited live sessions", "Built-in ticketing & payments", "8% commission", "Up to 50 attendees"],
+    free: ["First 10 sessions — zero commission", "Unlimited live sessions", "Built-in ticketing & payments", "8% commission", "Up to 50 attendees"],
     pro: ["Everything in Free", "Custom studio colors & URL", "Advanced analytics", "Unlimited attendees", "4% commission"],
     plus: ["Everything in Pro", "Dedicated account manager", "White-label studio room", "API access"],
   };
