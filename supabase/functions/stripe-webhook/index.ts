@@ -394,10 +394,61 @@ async function handlePaymentIntentFailed(
   }
 }
 
+// ─── Plan-aware commission helper ────────────────────────────────────────────
+/**
+ * Resolve the correct platform fee % for a creator based on:
+ *   1. Their profile plan (free = 8%, pro/plus = 4%)
+ *   2. First 10 sessions grace period (0% regardless of plan)
+ *
+ * "Session" = a distinct event_id that already has at least one earning record.
+ * We count BEFORE this insert so the current session still qualifies for the
+ * grace period when it's session #1–10.
+ */
+async function resolveCommissionPct(
+  supabase: ReturnType<typeof createClient>,
+  creatorId: string
+): Promise<number> {
+  // 1. Look up creator plan
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("user_id", creatorId)
+    .maybeSingle();
+
+  const plan: string = (profile?.plan as string) ?? "free";
+
+  // Pro / Plus: always 4%
+  if (plan === "pro" || plan === "plus") {
+    console.log(`[stripe-webhook] Creator ${creatorId} on ${plan} plan → 4% commission`);
+    return 4;
+  }
+
+  // Free plan: first 10 sessions are 0%
+  const FREE_ZERO_COMMISSION_SESSIONS = 10;
+  const { count } = await supabase
+    .from("creator_earnings")
+    .select("event_id", { count: "exact", head: true })
+    .eq("creator_id", creatorId)
+    .eq("status", "succeeded");
+
+  // Count distinct events already paid (rough but fast for MVP)
+  const paidSessionCount = count ?? 0;
+
+  if (paidSessionCount < FREE_ZERO_COMMISSION_SESSIONS) {
+    console.log(`[stripe-webhook] Creator ${creatorId} on free plan — session ${paidSessionCount + 1}/10 (grace period) → 0% commission`);
+    return 0;
+  }
+
+  console.log(`[stripe-webhook] Creator ${creatorId} on free plan — session ${paidSessionCount + 1} → 8% commission`);
+  return 8;
+}
+
 /**
  * Record a creator earning for a TICKET purchase.
- * Uses stripe_event_id as unique key for idempotency.
- * Platform fee is 10%.
+ * Commission rate is determined by the creator's plan and session count.
+ *   Free plan, sessions 1–10: 0%
+ *   Free plan, sessions 11+:  8%
+ *   Pro / Plus:                4%
  */
 async function recordCreatorEarning(
   supabase: ReturnType<typeof createClient>,
@@ -431,8 +482,8 @@ async function recordCreatorEarning(
     return;
   }
 
-  const PLATFORM_FEE_PERCENT = 10;
-  const platformFee = Math.round(params.amountCents * PLATFORM_FEE_PERCENT / 100);
+  const commissionPct = await resolveCommissionPct(supabase, event.creator_id);
+  const platformFee = Math.round(params.amountCents * commissionPct / 100);
   const amountNet = params.amountCents - platformFee;
 
   const { error } = await supabase.from("creator_earnings").insert({
@@ -457,14 +508,13 @@ async function recordCreatorEarning(
       console.error("[stripe-webhook] ❌ Error recording creator earning:", error);
     }
   } else {
-    console.log(`[stripe-webhook] ✅ Recorded ticket earning: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
+    console.log(`[stripe-webhook] ✅ Ticket earning recorded: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net (${commissionPct}% fee) for creator ${event.creator_id}`);
   }
 }
 
 /**
  * Record a creator earning for a TIP payment.
- * Tips have no ticket_id. Uses stripe_event_id for idempotency.
- * Platform fee is 10%.
+ * Tips follow the same plan-based commission as tickets.
  */
 async function recordTipEarning(
   supabase: ReturnType<typeof createClient>,
@@ -485,7 +535,6 @@ async function recordTipEarning(
     return;
   }
 
-  // Look up creator from the event
   const { data: event, error: eventError } = await supabase
     .from("events")
     .select("creator_id")
@@ -503,14 +552,14 @@ async function recordTipEarning(
     return;
   }
 
-  const PLATFORM_FEE_PERCENT = 10;
-  const platformFee = Math.round(params.amountCents * PLATFORM_FEE_PERCENT / 100);
+  const commissionPct = await resolveCommissionPct(supabase, event.creator_id);
+  const platformFee = Math.round(params.amountCents * commissionPct / 100);
   const amountNet = params.amountCents - platformFee;
 
   const { error } = await supabase.from("creator_earnings").insert({
     creator_id: event.creator_id,
     event_id: params.eventId,
-    ticket_id: null, // Tips have no ticket
+    ticket_id: null,
     user_id: params.tipperUserId,
     stripe_payment_intent_id: params.stripePaymentIntentId,
     stripe_checkout_session_id: params.stripeCheckoutSessionId,
@@ -529,7 +578,7 @@ async function recordTipEarning(
       console.error("[stripe-webhook] ❌ Error recording tip earning:", error);
     }
   } else {
-    console.log(`[stripe-webhook] ✅ Recorded TIP earning: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net for creator ${event.creator_id}`);
+    console.log(`[stripe-webhook] ✅ TIP earning recorded: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net (${commissionPct}% fee) for creator ${event.creator_id}`);
   }
 }
 

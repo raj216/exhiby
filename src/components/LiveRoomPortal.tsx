@@ -5,6 +5,7 @@ import { triggerClickHaptic } from "@/lib/haptics";
 import { FloatingHearts, useFloatingHearts } from "./FloatingHearts";
 import { LiveChatOverlay, useLiveChat } from "./LiveChatOverlay";
 import { useLiveViewers } from "@/hooks/useLiveViewers";
+import { toast } from "sonner";
 
 interface LiveRoomPortalProps {
   eventId: string;
@@ -42,6 +43,20 @@ export function LiveRoomPortal({
       leaveAsViewer();
     };
   }, [joinAsViewer, leaveAsViewer]);
+
+  // Listen for session-full gate event from useLiveViewers
+  useEffect(() => {
+    const handleSessionFull = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { maxViewers: number };
+      toast.error(`This session is full (${detail.maxViewers} viewer limit)`, {
+        description: "The creator is on the Free plan. Try again when a spot opens up.",
+        duration: 6000,
+      });
+      onClose();
+    };
+    window.addEventListener("exhiby:session-full", handleSessionFull);
+    return () => window.removeEventListener("exhiby:session-full", handleSessionFull);
+  }, [onClose]);
 
   // Start video fade-in after portal animation
   useEffect(() => {
