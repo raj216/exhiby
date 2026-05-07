@@ -10,7 +10,7 @@ import { ProfileScreen } from "@/components/ProfileScreen";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { CategoriesOverlay } from "@/components/CategoriesOverlay";
 import { BottomNavigation } from "@/components/BottomNavigation";
-import { PassportStamp, LogoutOverlay, PassportModal } from "@/components/auth";
+import { PassportStamp, LogoutOverlay, PassportModal, PlanOnboarding } from "@/components/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +54,7 @@ function IndexContent() {
   const [userName, setUserName] = useState("Guest");
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
   const [needsPassportSetup, setNeedsPassportSetup] = useState(false);
+  const [needsPlanSelection, setNeedsPlanSelection] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [refreshScheduleKey, setRefreshScheduleKey] = useState(0);
 
@@ -114,11 +115,17 @@ function IndexContent() {
           if (profile && (!profile.handle || !profile.avatar_url)) {
             setNeedsPassportSetup(true);
           } else if (profile) {
-            // Passport complete - check for welcome stamp
-            const lastStampShown = sessionStorage.getItem("exhiby_stamp_shown");
-            if (!lastStampShown) {
-              setShowWelcomeStamp(true);
-              sessionStorage.setItem("exhiby_stamp_shown", "true");
+            // Passport complete — check if plan selection was shown
+            const planDone = user?.user_metadata?.plan_onboarding_done;
+            if (!planDone) {
+              setNeedsPlanSelection(true);
+            } else {
+              // Plan done — check for welcome stamp
+              const lastStampShown = sessionStorage.getItem("exhiby_stamp_shown");
+              if (!lastStampShown) {
+                setShowWelcomeStamp(true);
+                sessionStorage.setItem("exhiby_stamp_shown", "true");
+              }
             }
           }
         } catch (error) {
@@ -238,13 +245,25 @@ function IndexContent() {
   // Passport setup for first-time users (mandatory, non-skippable)
   if (needsPassportSetup) {
     return (
-      <PassportModal 
-        userName={userName} 
+      <PassportModal
+        userName={userName}
         onComplete={() => {
           setNeedsPassportSetup(false);
+          setNeedsPlanSelection(true);
+        }}
+      />
+    );
+  }
+
+  // Plan selection — shown once after passport, before entering the app
+  if (needsPlanSelection) {
+    return (
+      <PlanOnboarding
+        onComplete={() => {
+          setNeedsPlanSelection(false);
           setShowWelcomeStamp(true);
           sessionStorage.setItem("exhiby_stamp_shown", "true");
-        }} 
+        }}
       />
     );
   }
