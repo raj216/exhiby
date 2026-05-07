@@ -511,7 +511,7 @@ export function HomeScreen({
                         onClick={() => setShowArtistActivation(true)}
                         style={{
                           background: '#FF6B58',
-                          color: '#0F0F11',
+                          color: '#FFFFFF',
                           fontWeight: 600,
                           fontSize: '14px',
                           borderRadius: '8px',
@@ -564,7 +564,7 @@ export function HomeScreen({
                             onClick={onGoLive}
                             style={{
                               background: '#FF6B58',
-                              color: '#0F0F11',
+                              color: '#FFFFFF',
                               fontWeight: 600,
                               fontSize: '14px',
                               borderRadius: '8px',

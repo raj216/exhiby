@@ -4,6 +4,7 @@ import { Bell, Search, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useUserMode } from "@/contexts/UserModeContext";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 
 interface MobileHeaderProps {
@@ -21,14 +22,15 @@ export function MobileHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
   const { hasUnread: hasUnreadMessages } = useUnreadMessages();
+  const { isVerifiedCreator, mode, setMode } = useUserMode();
 
   return (
     <>
       <header
-        className={`sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-carbon/95 backdrop-blur-xl border-b border-border/20 lg:hidden ${className}`}
+        className={`sticky top-0 z-30 flex items-center gap-2 px-4 py-3 bg-carbon/95 backdrop-blur-xl border-b border-border/20 lg:hidden ${className}`}
       >
         {/* Logo - Clickable to go home */}
-        <button 
+        <button
           onClick={() => {
             if (onGoHome) {
               onGoHome();
@@ -38,21 +40,47 @@ export function MobileHeader({
           }}
           className="shrink-0 whitespace-nowrap"
         >
-          <span className="font-display text-xl font-bold text-primary">
+          <span className="font-display text-xl font-bold text-gradient-electric">
             Exhiby
           </span>
         </button>
 
-        {/* Search */}
+        {/* Audience / Studio mode toggle — only for verified creators */}
+        {isVerifiedCreator && (
+          <div className="shrink-0 flex items-center p-0.5 rounded-full bg-obsidian border border-border/30">
+            <button
+              onClick={() => setMode("audience")}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors duration-200 ${
+                mode === "audience"
+                  ? "bg-carbon text-primary"
+                  : "text-muted-foreground hover:text-foreground/70"
+              }`}
+            >
+              Audience
+            </button>
+            <button
+              onClick={() => setMode("creator")}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors duration-200 ${
+                mode === "creator"
+                  ? "bg-carbon text-primary"
+                  : "text-muted-foreground hover:text-foreground/70"
+              }`}
+            >
+              Studio
+            </button>
+          </div>
+        )}
+
+        {/* Search — fills remaining space */}
         <div className="flex-1 min-w-0">
           <button
             onClick={onOpenSearch}
-            className="w-full min-w-0 flex items-center gap-3 px-4 py-2.5 rounded-full bg-obsidian border border-border/30 hover:border-border/50 transition-colors duration-200 group"
+            className="w-full min-w-0 flex items-center gap-2 px-3 py-2.5 rounded-full bg-obsidian border border-border/30 hover:border-border/50 transition-colors duration-200 group"
             aria-label="Search"
           >
             <Search className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground/70 transition-colors" />
             <span className="min-w-0 truncate text-sm text-muted-foreground group-hover:text-foreground/70 transition-colors">
-              Explore studios, artists, and process...
+              Explore...
             </span>
           </button>
         </div>
