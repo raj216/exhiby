@@ -109,7 +109,7 @@ export function AudienceProfile({
       try {
         const { data: linksRow } = await supabase
           .from("profiles").select("profile_links").eq("user_id", user.id).maybeSingle();
-        if (linksRow?.profile_links) profileLinks = linksRow.profile_links as ProfileLink[];
+        if (linksRow?.profile_links) profileLinks = linksRow.profile_links as unknown as ProfileLink[];
       } catch { /* migration pending */ }
 
       setLocalProfile({
