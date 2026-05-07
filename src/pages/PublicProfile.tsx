@@ -20,6 +20,7 @@ import { CreatorReputationStats } from "@/components/CreatorReputationStats";
 import { UpcomingSessionsPreview } from "@/components/UpcomingSessionsPreview";
 import { TipCreatorModal } from "@/components/TipCreatorModal";
 import { ShareProfileModal } from "@/components/ShareProfileModal";
+import { ProfileLinks } from "@/components/ProfileLinks";
 
 
 interface LiveEventData {
@@ -41,6 +42,7 @@ interface PublicProfileData {
   is_founding_member: boolean | null;
   founding_number: number | null;
   is_verified?: boolean | null;
+  profile_links?: import("@/components/EditProfileModal").ProfileLink[] | null;
 }
 
 export default function PublicProfile() {
@@ -439,6 +441,9 @@ export default function PublicProfile() {
               >
                 {websiteHref.replace(/^https?:\/\//, "")}
               </a>
+            )}
+            {profile.profile_links && profile.profile_links.length > 0 && (
+              <ProfileLinks links={profile.profile_links} className="mt-2.5" />
             )}
           </motion.div>
 

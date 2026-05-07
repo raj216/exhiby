@@ -1,9 +1,11 @@
 import { useState, useEffect, type MouseEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image as ImageIcon, ShoppingBag, Ticket, ChevronRight, Pencil, Calendar, Clock, Radio, XCircle, Trash2, CheckCircle2, BadgeCheck, Share } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, ShoppingBag, Ticket, ChevronRight, Pencil, Calendar, Clock, Radio, XCircle, Trash2, CheckCircle2, BadgeCheck, Share, History } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
+import type { ProfileLink } from "./EditProfileModal";
+import { ProfileLinks } from "./ProfileLinks";
 import { FollowListModal } from "./FollowListModal";
 import { ShareStudioModal } from "./ShareStudioModal";
 import { SessionEndedScreen } from "./SessionEndedScreen";
@@ -27,6 +29,7 @@ interface UserProfile {
   isFoundingMember?: boolean;
   foundingNumber?: number | null;
   isVerified?: boolean;
+  profileLinks?: ProfileLink[];
 }
 interface AudienceProfileProps {
   onBack: () => void;
@@ -43,7 +46,7 @@ const fallbackUser = {
   avatarImage: "",
   memberSince: "Dec 2024"
 };
-type TabType = "tickets" | "collection";
+type TabType = "tickets" | "history" | "collection";
 export function AudienceProfile({
   onBack,
   onSwitchMode,
@@ -93,7 +96,7 @@ export function AudienceProfile({
     console.log("[AudienceProfile] Refreshing profile for user:", user.id);
     const {
       data
-    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified").eq("user_id", user.id).maybeSingle();
+    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified, profile_links").eq("user_id", user.id).maybeSingle();
     if (data) {
       console.log("[AudienceProfile] ✅ Profile refreshed:", data.name);
       const createdDate = new Date(data.created_at);
@@ -111,7 +114,8 @@ export function AudienceProfile({
         coverUrl: data.cover_url,
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
-        isVerified: data.is_verified ?? false
+        isVerified: data.is_verified ?? false,
+        profileLinks: (data.profile_links as ProfileLink[]) || [],
       });
     } else {
       console.warn("[AudienceProfile] ⚠️ Profile refresh returned null for authenticated user");
@@ -138,15 +142,11 @@ export function AudienceProfile({
     id: TabType;
     label: string;
     icon: typeof Ticket;
-  }[] = [{
-    id: "tickets",
-    label: "Tickets",
-    icon: Ticket
-  }, {
-    id: "collection",
-    label: "Collection",
-    icon: ShoppingBag
-  }];
+  }[] = [
+    { id: "tickets",    label: "My Tickets", icon: Ticket },
+    { id: "history",    label: "History",    icon: History },
+    { id: "collection", label: "Collection", icon: ShoppingBag },
+  ];
   const handleShare = () => {
     triggerClickHaptic();
     setShowShareProfile(true);
@@ -231,6 +231,9 @@ export function AudienceProfile({
               <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.30)" }}>
                 Tell people what you create and why they should watch.
               </p>
+            )}
+            {localProfile?.profileLinks && localProfile.profileLinks.length > 0 && (
+              <ProfileLinks links={localProfile.profileLinks} className="mt-2.5" />
             )}
           </motion.div>
 
@@ -581,6 +584,65 @@ export function AudienceProfile({
                     </>;
             })()}
               </motion.div>}
+
+            {/* History Tab */}
+            {activeTab === "history" && (
+              <motion.div
+                key="history"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="p-4"
+              >
+                <h3 className="font-display text-lg text-foreground mb-4">Session History</h3>
+                {ticketsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                    <div className="w-8 h-8 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
+                  </div>
+                ) : pastSessions.length > 0 ? (
+                  <div className="space-y-2">
+                    {pastSessions.map((session, i) => (
+                      <motion.div
+                        key={session.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        onClick={() => { triggerClickHaptic(); navigate(`/s/${session.eventId}`); }}
+                        className="bg-obsidian rounded-xl border border-border/20 p-4 cursor-pointer hover:border-border/40 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground">{session.artistName}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {session.category || "Studio Session"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {session.attendedAt.toLocaleDateString("en-US", {
+                                month: "short", day: "numeric", year: "numeric"
+                              })}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-1 rounded-lg bg-electric/10 text-electric text-[10px] font-bold tracking-wider">
+                              ATTENDED
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
+                    <History className="w-12 h-12 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground text-center font-medium">No sessions yet</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1 text-center">
+                      Sessions you attend will appear here
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
 
             {/* Collection Tab - Empty state until collections table exists */}
             {activeTab === "collection" && <motion.div key="collection" initial={{

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { ProfileLink } from "@/components/EditProfileModal";
 
 export interface UserProfile {
   name: string;
@@ -13,6 +14,7 @@ export interface UserProfile {
   isFoundingMember?: boolean;
   foundingNumber?: number | null;
   isVerified?: boolean;
+  profileLinks?: ProfileLink[];
 }
 
 export function useProfile() {
@@ -26,7 +28,7 @@ export function useProfile() {
       const { data, error } = await supabase
         .from("profiles")
         .select(
-          "name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified"
+          "name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified, profile_links"
         )
         .eq("user_id", user.id)
         .maybeSingle();
@@ -55,6 +57,7 @@ export function useProfile() {
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
         isVerified: data.is_verified ?? false,
+        profileLinks: (data.profile_links as ProfileLink[]) || [],
       };
     },
     enabled: !!user,

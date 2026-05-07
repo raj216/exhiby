@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Pencil, Award, Zap, Calendar, Check, Clock, Share, Star } from "lucide-react";
+import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Pencil, Award, Zap, Calendar, Check, Clock, Share, Star, TrendingUp, Users, BarChart3, RefreshCw, Lock } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
+import type { ProfileLink } from "./EditProfileModal";
+import { ProfileLinks } from "./ProfileLinks";
 import { UpcomingEventsList } from "./UpcomingEventsList";
 import { PortfolioGrid } from "./PortfolioGrid";
 import { FollowListModal } from "./FollowListModal";
@@ -15,6 +17,7 @@ import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
 import { useFollowStats } from "@/hooks/useFollowStats";
 import { useCreatorRatings } from "@/hooks/useCreatorRatings";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
+import { usePlanGate } from "@/hooks/usePlanGate";
 import featureFlags from "@/lib/featureFlags";
 import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface ScheduledEvent {
@@ -39,6 +42,7 @@ interface UserProfile {
   isFoundingMember?: boolean;
   foundingNumber?: number | null;
   isVerified?: boolean;
+  profileLinks?: ProfileLink[];
 }
 interface StudioDashboardProps {
   onBack: () => void;
@@ -79,6 +83,8 @@ export function StudioDashboard({
     ratings
   } = useCreatorRatings(user?.id);
   const { stats: creatorStats } = useCreatorStats(user?.id);
+  const { can } = usePlanGate();
+  const hasAdvancedAnalytics = can("hasAdvancedAnalytics");
   const [showEarnings, setShowEarnings] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
@@ -142,7 +148,7 @@ export function StudioDashboard({
     if (!user) return;
     const {
       data
-    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified").eq("user_id", user.id).maybeSingle();
+    } = await supabase.from("profiles").select("name, handle, avatar_url, created_at, bio, website, cover_url, is_founding_member, founding_number, is_verified, profile_links").eq("user_id", user.id).maybeSingle();
     if (data) {
       const createdDate = new Date(data.created_at);
       const memberSince = createdDate.toLocaleDateString("en-US", {
@@ -159,7 +165,8 @@ export function StudioDashboard({
         coverUrl: data.cover_url,
         isFoundingMember: data.is_founding_member ?? false,
         foundingNumber: data.founding_number,
-        isVerified: data.is_verified ?? false
+        isVerified: data.is_verified ?? false,
+        profileLinks: (data.profile_links as ProfileLink[]) || [],
       });
     }
   };
@@ -253,6 +260,9 @@ export function StudioDashboard({
           </div>
           {displayHandle && <p className="text-muted-foreground text-sm mt-0.5">{displayName}</p>}
           {displayBio && <p className="text-foreground/80 text-sm mt-2">{displayBio}</p>}
+          {localProfile?.profileLinks && localProfile.profileLinks.length > 0 && (
+            <ProfileLinks links={localProfile.profileLinks} className="mt-2.5" />
+          )}
         </motion.div>
 
         {/* Stats Row - Sessions hosted · Rating · Followers · Following (standardized) */}
@@ -360,9 +370,9 @@ export function StudioDashboard({
       {/* Studio Schedule */}
       <UpcomingEventsList events={upcomingEvents} onEventDeleted={fetchUpcomingEvents} />
 
-      {/* Business Bar - Analytics Cards */}
+      {/* Analytics Section - Premium View */}
       <div className="px-4 mt-6">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg text-foreground">Analytics</h2>
           <button onClick={() => {
             triggerClickHaptic();
@@ -371,49 +381,109 @@ export function StudioDashboard({
             {showEarnings ? <Eye className="w-4 h-4 text-muted-foreground" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
           </button>
         </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          {/* Earnings - 50% width - Clickable → navigates to /earnings-history */}
-          {featureFlags.paymentsEnabled ? <motion.button whileTap={{
-            scale: 0.98
-          }} onClick={() => {
-            triggerClickHaptic();
-            navigate("/earnings-history");
-          }} className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-gold/30 transition-colors">
-              <div className="flex items-center gap-2 mb-3">
-                <DollarSign className="w-5 h-5 text-gold" />
-                <span className="text-sm text-muted-foreground">Earnings</span>
+
+        {/* KPI Cards Row */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          {/* Total Earnings */}
+          {featureFlags.paymentsEnabled ? (
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { triggerClickHaptic(); navigate("/earnings-history"); }}
+              className="bg-obsidian rounded-2xl p-4 border border-border/30 text-left hover:border-gold/30 transition-colors"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4 text-gold" />
+                <span className="text-xs text-muted-foreground">Total Earnings</span>
               </div>
-              <p className="font-display text-3xl text-gold" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <p className="font-display text-2xl text-gold" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {showEarnings ? `$${lifetimeEarningsDollars.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "••••"}
               </p>
-            </motion.button> : <div className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left">
-              <div className="flex items-center gap-2 mb-3">
-                <DollarSign className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Earnings</span>
+              {analytics.totalEarnings > 0 && showEarnings && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  +${(analytics.totalEarnings / 100).toFixed(2)} this month
+                </p>
+              )}
+            </motion.button>
+          ) : (
+            <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Total Earnings</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Coming soon</p>
-              </div>
-            </div>}
-          
-          {/* Tickets Sold - 50% width - Clickable → navigates to /tickets-history */}
-          <motion.button whileTap={{
-            scale: 0.98
-          }} onClick={() => {
-            triggerClickHaptic();
-            navigate("/tickets-history");
-          }} className="bg-obsidian rounded-2xl p-5 border border-border/30 text-left hover:border-electric/30 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
-              <Ticket className="w-5 h-5 text-electric" />
-              <span className="text-sm text-muted-foreground">Tickets</span>
+              <p className="font-display text-2xl text-muted-foreground">$0.00</p>
             </div>
-            <p className="font-display text-3xl text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
+          )}
+
+          {/* Tickets Sold */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { triggerClickHaptic(); navigate("/tickets-history"); }}
+            className="bg-obsidian rounded-2xl p-4 border border-border/30 text-left hover:border-electric/30 transition-colors"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Ticket className="w-4 h-4 text-electric" />
+              <span className="text-xs text-muted-foreground">Tickets Sold</span>
+            </div>
+            <p className="font-display text-2xl text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
               {Number(analytics.totalTickets ?? 0).toLocaleString()}
             </p>
+            <p className="text-xs text-muted-foreground mt-1">this month</p>
           </motion.button>
         </div>
+
+        {/* Second row: Sessions + Avg/Session */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart3 className="w-4 h-4 text-electric" />
+              <span className="text-xs text-muted-foreground">Sessions</span>
+            </div>
+            <p className="font-display text-2xl text-foreground" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {creatorStats.sessionsHosted}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">hosted total</p>
+          </div>
+
+          <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-gold" />
+              <span className="text-xs text-muted-foreground">Avg / Session</span>
+            </div>
+            <p className="font-display text-2xl text-gold" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {showEarnings
+                ? creatorStats.sessionsHosted > 0 && featureFlags.paymentsEnabled
+                  ? `$${(lifetimeEarningsDollars / creatorStats.sessionsHosted).toFixed(0)}`
+                  : "$0"
+                : "••••"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">lifetime avg</p>
+          </div>
+        </div>
+
+        {/* Advanced Analytics Upsell — Free plan users */}
+        {!hasAdvancedAnalytics && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-1 rounded-2xl border border-electric/20 bg-gradient-to-br from-electric/5 to-transparent p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-electric/15 flex items-center justify-center flex-shrink-0">
+                <Lock className="w-4 h-4 text-electric" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Unlock Advanced Analytics</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Revenue bar charts, repeat attendee tracking, session rankings & payout history</p>
+                <button
+                  onClick={() => { triggerClickHaptic(); navigate("/pricing"); }}
+                  className="mt-2.5 px-3 py-1.5 rounded-full bg-electric/15 text-electric text-xs font-semibold hover:bg-electric/25 transition-colors border border-electric/30"
+                >
+                  Upgrade to Pro →
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Portfolio Section */}
