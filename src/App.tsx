@@ -25,6 +25,7 @@ import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import ProfileResolver from "./pages/ProfileResolver";
 import StudioCameraPage from "@/pages/StudioCameraPage";
+import Pricing from "./pages/Pricing";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
@@ -87,6 +88,7 @@ const App = () => {
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/browse" element={<Browse />} />
+                <Route path="/pricing" element={<Pricing />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
