@@ -2,6 +2,41 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "npm:stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
+/**
+ * Resolve the correct platform fee % for a creator.
+ *   Free plan, sessions 1–10: 0%
+ *   Free plan, sessions 11+:  8%
+ *   Pro / Plus:                4%
+ */
+async function resolveCommissionPct(
+  supabase: ReturnType<typeof createClient>,
+  creatorId: string
+): Promise<number> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("user_id", creatorId)
+    .maybeSingle();
+
+  const plan: string = (profile?.plan as string) ?? "free";
+
+  if (plan === "pro" || plan === "plus") return 4;
+
+  const { count } = await supabase
+    .from("creator_earnings")
+    .select("event_id", { count: "exact", head: true })
+    .eq("creator_id", creatorId)
+    .eq("status", "succeeded");
+
+  const paidSessionCount = count ?? 0;
+  if (paidSessionCount < 10) {
+    console.log(`[charge-saved-method] Creator ${creatorId} free plan session ${paidSessionCount + 1}/10 → 0% commission`);
+    return 0;
+  }
+  console.log(`[charge-saved-method] Creator ${creatorId} free plan session ${paidSessionCount + 1} → 8% commission`);
+  return 8;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -203,8 +238,8 @@ serve(async (req) => {
 
         // Record creator earnings directly (webhooks may not fire for off-session charges)
         if (event.creator_id !== user.id) {
-          const PLATFORM_FEE_PERCENT = 10;
-          const platformFee = Math.round(ticketPriceCents * PLATFORM_FEE_PERCENT / 100);
+          const commissionPct = await resolveCommissionPct(supabase, event.creator_id);
+          const platformFee = Math.round(ticketPriceCents * commissionPct / 100);
           const amountNet = ticketPriceCents - platformFee;
 
           const { error: earningsError } = await supabase.from("creator_earnings").insert({

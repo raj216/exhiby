@@ -344,7 +344,13 @@ export default function EarningsHistory() {
                   </div>
                   <div className="flex items-center gap-4 mt-2 ml-16 text-xs text-muted-foreground">
                     <span>Gross: {formatCents(tx.amount_gross)}</span>
-                    <span>Platform Fee (10%): −{formatCents(tx.platform_fee)}</span>
+                    {tx.platform_fee === 0 ? (
+                      <span className="text-emerald-400/80">No Platform Fee · Free Plan</span>
+                    ) : (
+                      <span>
+                        Platform Fee ({tx.amount_gross > 0 ? Math.round(tx.platform_fee / tx.amount_gross * 100) : 0}%): −{formatCents(tx.platform_fee)}
+                      </span>
+                    )}
                     <span className={isTip ? "text-emerald-400" : "text-gold"}>Net: {formatCents(tx.amount_net)}</span>
                   </div>
                 </div>
