@@ -18,6 +18,7 @@ import { useFollowStats } from "@/hooks/useFollowStats";
 import { useCreatorRatings } from "@/hooks/useCreatorRatings";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
 import { usePlanGate } from "@/hooks/usePlanGate";
+import { AudienceTab } from "./studio/AudienceTab";
 import featureFlags from "@/lib/featureFlags";
 import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface ScheduledEvent {
@@ -83,9 +84,11 @@ export function StudioDashboard({
     ratings
   } = useCreatorRatings(user?.id);
   const { stats: creatorStats } = useCreatorStats(user?.id);
-  const { can } = usePlanGate();
+  const planGate = usePlanGate();
+  const { can } = planGate;
   const hasAdvancedAnalytics = can("hasAdvancedAnalytics");
   const [showEarnings, setShowEarnings] = useState(true);
+  const [activeStudioTab, setActiveStudioTab] = useState<"overview" | "audience">("overview");
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -370,8 +373,46 @@ export function StudioDashboard({
       {/* Studio Schedule */}
       <UpcomingEventsList events={upcomingEvents} onEventDeleted={fetchUpcomingEvents} />
 
+      {/* Studio Sub-Tabs: Overview / Audience */}
+      <div className="border-b border-border/30 mt-6">
+        <div className="flex px-4">
+          {(["overview", "audience"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => { triggerClickHaptic(); setActiveStudioTab(tab); }}
+              className={`py-3 px-4 text-xs font-semibold relative transition-colors capitalize ${
+                activeStudioTab === tab ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {tab === "overview" ? "Analytics" : "Audience"}
+              {activeStudioTab === tab && (
+                <motion.div
+                  layoutId="studioTab"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-electric"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Audience Tab Content */}
+      <AnimatePresence mode="wait">
+        {activeStudioTab === "audience" && (
+          <motion.div
+            key="audience-tab"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="px-4 mt-4"
+          >
+            <AudienceTab creatorId={user?.id} planGate={planGate} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Analytics Section - Premium View */}
-      <div className="px-4 mt-6">
+      {activeStudioTab === "overview" && <div className="px-4 mt-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg text-foreground">Analytics</h2>
           <button onClick={() => {
@@ -484,12 +525,15 @@ export function StudioDashboard({
             </div>
           </motion.div>
         )}
-      </div>
+      </div>}
 
-      {/* Portfolio Section */}
-      <div className="mt-6 px-4 pb-24">
+      {/* Portfolio Section - only on overview tab */}
+      {activeStudioTab === "overview" && <div className="mt-6 px-4 pb-24">
         <PortfolioGrid userId={user?.id} isOwner={true} />
-      </div>
+      </div>}
+
+      {/* Extra bottom padding for audience tab */}
+      {activeStudioTab === "audience" && <div className="pb-24" />}
 
       {/* Edit Profile Modal */}
       <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={refreshProfile} />
