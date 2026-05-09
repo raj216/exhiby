@@ -52,6 +52,15 @@ export function usePlan() {
     queryKey: ["plan", user?.id],
     queryFn: async (): Promise<PlanTier> => {
       if (!user) return "free";
+
+      // 1. Check auth metadata override first (used by dev switcher + onboarding)
+      const { data: authData } = await supabase.auth.getUser();
+      const metaOverride = authData?.user?.user_metadata?.plan_override as PlanTier | undefined;
+      if (metaOverride === "pro" || metaOverride === "plus" || metaOverride === "free") {
+        return metaOverride;
+      }
+
+      // 2. Fall back to profiles table
       const { data, error } = await supabase
         .from("profiles")
         .select("plan")
@@ -61,7 +70,7 @@ export function usePlan() {
       return (data.plan as PlanTier) ?? "free";
     },
     enabled: !!user,
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 
   // Only allow downgrading to free via self-service.

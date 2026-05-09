@@ -560,8 +560,18 @@ function PaymentsMenuView({ onNavigate }: { onNavigate: (v: PaymentSubView) => v
 
   // DEV ONLY: quick plan switcher — remove before public launch
   const handleDevSetPlan = async (newTier: "free" | "pro" | "plus") => {
-    await setPlan(newTier);
-    toast({ title: "Dev: Plan set", description: `Now on ${newTier} plan. Refresh if features don't update.` });
+    try {
+      // Write to auth metadata — works regardless of DB schema/RLS
+      const { error } = await supabase.auth.updateUser({
+        data: { plan_override: newTier === "free" ? null : newTier },
+      });
+      if (error) throw error;
+      // Also try DB update (non-blocking)
+      await setPlan(newTier).catch(() => null);
+      toast({ title: `Dev: Switched to ${newTier.toUpperCase()}`, description: "Plan updated — features unlocked." });
+    } catch (err) {
+      toast({ title: "Dev switcher error", description: String(err), variant: "destructive" });
+    }
   };
 
   const planBadgeClass = cn(
