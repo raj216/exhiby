@@ -4,16 +4,19 @@
  * Shows unique attendees, VIP fans, repeat stats + attendee table.
  */
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Users, Star, RefreshCw, Mail, Lock, Loader2 } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useCreatorAudience, type CreatorAttendee } from "@/hooks/useCreatorAudience";
 import { useNavigate } from "react-router-dom";
 import type { PlanGateResult } from "@/hooks/usePlanGate";
+import { EmailCampaignModal } from "./EmailCampaignModal";
 
 interface AudienceTabProps {
   creatorId: string | undefined;
   planGate: PlanGateResult;
+  creatorName?: string;
 }
 
 const SEGMENT_CONFIG = {
@@ -66,10 +69,11 @@ function AttendeeRow({ attendee, index }: { attendee: CreatorAttendee; index: nu
   );
 }
 
-export function AudienceTab({ creatorId, planGate }: AudienceTabProps) {
+export function AudienceTab({ creatorId, planGate, creatorName = "Creator" }: AudienceTabProps) {
   const navigate = useNavigate();
   const { attendees, stats, isLoading } = useCreatorAudience(creatorId);
   const hasAdvancedAnalytics = planGate.can("hasAdvancedAnalytics");
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -129,8 +133,29 @@ export function AudienceTab({ creatorId, planGate }: AudienceTabProps) {
         </div>
       )}
 
-      {/* Email Your Audience — Pro upsell */}
-      {!hasAdvancedAnalytics && (
+      {/* Email Your Audience — Pro feature or upsell */}
+      {hasAdvancedAnalytics ? (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => { triggerClickHaptic(); setShowEmailModal(true); }}
+          className="w-full rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/5 to-transparent p-4 text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gold/15 flex items-center justify-center flex-shrink-0">
+              <Mail className="w-4 h-4 text-gold" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Email Your Audience</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Send campaigns to {attendees.length} fan{attendees.length !== 1 ? "s" : ""} · VIP, Repeat, or All
+              </p>
+            </div>
+            <RefreshCw className="w-4 h-4 text-gold/60 flex-shrink-0" />
+          </div>
+        </motion.button>
+      ) : (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -158,6 +183,14 @@ export function AudienceTab({ creatorId, planGate }: AudienceTabProps) {
           </div>
         </motion.div>
       )}
+
+      {/* Email Campaign Modal */}
+      <EmailCampaignModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        attendees={attendees}
+        creatorName={creatorName}
+      />
     </div>
   );
 }

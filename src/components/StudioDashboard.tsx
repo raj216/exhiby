@@ -14,11 +14,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreatorEarnings } from "@/hooks/useCreatorEarnings";
 import { useMonthlyAnalytics } from "@/hooks/useMonthlyAnalytics";
+import { useCreatorAudience } from "@/hooks/useCreatorAudience";
 import { useFollowStats } from "@/hooks/useFollowStats";
 import { useCreatorRatings } from "@/hooks/useCreatorRatings";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { AudienceTab } from "./studio/AudienceTab";
+import { ProAnalyticsDashboard } from "./studio/ProAnalyticsDashboard";
+import { SessionTemplates } from "./studio/SessionTemplates";
+import { RecurringSessions } from "./studio/RecurringSessions";
 import featureFlags from "@/lib/featureFlags";
 import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface ScheduledEvent {
@@ -87,8 +91,9 @@ export function StudioDashboard({
   const planGate = usePlanGate();
   const { can } = planGate;
   const hasAdvancedAnalytics = can("hasAdvancedAnalytics");
+  const { attendees: audienceAttendees } = useCreatorAudience(hasAdvancedAnalytics ? user?.id : undefined);
   const [showEarnings, setShowEarnings] = useState(true);
-  const [activeStudioTab, setActiveStudioTab] = useState<"overview" | "audience" | "portfolio">("overview");
+  const [activeStudioTab, setActiveStudioTab] = useState<"overview" | "audience" | "portfolio" | "tools">("overview");
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFollowList, setShowFollowList] = useState<"followers" | "following" | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -401,18 +406,21 @@ export function StudioDashboard({
       {/* Studio Schedule */}
       <UpcomingEventsList events={upcomingEvents} onEventDeleted={fetchUpcomingEvents} />
 
-      {/* Studio Sub-Tabs: Analytics / Audience / Portfolio */}
+      {/* Studio Sub-Tabs: Analytics / Audience / Portfolio / Tools */}
       <div className="border-b border-border/30 mt-6">
-        <div className="flex px-4">
-          {(["overview", "audience", "portfolio"] as const).map((tab) => (
+        <div className="flex px-4 overflow-x-auto scrollbar-hide">
+          {(["overview", "audience", "portfolio", "tools"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => { triggerClickHaptic(); setActiveStudioTab(tab); }}
-              className={`py-3 px-4 text-xs font-semibold relative transition-colors ${
+              className={`py-3 px-4 text-xs font-semibold relative transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeStudioTab === tab ? "text-foreground" : "text-muted-foreground"
               }`}
             >
-              {tab === "overview" ? "Analytics" : tab === "audience" ? "Audience" : "Portfolio"}
+              {tab === "overview" ? "Analytics" : tab === "audience" ? "Audience" : tab === "portfolio" ? "Portfolio" : "Studio Tools"}
+              {tab === "tools" && hasAdvancedAnalytics && (
+                <span className="ml-1.5 text-[9px] font-bold text-electric bg-electric/15 px-1.5 py-0.5 rounded-full">PRO</span>
+              )}
               {activeStudioTab === tab && (
                 <motion.div
                   layoutId="studioTab"
@@ -434,7 +442,7 @@ export function StudioDashboard({
             exit={{ opacity: 0, y: -8 }}
             className="px-4 mt-4"
           >
-            <AudienceTab creatorId={user?.id} planGate={planGate} />
+            <AudienceTab creatorId={user?.id} planGate={planGate} creatorName={displayName} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -582,6 +590,15 @@ export function StudioDashboard({
             </div>
           </motion.div>
         )}
+
+        {/* Pro Analytics Dashboard — visible to Pro/Plus users */}
+        {hasAdvancedAnalytics && (
+          <ProAnalyticsDashboard
+            transactions={earningsData?.transactions ?? []}
+            attendees={audienceAttendees}
+            showEarnings={showEarnings}
+          />
+        )}
       </div>}
 
       {/* Portfolio Tab Content */}
@@ -599,8 +616,49 @@ export function StudioDashboard({
         )}
       </AnimatePresence>
 
+      {/* Studio Tools Tab — Session Templates + Recurring Sessions (Pro) */}
+      <AnimatePresence mode="wait">
+        {activeStudioTab === "tools" && (
+          <motion.div
+            key="tools-tab"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="px-4 mt-4 pb-24"
+          >
+            {hasAdvancedAnalytics ? (
+              <div className="space-y-8">
+                <SessionTemplates />
+                <div className="border-t border-border/20" />
+                <RecurringSessions />
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-12 text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-electric/10 flex items-center justify-center mb-4">
+                  <Lock className="w-6 h-6 text-electric" />
+                </div>
+                <p className="text-base font-semibold text-foreground">Studio Tools — Pro Feature</p>
+                <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                  Session Templates and Recurring Sessions are available on the Pro plan.
+                </p>
+                <button
+                  onClick={() => { triggerClickHaptic(); navigate("/pricing"); }}
+                  className="mt-5 px-5 py-2.5 rounded-full bg-electric/15 border border-electric/30 text-sm font-semibold text-electric hover:bg-electric/25 transition-colors"
+                >
+                  Upgrade to Pro →
+                </button>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom padding for non-portfolio tabs */}
-      {activeStudioTab !== "portfolio" && <div className="pb-24" />}
+      {activeStudioTab !== "portfolio" && activeStudioTab !== "tools" && <div className="pb-24" />}
 
       {/* Edit Profile Modal */}
       <EditProfileModal isOpen={showEditProfile} onClose={() => setShowEditProfile(false)} profile={localProfile} onProfileUpdated={(savedLinks) => {
