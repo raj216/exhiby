@@ -558,6 +558,12 @@ function PaymentsMenuView({ onNavigate }: { onNavigate: (v: PaymentSubView) => v
     toast({ title: "Plan updated", description: "You're now on Free Studio." });
   };
 
+  // DEV ONLY: quick plan switcher — remove before public launch
+  const handleDevSetPlan = async (newTier: "free" | "pro" | "plus") => {
+    await setPlan(newTier);
+    toast({ title: "Dev: Plan set", description: `Now on ${newTier} plan. Refresh if features don't update.` });
+  };
+
   const planBadgeClass = cn(
     "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold tracking-wider",
     tier === "free"
@@ -681,6 +687,29 @@ function PaymentsMenuView({ onNavigate }: { onNavigate: (v: PaymentSubView) => v
           </div>
         </div>
       </div>
+
+      {/* ── DEV ONLY: Plan switcher — remove before public launch ── */}
+      {import.meta.env.DEV && (
+        <div className="rounded-2xl border border-dashed border-yellow-500/40 bg-yellow-500/5 p-4">
+          <p className="text-xs font-bold text-yellow-500/80 uppercase tracking-wider mb-3">⚙ Dev — Plan Switcher</p>
+          <div className="flex gap-2">
+            {(["free", "pro", "plus"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => handleDevSetPlan(t)}
+                disabled={isUpdating || tier === t}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase border transition-colors disabled:opacity-40 ${
+                  tier === t
+                    ? "bg-yellow-500/20 border-yellow-500/60 text-yellow-400"
+                    : "border-border/40 text-muted-foreground hover:border-yellow-500/40 hover:text-yellow-400"
+                }`}
+              >
+                {tier === t ? "✓ " : ""}{t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Rest of payment settings ── */}
       <SettingsCard
