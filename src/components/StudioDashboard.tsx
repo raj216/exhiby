@@ -82,6 +82,21 @@ export function StudioDashboard({
   } = useCreatorEarnings(user?.id);
   const { analytics } = useMonthlyAnalytics(user?.id);
   const lifetimeEarningsDollars = ((earningsData?.lifetimeEarnings || 0) / 100);
+
+  // Average earnings per PAID session (not all hosted, which includes free).
+  // A creator with 1 paid session at $2.76 + 86 free sessions should see "$2.76 avg",
+  // not $0.03 (which rounds to "$0").
+  const paidSessionsCount = new Set(
+    (earningsData?.transactions ?? [])
+      .filter((t) => t.type === "ticket")
+      .map((t) => t.event_id)
+  ).size;
+  const totalPaidNet = (earningsData?.transactions ?? [])
+    .filter((t) => t.type === "ticket")
+    .reduce((s, t) => s + t.amount_net, 0);
+  const avgPerPaidSessionDollars = paidSessionsCount > 0
+    ? (totalPaidNet / 100) / paidSessionsCount
+    : 0;
   const {
     stats: followStats
   } = useFollowStats(user?.id);
@@ -525,16 +540,20 @@ export function StudioDashboard({
           <div className="bg-obsidian rounded-2xl p-4 border border-border/30">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-gold" />
-              <span className="text-xs text-muted-foreground">Avg / Session</span>
+              <span className="text-xs text-muted-foreground">Avg / Paid Session</span>
             </div>
             <p className="font-display text-2xl text-gold" style={{ fontVariantNumeric: "tabular-nums" }}>
               {showEarnings
-                ? creatorStats.sessionsHosted > 0 && featureFlags.paymentsEnabled
-                  ? `$${(lifetimeEarningsDollars / creatorStats.sessionsHosted).toFixed(0)}`
+                ? paidSessionsCount > 0 && featureFlags.paymentsEnabled
+                  ? `$${avgPerPaidSessionDollars.toFixed(2)}`
                   : "$0"
                 : "••••"}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">lifetime avg</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {paidSessionsCount > 0
+                ? `${paidSessionsCount} paid session${paidSessionsCount === 1 ? "" : "s"}`
+                : "no paid sessions yet"}
+            </p>
           </div>
         </div>
 

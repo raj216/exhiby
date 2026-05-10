@@ -18,7 +18,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
-  Award,
   Target,
   Users,
   ArrowUpRight,
@@ -95,7 +94,7 @@ function buildSessionRows(transactions: EarningRecord[]): SessionRow[] {
     .map((t) => ({
       eventId: t.event_id,
       title: t.event_title,
-      date: t.created_at,
+      date: t.session_date, // use the session's scheduled_at, not purchase timestamp
       attendees: t.ticket_count,
       revenue: t.amount_net,
       avgPrice: t.ticket_count > 0 ? Math.round(t.amount_gross / t.ticket_count) : 0,
@@ -176,11 +175,11 @@ function computeDynamicPricingInsights(
     }
   }
 
-  // Insight 2: day-of-week performance (5+ sessions)
+  // Insight 2: day-of-week performance (5+ sessions) — use SESSION date, not purchase date
   if (ticketSessions.length >= 5) {
     const dayStats = Array.from({ length: 7 }, () => ({ revenue: 0, count: 0 }));
     for (const s of ticketSessions) {
-      const day = new Date(s.created_at).getDay();
+      const day = new Date(s.session_date).getDay();
       dayStats[day].revenue += s.amount_net;
       dayStats[day].count += 1;
     }
@@ -243,7 +242,16 @@ function CustomTooltip({ active, payload, label, showEarnings }: CustomTooltipPr
 }
 
 function MoMBadge({ current, previous }: { current: number; previous: number }) {
-  if (previous === 0) return null;
+  // First-time revenue: show a celebration pill instead of a percentage
+  if (previous === 0) {
+    if (current === 0) return null;
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-full text-emerald-400 bg-emerald-400/10">
+        <ArrowUpRight className="w-3 h-3" />
+        New
+      </span>
+    );
+  }
   const pct = ((current - previous) / previous) * 100;
   const up = pct >= 0;
   const Icon = pct === 0 ? Minus : up ? ArrowUpRight : ArrowDownRight;
@@ -372,12 +380,7 @@ function SessionPerformanceTable({ rows, showEarnings }: SessionTableProps) {
                       Best Revenue
                     </span>
                   )}
-                  {isMostAttended && !isBestRevenue && (
-                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide bg-muted/40 text-muted-foreground border border-border/30">
-                      Most Attended
-                    </span>
-                  )}
-                  {isMostAttended && isBestRevenue && (
+                  {isMostAttended && (
                     <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide bg-muted/40 text-muted-foreground border border-border/30">
                       Most Attended
                     </span>
@@ -430,11 +433,14 @@ const BENCHMARKS = {
 
 function ConversionFunnel({
   purchasedCount,
-  attendedCount,
+  totalAttendances,
   profileSlug,
 }: {
+  /** Total tickets sold across all paid sessions */
   purchasedCount: number;
-  attendedCount: number;
+  /** Sum of attendees.sessionsAttended — total times anyone joined a session
+   *  (apples-to-apples with purchasedCount: both at the per-attendance level) */
+  totalAttendances: number;
   profileSlug?: string;
 }) {
   const handleCopyLink = () => {
@@ -471,7 +477,10 @@ function ConversionFunnel({
     );
   }
 
-  const purchaseToAttended = purchasedCount > 0 ? attendedCount / purchasedCount : 0;
+  // Cap at 1.0 — if attendances > purchases (e.g. free attendees joined paid sessions),
+  // the rate caps at 100% rather than showing nonsense like 150%.
+  const rawRate = purchasedCount > 0 ? totalAttendances / purchasedCount : 0;
+  const purchaseToAttended = Math.min(rawRate, 1);
   const isAboveAttendBenchmark = purchaseToAttended >= BENCHMARKS.purchaseToAttended;
 
   const stages: { label: string; value: string; note: string | null; dropoff: string | null; aboveBenchmark: boolean | null; tip: string | null }[] = [
@@ -509,7 +518,7 @@ function ConversionFunnel({
     },
     {
       label: "Session Attended",
-      value: attendedCount.toLocaleString(),
+      value: totalAttendances.toLocaleString(),
       note: `Platform avg: ~${Math.round(BENCHMARKS.purchaseToAttended * 100)}% of buyers attend`,
       dropoff: purchasedCount > 0
         ? `↓ ${Math.round((1 - purchaseToAttended) * 100)}% drop-off`
@@ -528,15 +537,19 @@ function ConversionFunnel({
         <h3 className="text-sm font-semibold text-foreground">Conversion Funnel</h3>
       </div>
 
+      {/* Bar widths: stages 1-3 are aspirational (hint at funnel shape while data is gathered).
+          Stages 4-5 use REAL counts. Stage 4 (Ticket Purchased) is the largest known value.
+          Stage 5 (Attended) shrinks proportionally to its conversion rate from stage 4. */}
       <div className="space-y-1">
         {stages.map((stage, i) => {
           const isGathering = stage.value === "Gathering data...";
+          const stage4Width = 60; // visual width when data exists
           const barWidth = isGathering
-            ? 100 - i * 12
+            ? 100 - i * 14    // 100, 86, 72 — hints at narrowing funnel
             : i === 3
-            ? 45
+            ? stage4Width      // ticket purchased baseline
             : i === 4
-            ? Math.round((purchaseToAttended || 0.8) * 45)
+            ? Math.max(8, Math.round(purchaseToAttended * stage4Width))
             : 100;
 
           return (
@@ -603,27 +616,6 @@ function ConversionFunnel({
   );
 }
 
-// ── Top Sessions (existing) ────────────────────────────────────────────────────
-
-function buildSessionRankings(transactions: EarningRecord[]) {
-  const map = new Map<string, { title: string; net: number; tickets: number; date: string }>();
-  for (const tx of transactions) {
-    const existing = map.get(tx.event_id);
-    if (existing) {
-      existing.net += tx.amount_net;
-      existing.tickets += tx.ticket_count || 0;
-    } else {
-      map.set(tx.event_id, {
-        title: tx.event_title,
-        net: tx.amount_net,
-        tickets: tx.ticket_count || 0,
-        date: tx.created_at,
-      });
-    }
-  }
-  return [...map.values()].sort((a, b) => b.net - a.net).slice(0, 5);
-}
-
 // ── Colors ─────────────────────────────────────────────────────────────────────
 
 const ELECTRIC_COLOR = "hsl(7 100% 67%)";
@@ -638,7 +630,6 @@ export function ProAnalyticsDashboard({
   profileSlug,
 }: ProAnalyticsDashboardProps) {
   const monthlyRevenue = useMemo(() => buildMonthlyRevenue(transactions, 6), [transactions]);
-  const sessionRankings = useMemo(() => buildSessionRankings(transactions), [transactions]);
   const sessionRows = useMemo(() => buildSessionRows(transactions), [transactions]);
   const pricingInsights = useMemo(
     () => computeDynamicPricingInsights(transactions, attendees),
@@ -659,11 +650,27 @@ export function ProAnalyticsDashboard({
   const hasRevenue = transactions.length > 0;
   const maxBarRevenue = Math.max(...monthlyRevenue.map((m) => m.revenue), 1);
 
-  // Funnel data
+  // Funnel data — both metrics measured at the per-attendance level for valid comparison
   const purchasedCount = useMemo(
     () => transactions.filter((t) => t.type === "ticket").reduce((s, t) => s + t.ticket_count, 0),
     [transactions]
   );
+  const totalAttendances = useMemo(
+    () => attendees.reduce((s, a) => s + (a.sessionsAttended || 0), 0),
+    [attendees]
+  );
+
+  // Number of paid sessions — used for "Avg per paid session" instead of dividing
+  // by all hosted sessions (which includes free ones)
+  const paidSessionCount = useMemo(
+    () => new Set(transactions.filter((t) => t.type === "ticket").map((t) => t.event_id)).size,
+    [transactions]
+  );
+  const totalPaidNet = useMemo(
+    () => transactions.filter((t) => t.type === "ticket").reduce((s, t) => s + t.amount_net, 0),
+    [transactions]
+  );
+  const avgPerPaidSession = paidSessionCount > 0 ? totalPaidNet / paidSessionCount : 0;
 
   return (
     <motion.div
@@ -741,58 +748,7 @@ export function ProAnalyticsDashboard({
         )}
       </div>
 
-      {/* Top Sessions */}
-      <div className="bg-obsidian rounded-2xl border border-border/30 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-gold" />
-            <h3 className="text-sm font-semibold text-foreground">Top Sessions</h3>
-          </div>
-          <span className="text-xs text-muted-foreground">by earnings</span>
-        </div>
-
-        {sessionRankings.length > 0 ? (
-          <div className="divide-y divide-border/20">
-            {sessionRankings.map((session, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3">
-                <span
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                    i === 0
-                      ? "bg-gold/20 text-gold"
-                      : i === 1
-                      ? "bg-electric/20 text-electric"
-                      : i === 2
-                      ? "bg-muted/40 text-muted-foreground"
-                      : "text-muted-foreground/50"
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {session.tickets} ticket{session.tickets !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <p
-                  className="text-sm font-semibold text-gold flex-shrink-0"
-                  style={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  {showEarnings ? `$${(session.net / 100).toFixed(2)}` : "••••"}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="px-4 py-8 text-center">
-            <p className="text-xs text-muted-foreground/60">
-              Session rankings appear after your first paid session
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Session Performance Table — Feature 3 */}
+      {/* Session Performance Table — Feature 3 (replaces redundant Top Sessions card) */}
       <SessionPerformanceTable rows={sessionRows} showEarnings={showEarnings} />
 
       {/* Audience Breakdown */}
@@ -864,7 +820,7 @@ export function ProAnalyticsDashboard({
       {/* Conversion Funnel — Feature 2 */}
       <ConversionFunnel
         purchasedCount={purchasedCount}
-        attendedCount={totalAttendees}
+        totalAttendances={totalAttendances}
         profileSlug={profileSlug}
       />
     </motion.div>

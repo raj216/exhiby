@@ -13,7 +13,8 @@ export interface EarningRecord {
   platform_fee: number; // cents
   amount_net: number; // cents
   currency: string;
-  created_at: string;
+  created_at: string;       // when the earning row was logged (purchase time)
+  session_date: string;     // when the session itself was scheduled (events.scheduled_at)
   ticket_count: number;
   type: EarningType;
 }
@@ -59,14 +60,16 @@ export function useCreatorEarnings(userId: string | undefined) {
         return { lifetimeEarnings: 0, thisMonthEarnings: 0, lastMonthEarnings: 0, totalPaidOut: 0, availableToPayout: 0, transactions: [] };
       }
 
-      // Get event titles
+      // Get event titles + scheduled dates (the real session date, not purchase date)
       const eventIds = [...new Set(earnings.map(e => e.event_id))];
       const { data: events } = await supabase
         .from("events")
-        .select("id, title")
+        .select("id, title, scheduled_at")
         .in("id", eventIds);
 
-      const eventMap = new Map((events || []).map(e => [e.id, e.title]));
+      const eventMap = new Map(
+        (events || []).map(e => [e.id, { title: e.title, scheduled_at: e.scheduled_at as string | null }])
+      );
 
       const now = new Date();
       const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -108,16 +111,18 @@ export function useCreatorEarnings(userId: string | undefined) {
           existing.amount_net += correctedNet;
           existing.ticket_count += isTip ? 0 : 1;
         } else {
+          const evt = eventMap.get(e.event_id);
           groupMap.set(key, {
             id: e.id,
             event_id: e.event_id,
-            event_title: eventMap.get(e.event_id) || "Untitled Session",
+            event_title: evt?.title || "Untitled Session",
             user_id: e.user_id,
             amount_gross: gross,
             platform_fee: correctedFee,
             amount_net: correctedNet,
             currency: e.currency,
             created_at: e.created_at,
+            session_date: evt?.scheduled_at || e.created_at, // fallback to purchase date if no schedule
             ticket_count: isTip ? 0 : 1,
             type: isTip ? "tip" : "ticket",
           });
