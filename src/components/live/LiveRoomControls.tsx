@@ -202,7 +202,7 @@ export function LiveRoomControls({
                       </Tooltip>
                     )}
 
-                    {/* Studio Camera (phone as second camera) */}
+                    {/* Studio Companion — open show controls on a second device */}
                     {onOpenStudioCamera && (
                       <div className="hidden lg:contents">
                         <Tooltip>
@@ -210,20 +210,13 @@ export function LiveRoomControls({
                             <button
                               onClick={onOpenStudioCamera}
                               disabled={isEnding}
-                              className={`relative w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none ${
-                                studioCameraConnected
-                                  ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                                  : "bg-white/10 text-white hover:bg-white/20"
-                              }`}
+                              className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none bg-white/10 text-white hover:bg-white/20"
                             >
                               <Smartphone className="w-5 h-5" />
-                              {studioCameraConnected && (
-                                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-400 ring-2 ring-black/40" />
-                              )}
                             </button>
                           </TooltipTrigger>
                           <TooltipContent side="top">
-                            <p>{studioCameraConnected ? "Studio camera connected" : "Add studio camera"}</p>
+                            <p>Studio Companion</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>

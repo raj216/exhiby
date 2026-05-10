@@ -16,6 +16,7 @@ import { triggerClickHaptic } from "@/lib/haptics";
 import { ImageCropper } from "@/components/ImageCropper";
 import { GO_LIVE_CATEGORIES } from "@/lib/categories";
 import featureFlags from "@/lib/featureFlags";
+import { usePlan } from "@/hooks/usePlan";
 interface ScheduleEventModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,9 +29,9 @@ export function ScheduleEventModal({
   onClose,
   onEventCreated
 }: ScheduleEventModalProps) {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+  const { tier } = usePlan();
+  const isPro = tier === "pro" || tier === "founding";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Lock body scroll when modal is open
@@ -101,6 +102,11 @@ export function ScheduleEventModal({
   const handleCapacityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === "" || /^\d{1,4}$/.test(value)) {
+      // Free plan hard cap: 50 seats
+      if (!isPro && parseInt(value) > 50) {
+        setCapacity("50");
+        return;
+      }
       setCapacity(value);
     }
   };
@@ -413,13 +419,19 @@ export function ScheduleEventModal({
             <p className="text-xs text-muted-foreground/70 mt-2">
               Limited seats create better interaction inside the studio
             </p>
-            <label className="flex items-center gap-2 mt-3 cursor-pointer">
-              <Checkbox
-                checked={isUnlimited}
-                onCheckedChange={(checked) => setIsUnlimited(checked === true)}
-              />
-              <span className="text-sm text-muted-foreground">Unlimited audience</span>
-            </label>
+            {isPro ? (
+              <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                <Checkbox
+                  checked={isUnlimited}
+                  onCheckedChange={(checked) => setIsUnlimited(checked === true)}
+                />
+                <span className="text-sm text-muted-foreground">Unlimited audience</span>
+              </label>
+            ) : (
+              <p className="text-xs text-muted-foreground/50 mt-3">
+                Free plan includes up to 50 seats. Upgrade to Pro for unlimited.
+              </p>
+            )}
           </div>
 
           {/* Entry Type Toggle - Only show when payments enabled */}
