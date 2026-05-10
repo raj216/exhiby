@@ -23,7 +23,7 @@ interface TipCreatorModalProps {
   eventId?: string;
 }
 
-const QUICK_AMOUNTS = [5, 10, 20, 50] as const;
+const QUICK_AMOUNTS = [3, 5, 10, 20] as const;
 
 export function TipCreatorModal({
   isOpen,

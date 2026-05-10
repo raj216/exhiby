@@ -5,3 +5,5 @@ export { ProAnalyticsDashboard } from './ProAnalyticsDashboard';
 export { SessionTemplates } from './SessionTemplates';
 export { RecurringSessions } from './RecurringSessions';
 export { EmailCampaignModal } from './EmailCampaignModal';
+export { AudienceEmailModal } from './AudienceEmailModal';
+export { StudioBranding } from './StudioBranding';

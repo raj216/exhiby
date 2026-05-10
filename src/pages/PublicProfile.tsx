@@ -171,6 +171,12 @@ export default function PublicProfile() {
 
         await fetchLiveEvent(profileData.user_id);
 
+        // Track profile visit for conversion funnel (Feature 2). Fire-and-forget.
+        supabase
+          .from("profile_views")
+          .insert({ creator_id: profileData.user_id, viewer_user_id: user?.id ?? null })
+          .then(() => {}).catch(() => {});
+
         channel = supabase
           .channel(`creator-live-${profileData.user_id}`)
           .on("postgres_changes", {

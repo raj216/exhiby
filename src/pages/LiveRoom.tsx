@@ -920,6 +920,7 @@ export default function LiveRoom() {
 
   // Show "Stream Ended" for ended events
   if (isEventEnded) {
+    const canTip = !isCreator && hasValidTicket;
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
         <div className="text-center max-w-md px-6">
@@ -934,6 +935,21 @@ export default function LiveRoom() {
           <p className="text-sm text-muted-foreground/70 mb-6">
             This studio session has concluded.
           </p>
+          {/* Post-session appreciation button — Feature 7 */}
+          {canTip && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4"
+            >
+              <button
+                onClick={() => setShowTipModal(true)}
+                className="w-full py-3 rounded-2xl border border-gold/30 bg-gold/5 text-sm font-semibold text-gold hover:bg-gold/10 transition-colors flex items-center justify-center gap-2"
+              >
+                ♡ Enjoyed the session? Support {event.creator?.name || "the artist"}
+              </button>
+            </motion.div>
+          )}
           <button
             onClick={() => navigate("/")}
             className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors"
@@ -941,6 +957,15 @@ export default function LiveRoom() {
             Back to Home
           </button>
         </div>
+        {/* Tip modal for post-session */}
+        {canTip && (
+          <TipCreatorModal
+            isOpen={showTipModal}
+            onClose={() => setShowTipModal(false)}
+            creatorName={event.creator?.name || "the creator"}
+            eventId={event.id}
+          />
+        )}
       </div>
     );
   }
@@ -1532,6 +1557,19 @@ export default function LiveRoom() {
             onView={handleChatNotificationView}
             onDismiss={clearLatestUnread}
           />
+
+          {/* Send Appreciation button — Feature 7: outside video room controls, ticket holders only */}
+          {!isCreator && hasValidTicket && isUIVisible && !showChat && (
+            <motion.button
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              onClick={() => { triggerClickHaptic(); setShowTipModal(true); }}
+              className="absolute left-4 bottom-20 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 text-xs font-medium text-white/80 hover:text-white hover:bg-black/80 transition-all"
+            >
+              ♡ Support {event.creator?.name?.split(" ")[0] || "Artist"}
+            </motion.button>
+          )}
         </div>
 
         {/* Desktop: optional self-view pip for host (avoid duplicating the same tile) */}

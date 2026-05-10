@@ -37,6 +37,10 @@ export interface RecurringSeries {
   price: number; // dollars
   isActive: boolean;
   createdAt: string;
+  bundleEnabled?: boolean;
+  bundlePrice?: number; // dollars
+  bundleName?: string;
+  bundleSessionCount?: number; // number of sessions in the bundle
 }
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -79,6 +83,10 @@ const DEFAULT_FORM: Omit<RecurringSeries, "id" | "createdAt" | "isActive"> = {
   timeMinute: 0,
   isFree: false,
   price: 25,
+  bundleEnabled: false,
+  bundlePrice: 0,
+  bundleName: "",
+  bundleSessionCount: 4,
 };
 
 interface SeriesFormProps {
@@ -232,6 +240,76 @@ function SeriesForm({ onSave, onCancel, saving }: SeriesFormProps) {
           </div>
         )}
       </div>
+
+      {/* Series Pass Bundle Pricing */}
+      {!form.isFree && (
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] text-muted-foreground uppercase tracking-wider">Offer a Series Pass?</label>
+            <button
+              type="button"
+              onClick={() => set("bundleEnabled", !form.bundleEnabled)}
+              className={`relative w-10 h-5.5 rounded-full transition-colors flex-shrink-0 ${form.bundleEnabled ? "bg-electric" : "bg-border/40"}`}
+              style={{ height: "22px", width: "40px" }}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-transform ${form.bundleEnabled ? "translate-x-[18px]" : "translate-x-0"}`}
+              />
+            </button>
+          </div>
+
+          {form.bundleEnabled && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-2 space-y-2 pl-0"
+            >
+              {/* Bundle name */}
+              <input
+                className="w-full bg-carbon border border-border/40 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-electric/50"
+                placeholder={`Full Series Pass — ${form.title || "Series Name"}`}
+                value={form.bundleName}
+                onChange={(e) => set("bundleName", e.target.value)}
+                maxLength={80}
+              />
+              {/* Sessions in bundle */}
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] text-muted-foreground whitespace-nowrap">Sessions in pass:</label>
+                <input
+                  type="number"
+                  min={2}
+                  max={52}
+                  className="flex-1 bg-carbon border border-border/40 rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:border-electric/50"
+                  value={form.bundleSessionCount || 4}
+                  onChange={(e) => set("bundleSessionCount", Number(e.target.value))}
+                />
+              </div>
+              {/* Bundle price */}
+              <div className="flex items-center gap-2 bg-carbon border border-border/40 rounded-xl px-3 py-2.5">
+                <span className="text-muted-foreground text-sm">$</span>
+                <input
+                  type="number"
+                  min={1}
+                  className="flex-1 bg-transparent text-sm text-foreground focus:outline-none"
+                  placeholder="Series pass price"
+                  value={form.bundlePrice || ""}
+                  onChange={(e) => set("bundlePrice", Number(e.target.value))}
+                />
+              </div>
+              {/* Savings label */}
+              {form.bundlePrice && form.price && form.bundleSessionCount && form.bundlePrice > 0 && (
+                <div className="px-3 py-2 rounded-xl bg-gold/5 border border-gold/20">
+                  <p className="text-[11px] text-gold">
+                    Attendees save ${((form.price * (form.bundleSessionCount || 4)) - form.bundlePrice).toFixed(2)} vs buying individually (
+                    {Math.round(((form.price * (form.bundleSessionCount || 4) - form.bundlePrice) / (form.price * (form.bundleSessionCount || 4))) * 100)}% off)
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {/* Upcoming preview */}
       {form.title && (

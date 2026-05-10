@@ -315,6 +315,73 @@ function CategoryContent({
   }
 }
 
+// Creator Studio Toggles — Feature 6 (auto thank-you email) + Feature 7 (tipping)
+function CreatorStudioToggles() {
+  const { user } = useAuth();
+  const { userMode } = useUserMode();
+  const [autoThankyou, setAutoThankyou] = useState(true);
+  const [tippingEnabled, setTippingEnabled] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.auth.getUser().then(({ data }) => {
+      const meta = data?.user?.user_metadata;
+      setAutoThankyou(meta?.auto_thankyou_email !== false);
+      setTippingEnabled(meta?.tipping_enabled === true);
+      setLoaded(true);
+    });
+  }, [user]);
+
+  const save = async (key: string, value: boolean) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await supabase.auth.updateUser({ data: { [key]: value } });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!loaded || userMode !== "creator") return null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-muted-foreground">Studio Settings</span>
+      </div>
+      <div className="space-y-3">
+        <ToggleCard
+          title="Auto thank-you email"
+          description="Send attendees a thank-you email 30 minutes after each session ends"
+          checked={autoThankyou}
+          onToggle={() => {
+            triggerClickHaptic();
+            const newVal = !autoThankyou;
+            setAutoThankyou(newVal);
+            save("auto_thankyou_email", newVal);
+          }}
+          disabled={saving}
+        />
+        <ToggleCard
+          title="Accept tips / appreciation"
+          description="Show an optional 'Send Appreciation' button to ticket holders during and after your sessions"
+          checked={tippingEnabled}
+          onToggle={() => {
+            triggerClickHaptic();
+            const newVal = !tippingEnabled;
+            setTippingEnabled(newVal);
+            save("tipping_enabled", newVal);
+          }}
+          disabled={saving}
+        />
+      </div>
+    </div>
+  );
+}
+
 // Account Settings Content
 function AccountContent() {
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -474,6 +541,9 @@ function NotificationsContent() {
           <ToggleCard title="Scheduled sessions" description="When a new session is scheduled" checked={preferences.inapp_scheduled} onToggle={() => handleToggle("inapp_scheduled")} disabled={saving} />
         </div>
       </div>
+
+      {/* Creator Studio Settings */}
+      <CreatorStudioToggles />
     </div>;
 }
 

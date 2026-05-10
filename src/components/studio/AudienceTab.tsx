@@ -11,7 +11,7 @@ import { triggerClickHaptic } from "@/lib/haptics";
 import { useCreatorAudience, type CreatorAttendee } from "@/hooks/useCreatorAudience";
 import { useNavigate } from "react-router-dom";
 import type { PlanGateResult } from "@/hooks/usePlanGate";
-import { EmailCampaignModal } from "./EmailCampaignModal";
+import { AudienceEmailModal } from "./AudienceEmailModal";
 
 interface AudienceTabProps {
   creatorId: string | undefined;
@@ -184,8 +184,8 @@ export function AudienceTab({ creatorId, planGate, creatorName = "Creator" }: Au
         </motion.div>
       )}
 
-      {/* Email Campaign Modal */}
-      <EmailCampaignModal
+      {/* Audience Email Modal */}
+      <AudienceEmailModal
         isOpen={showEmailModal}
         onClose={() => setShowEmailModal(false)}
         attendees={attendees}

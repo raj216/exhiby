@@ -23,6 +23,7 @@ import { AudienceTab } from "./studio/AudienceTab";
 import { ProAnalyticsDashboard } from "./studio/ProAnalyticsDashboard";
 import { SessionTemplates } from "./studio/SessionTemplates";
 import { RecurringSessions } from "./studio/RecurringSessions";
+import { StudioBranding } from "./studio/StudioBranding";
 import featureFlags from "@/lib/featureFlags";
 import { getUpcomingSessions } from "@/data/getUpcomingSessions";
 interface ScheduledEvent {
@@ -597,6 +598,7 @@ export function StudioDashboard({
             transactions={earningsData?.transactions ?? []}
             attendees={audienceAttendees}
             showEarnings={showEarnings}
+            profileSlug={localProfile?.handle ?? undefined}
           />
         )}
       </div>}
@@ -628,6 +630,8 @@ export function StudioDashboard({
           >
             {hasAdvancedAnalytics ? (
               <div className="space-y-8">
+                <StudioBranding />
+                <div className="border-t border-border/20" />
                 <SessionTemplates />
                 <div className="border-t border-border/20" />
                 <RecurringSessions />
