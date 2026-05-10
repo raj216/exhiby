@@ -221,13 +221,19 @@ export function StudioBranding() {
         },
       });
 
-      // If slug changed, update handle in profiles table
+      // Sync cover_url, accent_color, and (if changed) handle to profiles table
+      // PublicProfile reads these directly from DB — user_metadata alone isn't enough
+      const profileUpdates: Record<string, string | null> = {
+        cover_url: branding.coverUrl || null,
+        accent_color: branding.accentColor,
+      };
       if (newSlug && newSlug !== saved.customSlug) {
-        await supabase
-          .from("profiles")
-          .update({ handle: newSlug })
-          .eq("user_id", user.id);
+        profileUpdates.handle = newSlug;
       }
+      await supabase
+        .from("profiles")
+        .update(profileUpdates)
+        .eq("user_id", user.id);
 
       const updated = { ...branding, customSlug: newSlug };
       setSaved(updated);

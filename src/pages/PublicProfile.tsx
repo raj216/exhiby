@@ -37,6 +37,7 @@ interface PublicProfileData {
   avatar_url: string | null;
   bio: string | null;
   cover_url: string | null;
+  accent_color: string | null;
   website: string | null;
   created_at: string | null;
   is_founding_member: boolean | null;
@@ -337,7 +338,14 @@ export default function PublicProfile() {
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-obsidian via-carbon to-obsidian" />
+            <div
+              className="w-full h-full"
+              style={{
+                background: profile.accent_color
+                  ? `linear-gradient(135deg, ${profile.accent_color}55 0%, #0F0F11 60%, #0F0F11 100%)`
+                  : "linear-gradient(to bottom right, #0F0F11, #1A1A1F, #0F0F11)",
+              }}
+            />
           )}
 
           {/* Live pill on cover */}
