@@ -31,7 +31,7 @@ export function ScheduleEventModal({
 }: ScheduleEventModalProps) {
   const { user } = useAuth();
   const { tier } = usePlan();
-  const isPro = tier === "pro" || tier === "founding";
+  const isPro = tier === "pro" || tier === "plus";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Lock body scroll when modal is open
@@ -214,7 +214,8 @@ export function ScheduleEventModal({
         scheduled_at: scheduledAt,
         is_free: isFree,
         price: isFree ? 0 : parseFloat(price) || 0,
-        capacity: isUnlimited ? null : parseInt(capacity) || 25
+        // Free plan: always enforce 50-seat hard cap regardless of UI state
+        capacity: (isPro && isUnlimited) ? null : Math.min(parseInt(capacity) || 25, isPro ? Infinity : 50)
       }).select('id').single();
       if (error) throw error;
 
