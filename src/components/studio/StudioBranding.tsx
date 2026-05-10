@@ -1,23 +1,28 @@
 /**
- * StudioBranding
- * Pro feature: customize public studio profile colors, URL slug, and cover photo.
- * Stored in auth user_metadata — no DB migration required for palette/slug.
+ * StudioBranding — "Studio Theme" (Pro)
+ *
+ * The single source of truth for a creator's studio theme:
+ * an accent color (palette preset OR custom) that flows through the
+ * public studio cover, live-room buttons, share cards, and email templates.
+ *
+ * Cover photo and username are intentionally NOT here — both already exist
+ * in Edit Profile and writing them in two places creates duplication.
+ *
+ * Persistence:
+ *   • profiles.accent_color  (read by PublicProfile and email functions)
+ *   • user_metadata.studio_palette / studio_accent_color  (UI state cache)
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Palette,
-  Link2,
-  Image,
   Check,
-  X,
   Loader2,
-  Eye,
-  CheckCircle2,
-  XCircle,
-  Upload,
+  Sparkles,
+  Pencil,
+  ArrowUpRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -26,106 +31,117 @@ import { toast } from "sonner";
 interface BrandingData {
   accentColor: string;
   palette: string;
-  customSlug: string;
-  coverUrl: string;
 }
 
 const DEFAULT_BRANDING: BrandingData = {
   accentColor: "#FF6B58",
   palette: "midnight",
-  customSlug: "",
-  coverUrl: "",
 };
 
-const PALETTES = [
-  {
-    id: "midnight",
-    label: "Midnight Atelier",
-    primary: "#FF6B58",
-    bg: "#0F0F11",
-    preview: "from-[#0F0F11] to-[#1A1A1F]",
-    dot: "bg-[#FF6B58]",
-  },
-  {
-    id: "warm",
-    label: "Warm Gallery",
-    primary: "#C97B5A",
-    bg: "#1A1209",
-    preview: "from-[#1A1209] to-[#2A1E10]",
-    dot: "bg-[#C97B5A]",
-  },
-  {
-    id: "cool",
-    label: "Cool Studio",
-    primary: "#6B9ED2",
-    bg: "#0D1520",
-    preview: "from-[#0D1520] to-[#151F30]",
-    dot: "bg-[#6B9ED2]",
-  },
-  {
-    id: "natural",
-    label: "Natural Light",
-    primary: "#B89B72",
-    bg: "#1C180F",
-    preview: "from-[#1C180F] to-[#2A2417]",
-    dot: "bg-[#B89B72]",
-  },
-  {
-    id: "forest",
-    label: "Forest Studio",
-    primary: "#6B9E7A",
-    bg: "#0D1510",
-    preview: "from-[#0D1510] to-[#142018]",
-    dot: "bg-[#6B9E7A]",
-  },
+interface PaletteDef {
+  id: string;
+  label: string;
+  primary: string;
+  bg: string;
+  surface: string;
+}
+
+const PALETTES: PaletteDef[] = [
+  { id: "midnight", label: "Midnight", primary: "#FF6B58", bg: "#0F0F11", surface: "#1A1A1F" },
+  { id: "warm",     label: "Warm",     primary: "#C97B5A", bg: "#1A1209", surface: "#2A1E10" },
+  { id: "cool",     label: "Cool",     primary: "#6B9ED2", bg: "#0D1520", surface: "#151F30" },
+  { id: "natural",  label: "Natural",  primary: "#B89B72", bg: "#1C180F", surface: "#2A2417" },
+  { id: "forest",   label: "Forest",   primary: "#6B9E7A", bg: "#0D1510", surface: "#142018" },
 ];
 
-const PALETTE_COLORS: Record<string, string> = {
-  midnight: "#FF6B58",
-  warm: "#C97B5A",
-  cool: "#6B9ED2",
-  natural: "#B89B72",
-  forest: "#6B9E7A",
-};
+const PALETTE_BY_ID = Object.fromEntries(PALETTES.map((p) => [p.id, p])) as Record<string, PaletteDef>;
 
-type SlugStatus = "idle" | "checking" | "available" | "taken" | "invalid";
+/**
+ * Mini visual mockup of a studio card — used as the palette-selector tile
+ * AND as the hero preview. Same component, different sizes.
+ */
+function StudioMockup({
+  primary,
+  bg,
+  surface,
+  size = "tile",
+  showLive = false,
+  avatarUrl,
+  name,
+}: {
+  primary: string;
+  bg: string;
+  surface: string;
+  size?: "tile" | "hero";
+  showLive?: boolean;
+  avatarUrl?: string | null;
+  name?: string;
+}) {
+  const isHero = size === "hero";
+  return (
+    <div
+      className={`relative overflow-hidden rounded-xl ${isHero ? "h-[140px]" : "h-[110px]"}`}
+      style={{ background: bg }}
+    >
+      {/* Cover */}
+      <div
+        className={isHero ? "h-[64px]" : "h-[44px]"}
+        style={{
+          background: `linear-gradient(135deg, ${primary}55 0%, ${bg} 75%)`,
+        }}
+      />
+      {/* Subtle vignette */}
+      <div className="absolute inset-x-0 top-0 h-[64px] bg-gradient-to-b from-transparent to-black/30 pointer-events-none" />
 
-function useSlugCheck(slug: string, currentSlug: string) {
-  const [status, setStatus] = useState<SlugStatus>("idle");
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+      {/* Profile row */}
+      <div className={`px-3 ${isHero ? "-mt-6" : "-mt-4"} flex items-end gap-2`}>
+        <div
+          className={`rounded-full border-[2px] flex-shrink-0 overflow-hidden ${
+            isHero ? "w-12 h-12" : "w-9 h-9"
+          }`}
+          style={{ borderColor: primary, background: surface }}
+        >
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+          ) : null}
+        </div>
+        <div className="flex-1 min-w-0 pb-0.5">
+          {isHero && name ? (
+            <p className="text-[13px] font-semibold text-white/90 truncate leading-tight">
+              {name}
+            </p>
+          ) : (
+            <div
+              className={`rounded-full bg-white/30 ${isHero ? "h-2 w-24" : "h-1.5 w-14"} mb-1`}
+            />
+          )}
+          <div
+            className={`rounded-full bg-white/15 ${isHero ? "h-1.5 w-16" : "h-1 w-10"}`}
+          />
+        </div>
+        <div
+          className={`flex-shrink-0 rounded-full font-semibold text-white ${
+            isHero ? "px-3 py-1 text-[11px]" : "px-2 py-0.5 text-[9px]"
+          }`}
+          style={{ background: primary }}
+        >
+          Follow
+        </div>
+      </div>
 
-  useEffect(() => {
-    if (!slug || slug === currentSlug) {
-      setStatus("idle");
-      return;
-    }
-
-    if (!/^[a-z0-9-]{3,30}$/.test(slug)) {
-      setStatus("invalid");
-      return;
-    }
-
-    setStatus("checking");
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
-      // Check if slug is taken in profiles
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("handle")
-        .eq("handle", slug)
-        .maybeSingle();
-
-      if (error) {
-        setStatus("idle");
-        return;
-      }
-      setStatus(data ? "taken" : "available");
-    }, 500);
-
-    return () => clearTimeout(timerRef.current);
-  }, [slug, currentSlug]);
-
-  return status;
+      {/* Live row (hero only) */}
+      {isHero && showLive && (
+        <div className="px-3 mt-2 flex items-center gap-2">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping" style={{ background: primary }} />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: primary }} />
+          </span>
+          <span className="text-[10px] font-bold tracking-wider text-white/80">LIVE NOW</span>
+          <span className="text-[10px] text-white/40">·  234 watching</span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function StudioBranding() {
@@ -134,111 +150,69 @@ export function StudioBranding() {
   const [saved, setSaved] = useState<BrandingData>(DEFAULT_BRANDING);
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [slugInput, setSlugInput] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
-  const [uploadingCover, setUploadingCover] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const slugStatus = useSlugCheck(slugInput, saved.customSlug);
+  const [profile, setProfile] = useState<{ name: string; avatar_url: string | null } | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.auth.getUser();
-    const meta = data?.user?.user_metadata;
-    const loaded: BrandingData = {
-      accentColor: meta?.studio_accent_color ?? DEFAULT_BRANDING.accentColor,
-      palette: meta?.studio_palette ?? DEFAULT_BRANDING.palette,
-      customSlug: meta?.studio_slug ?? "",
-      coverUrl: meta?.studio_cover_url ?? "",
-    };
+
+    const [{ data: authData }, { data: profileData }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase
+        .from("profiles")
+        .select("name, avatar_url, accent_color")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+
+    const meta = authData?.user?.user_metadata;
+    const accentFromDb = (profileData as { accent_color?: string | null } | null)?.accent_color;
+
+    // Prefer DB over metadata (DB is the source of truth on the public side)
+    const accent = accentFromDb || meta?.studio_accent_color || DEFAULT_BRANDING.accentColor;
+    // Match the accent against a known preset, else "custom"
+    const matchingPreset = PALETTES.find((p) => p.primary.toLowerCase() === accent.toLowerCase());
+    const paletteId = matchingPreset?.id || meta?.studio_palette || "custom";
+
+    const loaded: BrandingData = { accentColor: accent, palette: paletteId };
     setBranding(loaded);
     setSaved(loaded);
-    setSlugInput(loaded.customSlug);
+    setProfile({
+      name: profileData?.name || "Your Studio",
+      avatar_url: profileData?.avatar_url ?? null,
+    });
     setIsLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
-  const selectPalette = (id: string) => {
+  const selectPalette = (p: PaletteDef) => {
     triggerClickHaptic();
-    setBranding((prev) => ({
-      ...prev,
-      palette: id,
-      accentColor: PALETTE_COLORS[id] ?? prev.accentColor,
-    }));
-  };
-
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Cover photo must be under 5 MB");
-      return;
-    }
-
-    setUploadingCover(true);
-    try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `covers/${user.id}/studio-cover.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      const coverUrl = urlData.publicUrl;
-      setBranding((prev) => ({ ...prev, coverUrl }));
-      toast.success("Cover photo uploaded");
-    } catch (err: any) {
-      toast.error("Upload failed", { description: err.message });
-    } finally {
-      setUploadingCover(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+    setBranding({ palette: p.id, accentColor: p.primary });
   };
 
   const handleSave = async () => {
     if (!user) return;
-    if (slugInput && slugStatus === "taken") {
-      toast.error("That slug is already taken — choose another");
-      return;
-    }
-    if (slugInput && slugStatus === "invalid") {
-      toast.error("Slug must be 3–30 lowercase letters, numbers, or hyphens");
-      return;
-    }
-
+    triggerClickHaptic();
     setSaving(true);
     try {
-      const newSlug = slugStatus === "available" ? slugInput : saved.customSlug;
+      // Write canonical accent_color to profiles (read by PublicProfile, share cards, emails)
+      await supabase
+        .from("profiles")
+        .update({ accent_color: branding.accentColor })
+        .eq("user_id", user.id);
+
+      // Mirror to user_metadata for UI cache
       await supabase.auth.updateUser({
         data: {
           studio_accent_color: branding.accentColor,
           studio_palette: branding.palette,
-          studio_slug: newSlug || null,
-          studio_cover_url: branding.coverUrl || null,
         },
       });
 
-      // Sync cover_url, accent_color, and (if changed) handle to profiles table
-      // PublicProfile reads these directly from DB — user_metadata alone isn't enough
-      const profileUpdates: Record<string, string | null> = {
-        cover_url: branding.coverUrl || null,
-        accent_color: branding.accentColor,
-      };
-      if (newSlug && newSlug !== saved.customSlug) {
-        profileUpdates.handle = newSlug;
-      }
-      await supabase
-        .from("profiles")
-        .update(profileUpdates)
-        .eq("user_id", user.id);
-
-      const updated = { ...branding, customSlug: newSlug };
-      setSaved(updated);
-      setBranding(updated);
-      toast.success("Studio branding saved", { description: "Your public profile has been updated." });
+      setSaved(branding);
+      toast.success("Studio theme saved", {
+        description: "Your accent color is now live on your studio.",
+      });
     } catch (err: any) {
       toast.error("Failed to save", { description: err.message });
     } finally {
@@ -246,13 +220,8 @@ export function StudioBranding() {
     }
   };
 
-  const currentPalette = PALETTES.find((p) => p.id === branding.palette) ?? PALETTES[0];
-
   const hasChanges =
-    branding.accentColor !== saved.accentColor ||
-    branding.palette !== saved.palette ||
-    branding.coverUrl !== saved.coverUrl ||
-    (slugStatus === "available" && slugInput !== saved.customSlug);
+    branding.accentColor !== saved.accentColor || branding.palette !== saved.palette;
 
   if (isLoading) {
     return (
@@ -262,260 +231,183 @@ export function StudioBranding() {
     );
   }
 
-  const profileUrl = saved.customSlug
-    ? `${window.location.origin}/${saved.customSlug}`
-    : `${window.location.origin}/u/${user?.id?.slice(0, 8)}`;
+  // Resolve current palette colors for the hero preview.
+  // Falls back to "midnight" surface if we're on a custom color.
+  const currentPalette = PALETTE_BY_ID[branding.palette] ?? PALETTES[0];
+  const heroBg = currentPalette.bg;
+  const heroSurface = currentPalette.surface;
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div>
-        <p className="text-sm font-semibold text-foreground">Studio Branding</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Customize how your public studio looks
-        </p>
+    <div className="space-y-5">
+      {/* ─── Header ──────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-base font-semibold text-foreground tracking-tight">
+              Studio Theme
+            </p>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-electric/15 to-crimson/15 border border-electric/25">
+              <Sparkles className="w-2.5 h-2.5 text-electric" />
+              <span className="text-[9px] font-bold tracking-[0.08em] text-electric uppercase">Pro</span>
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-md">
+            Your accent color flows through your studio cover, live room, share cards, and email templates.
+          </p>
+        </div>
       </div>
 
-      {/* Live Preview */}
+      {/* ─── Hero Live Preview ───────────────────────────────────────────── */}
       <motion.div
-        className="rounded-2xl overflow-hidden border border-border/30"
-        style={{ background: currentPalette.bg }}
+        layout
+        className="rounded-2xl overflow-hidden border border-border/30 shadow-lg"
       >
-        {/* Cover */}
-        <div className="relative h-20 overflow-hidden">
-          {branding.coverUrl ? (
-            <img src={branding.coverUrl} alt="Cover" className="w-full h-full object-cover" />
-          ) : (
-            <div
-              className="w-full h-full"
-              style={{
-                background: `linear-gradient(135deg, ${branding.accentColor}33 0%, ${currentPalette.bg} 100%)`,
-              }}
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/40" />
+        <StudioMockup
+          primary={branding.accentColor}
+          bg={heroBg}
+          surface={heroSurface}
+          size="hero"
+          showLive
+          avatarUrl={profile?.avatar_url}
+          name={profile?.name}
+        />
+        <div className="px-3 py-2 bg-obsidian/60 border-t border-border/20 flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 font-semibold">
+            Live preview
+          </p>
+          <p className="text-[10px] text-muted-foreground font-mono">{branding.accentColor.toUpperCase()}</p>
         </div>
-        {/* Profile stub */}
-        <div className="px-3 pb-3 -mt-5 flex items-end gap-2">
-          <div
-            className="w-10 h-10 rounded-full border-2 flex-shrink-0"
-            style={{ borderColor: branding.accentColor, background: currentPalette.bg }}
-          />
-          <div>
-            <div className="w-20 h-2 rounded-full bg-white/30 mb-1" />
-            <div className="w-12 h-1.5 rounded-full bg-white/15" />
-          </div>
-          <div
-            className="ml-auto px-2.5 py-1 rounded-full text-[10px] font-semibold"
-            style={{ background: branding.accentColor, color: "#fff" }}
-          >
-            Follow
-          </div>
-        </div>
-        <p className="text-[10px] text-center pb-2" style={{ color: `${branding.accentColor}99` }}>
-          Preview · {currentPalette.label}
-        </p>
       </motion.div>
 
-      {/* Studio Palette Presets */}
-      <div className="bg-obsidian rounded-2xl border border-border/30 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Palette className="w-4 h-4 text-electric" />
-          <h3 className="text-sm font-semibold text-foreground">Studio Palette</h3>
-        </div>
-
-        <div className="grid grid-cols-5 gap-2 mb-4">
-          {PALETTES.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => selectPalette(p.id)}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
-                branding.palette === p.id
-                  ? "border-electric/60 bg-electric/5"
-                  : "border-border/20 bg-carbon hover:border-border/40"
-              }`}
-            >
-              <div
-                className="w-7 h-7 rounded-full shadow-md"
-                style={{ background: p.primary }}
-              />
-              <p className="text-[9px] text-muted-foreground text-center leading-tight line-clamp-2">
-                {p.label}
-              </p>
-            </button>
-          ))}
-        </div>
-
-        {/* Manual color picker */}
-        <div className="flex items-center gap-3">
-          <label className="text-xs text-muted-foreground flex-shrink-0">Custom color</label>
-          <div className="relative flex-shrink-0">
-            <div
-              className="w-8 h-8 rounded-lg border border-border/40 cursor-pointer shadow-md overflow-hidden"
-              style={{ background: branding.accentColor }}
-            >
-              <input
-                type="color"
-                value={branding.accentColor}
-                onChange={(e) =>
-                  setBranding((prev) => ({ ...prev, accentColor: e.target.value, palette: "custom" }))
-                }
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              />
-            </div>
-          </div>
-          <span className="text-xs text-muted-foreground/60 font-mono">{branding.accentColor}</span>
+      {/* ─── Palette Tiles ───────────────────────────────────────────────── */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-2.5 tracking-wide">
+          Choose a palette
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {PALETTES.map((p) => {
+            const active = branding.palette === p.id;
+            return (
+              <motion.button
+                key={p.id}
+                onClick={() => selectPalette(p)}
+                whileTap={{ scale: 0.97 }}
+                className={`group relative rounded-2xl p-1.5 border transition-all text-left ${
+                  active
+                    ? "border-electric/60 bg-electric/5 shadow-[0_0_0_1px_rgba(102,170,255,0.3)]"
+                    : "border-border/25 hover:border-border/50 bg-carbon/40"
+                }`}
+                aria-pressed={active}
+              >
+                <StudioMockup primary={p.primary} bg={p.bg} surface={p.surface} />
+                <div className="flex items-center justify-between px-1 pt-2 pb-0.5">
+                  <span className={`text-[11px] font-semibold ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                    {p.label}
+                  </span>
+                  {active && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="w-4 h-4 rounded-full bg-electric flex items-center justify-center"
+                    >
+                      <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Custom URL Slug */}
-      <div className="bg-obsidian rounded-2xl border border-border/30 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Link2 className="w-4 h-4 text-electric" />
-          <h3 className="text-sm font-semibold text-foreground">Custom Studio URL</h3>
-        </div>
-
-        <div className="flex items-center gap-1 mb-2">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {window.location.host}/
-          </span>
-          <div className="relative flex-1">
-            <input
-              className="w-full bg-carbon border border-border/40 rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-electric/50 pr-7"
-              placeholder="your-studio"
-              value={slugInput}
-              onChange={(e) => setSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-              maxLength={30}
-            />
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
-              {slugStatus === "checking" && <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />}
-              {slugStatus === "available" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-              {slugStatus === "taken" && <XCircle className="w-3.5 h-3.5 text-rose-400" />}
-            </div>
-          </div>
-        </div>
-
-        {slugStatus === "available" && (
-          <p className="text-[10px] text-emerald-400 flex items-center gap-1">
-            <Check className="w-3 h-3" /> Available
-          </p>
-        )}
-        {slugStatus === "taken" && (
-          <p className="text-[10px] text-rose-400 flex items-center gap-1">
-            <X className="w-3 h-3" /> Already taken
-          </p>
-        )}
-        {slugStatus === "invalid" && (
-          <p className="text-[10px] text-amber-400">
-            3–30 lowercase letters, numbers, or hyphens only
-          </p>
-        )}
-
-        {saved.customSlug && (
-          <p className="text-[10px] text-muted-foreground/60 mt-2">
-            Current: <span className="text-foreground/60">{profileUrl}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Cover Photo */}
-      <div className="bg-obsidian rounded-2xl border border-border/30 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Image className="w-4 h-4 text-electric" />
-          <h3 className="text-sm font-semibold text-foreground">Cover Photo</h3>
-          <span className="text-[10px] text-muted-foreground ml-auto">1200×400px recommended</span>
-        </div>
-
-        {branding.coverUrl ? (
-          <div className="relative rounded-xl overflow-hidden border border-border/30 mb-3">
-            <img
-              src={branding.coverUrl}
-              alt="Cover"
-              className="w-full h-24 object-cover"
-            />
-            <button
-              onClick={() => { triggerClickHaptic(); setBranding((prev) => ({ ...prev, coverUrl: "" })); }}
-              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors"
-            >
-              <X className="w-3.5 h-3.5 text-white" />
-            </button>
-          </div>
-        ) : (
+      {/* ─── Custom Color ────────────────────────────────────────────────── */}
+      <div>
+        <p className="text-xs font-semibold text-foreground mb-2.5 tracking-wide">
+          Or pick a custom color
+        </p>
+        <label
+          className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
+            branding.palette === "custom"
+              ? "border-electric/60 bg-electric/5"
+              : "border-border/25 bg-carbon/40 hover:border-border/50"
+          }`}
+        >
           <div
-            className="h-16 rounded-xl border border-dashed border-border/40 flex items-center justify-center mb-3"
-            style={{
-              background: `linear-gradient(135deg, ${branding.accentColor}22 0%, transparent 100%)`,
-            }}
-          >
-            <p className="text-xs text-muted-foreground/60">
-              No cover photo — gradient from your accent color will be used
+            className="w-10 h-10 rounded-xl shadow-md flex-shrink-0 ring-1 ring-white/10"
+            style={{ background: branding.accentColor }}
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Custom hex</p>
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+              {branding.accentColor.toUpperCase()}
             </p>
           </div>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleCoverUpload}
-        />
-        <button
-          onClick={() => { triggerClickHaptic(); fileInputRef.current?.click(); }}
-          disabled={uploadingCover}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border/40 text-xs font-semibold text-muted-foreground hover:bg-muted/20 hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          {uploadingCover ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Upload className="w-3.5 h-3.5" />
-          )}
-          {branding.coverUrl ? "Replace Cover Photo" : "Upload Cover Photo"}
-        </button>
+          <span className="text-[11px] font-semibold text-electric flex items-center gap-1 flex-shrink-0">
+            <Pencil className="w-3 h-3" />
+            Edit
+          </span>
+          <input
+            type="color"
+            value={branding.accentColor}
+            onChange={(e) =>
+              setBranding({ palette: "custom", accentColor: e.target.value })
+            }
+            className="sr-only"
+            aria-label="Pick a custom accent color"
+          />
+        </label>
       </div>
 
-      {/* Save / Preview */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => { triggerClickHaptic(); setShowPreview(!showPreview); }}
-          className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-border/40 text-sm font-semibold text-muted-foreground hover:bg-muted/20 transition-colors"
-        >
-          <Eye className="w-4 h-4" />
-          Preview Studio
-        </button>
-        <button
-          onClick={() => { triggerClickHaptic(); handleSave(); }}
-          disabled={saving || !hasChanges}
-          className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-electric to-crimson text-white text-sm font-semibold shadow-electric flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          Save Changes
-        </button>
-      </div>
+      {/* ─── Edit Profile note (dedupe redirect) ─────────────────────────── */}
+      <Link
+        to="/settings"
+        onClick={() => triggerClickHaptic()}
+        className="group flex items-center gap-3 p-3 rounded-2xl border border-border/20 bg-carbon/30 hover:bg-carbon/60 transition-colors"
+      >
+        <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0">
+          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-foreground">
+            Cover photo &amp; studio URL
+          </p>
+          <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+            Manage these in your profile — your username is your studio URL.
+          </p>
+        </div>
+        <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+      </Link>
 
-      {/* Preview banner */}
+      {/* ─── Sticky save action ──────────────────────────────────────────── */}
       <AnimatePresence>
-        {showPreview && (
+        {hasChanges && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="rounded-2xl border border-border/30 overflow-hidden bg-carbon p-3 text-center"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="sticky bottom-3 z-10"
           >
-            <p className="text-xs text-muted-foreground mb-2">
-              Your public studio appears at:
-            </p>
-            <a
-              href={profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-electric underline break-all"
-            >
-              {profileUrl}
-            </a>
-            <p className="text-[10px] text-muted-foreground/50 mt-1">
-              Save your changes first to apply them
-            </p>
+            <div className="flex items-center gap-3 p-2 pl-4 rounded-full bg-obsidian/95 border border-electric/30 backdrop-blur-md shadow-2xl">
+              <span className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <span className="w-1.5 h-1.5 rounded-full bg-electric animate-pulse" />
+                Unsaved changes
+              </span>
+              <button
+                onClick={() => { triggerClickHaptic(); setBranding(saved); }}
+                disabled={saving}
+                className="ml-auto px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-5 py-2 rounded-full bg-gradient-to-r from-electric to-crimson text-white text-xs font-bold shadow-electric flex items-center gap-1.5 disabled:opacity-50 transition-all active:scale-95"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Save Theme
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
