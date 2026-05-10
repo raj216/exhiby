@@ -29,6 +29,9 @@ import {
   Lightbulb,
   Copy,
   BarChart2,
+  Sparkles,
+  Ticket,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -530,67 +533,103 @@ function ConversionFunnel({
     },
   ];
 
+  // Stage helper text — explains what each empty stage measures
+  const stageHelp: Record<string, string> = {
+    "Profile Visits": "Tracks when someone lands on your studio link",
+    "Session Page Views": "Tracks when someone opens a specific session page",
+    "Checkout Started": "Tracks when someone clicks Buy Ticket",
+  };
+
   return (
     <div className="bg-obsidian rounded-2xl border border-border/30 p-4">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-1">
         <TrendingUp className="w-4 h-4 text-electric" />
         <h3 className="text-sm font-semibold text-foreground">Conversion Funnel</h3>
       </div>
+      <p className="text-[11px] text-muted-foreground/60 mb-4">
+        How visitors become attendees
+      </p>
 
-      {/* Bar widths: stages 1-3 are aspirational (hint at funnel shape while data is gathered).
-          Stages 4-5 use REAL counts. Stage 4 (Ticket Purchased) is the largest known value.
-          Stage 5 (Attended) shrinks proportionally to its conversion rate from stage 4. */}
-      <div className="space-y-1">
+      {/* Visual funnel: stages 1-3 are aspirational widths (hint at funnel shape);
+          stages 4-5 use REAL counts. Stage 5 width is proportional to conversion rate. */}
+      <div className="space-y-1.5">
         {stages.map((stage, i) => {
           const isGathering = stage.value === "Gathering data...";
-          const stage4Width = 60; // visual width when data exists
+          const stage4Width = 65;
           const barWidth = isGathering
-            ? 100 - i * 14    // 100, 86, 72 — hints at narrowing funnel
+            ? 95 - i * 12     // 95, 83, 71 — visible funnel taper
             : i === 3
-            ? stage4Width      // ticket purchased baseline
+            ? stage4Width
             : i === 4
-            ? Math.max(8, Math.round(purchaseToAttended * stage4Width))
+            ? Math.max(10, Math.round(purchaseToAttended * stage4Width))
             : 100;
 
-          return (
-            <div key={stage.label} className="space-y-1">
-              {/* Drop-off line */}
-              {stage.dropoff && (
-                <p className="text-[10px] text-muted-foreground/60 pl-2 py-0.5">
-                  {stage.dropoff}
-                </p>
-              )}
+          const barBg = isGathering
+            ? "bg-border/30"
+            : i === 3
+            ? "bg-gradient-to-r from-electric/80 to-electric"
+            : "bg-gradient-to-r from-gold/80 to-gold";
 
-              <div className="rounded-xl bg-carbon/60 border border-border/20 p-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-foreground">{stage.label}</span>
-                  <span className={`text-xs font-semibold tabular-nums ${isGathering ? "text-muted-foreground/50 italic" : "text-foreground"}`}>
-                    {stage.value}
+          return (
+            <div key={stage.label}>
+              {/* Drop-off connector between stage 4 and 5 */}
+              {stage.dropoff && (
+                <div className="flex items-center justify-center py-1">
+                  <span className="text-[10px] text-muted-foreground/50 italic">
+                    {stage.dropoff}
                   </span>
                 </div>
+              )}
 
-                {/* Bar */}
-                <div className="h-1 rounded-full bg-border/20 overflow-hidden mb-1.5">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${barWidth}%` }}
-                    transition={{ duration: 0.8, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                    className={`h-full rounded-full ${
-                      isGathering
-                        ? "bg-border/40"
-                        : i <= 2
-                        ? "bg-border/40"
-                        : i === 3
-                        ? "bg-electric"
-                        : "bg-gold"
-                    }`}
-                  />
+              {/* Funnel row — centered bar */}
+              <div className="relative">
+                <div className="flex items-center gap-3">
+                  {/* Label column */}
+                  <div className="w-[110px] flex-shrink-0">
+                    <p className={`text-[12px] font-medium leading-tight ${isGathering ? "text-muted-foreground/60" : "text-foreground"}`}>
+                      {stage.label}
+                    </p>
+                  </div>
+
+                  {/* Bar (the funnel visual) — centered using flex */}
+                  <div className="flex-1 flex justify-center">
+                    <div className="w-full max-w-[300px] flex justify-center">
+                      <motion.div
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: `${barWidth}%`, opacity: 1 }}
+                        transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                        className={`h-9 rounded-md ${barBg} flex items-center justify-center px-3`}
+                      >
+                        {!isGathering && (
+                          <span className="text-xs font-bold text-white tabular-nums whitespace-nowrap">
+                            {stage.value}
+                          </span>
+                        )}
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Value column (right side, for gathering stages) */}
+                  <div className="w-[60px] flex-shrink-0 text-right">
+                    {isGathering && (
+                      <span className="text-[10px] text-muted-foreground/40 italic">
+                        Gathering
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Note + badge */}
-                {stage.note && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] text-muted-foreground/60">{stage.note}</span>
+                {/* Helper line */}
+                {isGathering && stageHelp[stage.label] && (
+                  <p className="text-[10px] text-muted-foreground/40 mt-0.5 ml-[122px] leading-tight">
+                    {stageHelp[stage.label]}
+                  </p>
+                )}
+
+                {/* Benchmark + tip line */}
+                {!isGathering && stage.note && (
+                  <div className="ml-[122px] mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-muted-foreground/55">{stage.note}</span>
                     {stage.aboveBenchmark === true && (
                       <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                         Above avg
@@ -608,10 +647,6 @@ function ConversionFunnel({
           );
         })}
       </div>
-
-      <p className="text-[10px] text-muted-foreground/40 mt-3 text-center">
-        Profile visit tracking will fill in stages 1–3 automatically
-      </p>
     </div>
   );
 }
@@ -679,118 +714,139 @@ export function ProAnalyticsDashboard({
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="mt-4 space-y-4"
     >
-      {/* Section Header */}
-      <div className="flex items-center gap-2">
-        <div className="w-1 h-5 rounded-full bg-gradient-to-b from-electric to-crimson" />
-        <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">
-          Pro Analytics
-        </h3>
+      {/* ─── Section Header ──────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 pt-1">
+        <div>
+          <h3 className="font-display text-base text-foreground tracking-tight">
+            Studio Performance
+          </h3>
+          <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+            Insights into your studio's revenue, audience, and growth
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-electric/15 to-crimson/15 border border-electric/25 flex-shrink-0">
+          <Sparkles className="w-2.5 h-2.5 text-electric" />
+          <span className="text-[9px] font-bold tracking-[0.08em] text-electric uppercase">Pro</span>
+        </span>
       </div>
 
-      {/* Revenue Trend — 6-month bar chart */}
-      <div className="bg-obsidian rounded-2xl border border-electric/20 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-              Revenue Trend
-            </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <p
-                className="font-display text-2xl text-electric"
-                style={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                {showEarnings ? `$${(currentMonthRevenue / 100).toFixed(2)}` : "••••"}
-              </p>
-              <MoMBadge current={currentMonthRevenue} previous={prevMonthRevenue} />
-            </div>
-            <p className="text-[11px] text-muted-foreground">this month · vs last month</p>
-          </div>
-          <TrendingUp className="w-5 h-5 text-electric opacity-60" />
-        </div>
+      {/* ─── Hero Metric Card ────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-electric/20 p-5 bg-gradient-to-br from-electric/[0.06] via-obsidian to-obsidian">
+        {/* Subtle glow */}
+        <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-electric/10 blur-3xl pointer-events-none" />
 
-        {hasRevenue ? (
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={monthlyRevenue} barSize={28}>
-              <XAxis
-                dataKey="month"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              />
-              <YAxis hide />
-              <Tooltip
-                content={<CustomTooltip showEarnings={showEarnings} />}
-                cursor={{ fill: "hsl(var(--border) / 0.15)", radius: 6 }}
-              />
-              <Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
-                {monthlyRevenue.map((entry, i) => (
-                  <Cell
-                    key={i}
-                    fill={
-                      entry.revenue === maxBarRevenue && entry.revenue > 0
-                        ? GOLD_COLOR
-                        : entry.revenue > 0
-                        ? ELECTRIC_COLOR
-                        : "hsl(var(--border) / 0.4)"
-                    }
-                    fillOpacity={i === monthlyRevenue.length - 1 ? 1 : 0.55}
+        <div className="relative">
+          {/* Eyebrow */}
+          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70 font-semibold">
+            This month · revenue
+          </p>
+
+          {/* Hero number + MoM */}
+          <div className="flex items-baseline gap-2.5 mt-1.5">
+            <p
+              className="font-display text-[40px] leading-none text-foreground"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {showEarnings ? `$${(currentMonthRevenue / 100).toFixed(2)}` : "••••"}
+            </p>
+            <MoMBadge current={currentMonthRevenue} previous={prevMonthRevenue} />
+          </div>
+          <p className="text-[11px] text-muted-foreground/60 mt-1">
+            {prevMonthRevenue > 0
+              ? `vs $${(prevMonthRevenue / 100).toFixed(2)} last month`
+              : "First month earning revenue"}
+          </p>
+
+          {/* Sparkline (6 months) */}
+          {hasRevenue ? (
+            <div className="mt-4 -ml-1">
+              <ResponsiveContainer width="100%" height={72}>
+                <BarChart data={monthlyRevenue} barSize={20}>
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground) / 0.6)" }}
+                    interval={0}
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-[120px] flex items-center justify-center">
-            <p className="text-xs text-muted-foreground/60">
-              Revenue chart appears after your first paid session
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Session Performance Table — Feature 3 (replaces redundant Top Sessions card) */}
-      <SessionPerformanceTable rows={sessionRows} showEarnings={showEarnings} />
-
-      {/* Audience Breakdown */}
-      <div className="bg-obsidian rounded-2xl border border-border/30 p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Users className="w-4 h-4 text-electric" />
-          <h3 className="text-sm font-semibold text-foreground">Audience Breakdown</h3>
-          <span className="text-xs text-muted-foreground ml-auto">{totalAttendees} total</span>
-        </div>
-
-        <div className="space-y-3">
-          {[
-            { label: "VIP Fans", count: vipCount, pct: segmentPct(vipCount), color: "bg-gold", textColor: "text-gold" },
-            { label: "Repeat Attendees", count: repeatCount, pct: segmentPct(repeatCount), color: "bg-electric", textColor: "text-electric" },
-            { label: "New Attendees", count: newCount, pct: segmentPct(newCount), color: "bg-muted-foreground/40", textColor: "text-muted-foreground" },
-          ].map(({ label, count, pct, color, textColor }) => (
-            <div key={label}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">{label}</span>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold ${textColor}`}>{count}</span>
-                  <span className="text-xs text-muted-foreground/60">({pct}%)</span>
-                </div>
-              </div>
-              <div className="h-1.5 rounded-full bg-border/30 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                  className={`h-full rounded-full ${color}`}
-                />
-              </div>
+                  <YAxis hide />
+                  <Tooltip
+                    content={<CustomTooltip showEarnings={showEarnings} />}
+                    cursor={{ fill: "hsl(var(--border) / 0.15)", radius: 4 }}
+                  />
+                  <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                    {monthlyRevenue.map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={
+                          entry.revenue === maxBarRevenue && entry.revenue > 0
+                            ? GOLD_COLOR
+                            : entry.revenue > 0
+                            ? ELECTRIC_COLOR
+                            : "hsl(var(--border) / 0.3)"
+                        }
+                        fillOpacity={i === monthlyRevenue.length - 1 ? 1 : 0.5}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          ))}
+          ) : (
+            <div className="mt-5 mb-1 h-[72px] rounded-xl border border-dashed border-border/30 flex items-center justify-center">
+              <p className="text-[11px] text-muted-foreground/50">
+                Revenue trend appears after your first paid session
+              </p>
+            </div>
+          )}
+
+          {/* Sub-KPIs */}
+          <div className="grid grid-cols-3 gap-2 mt-5 pt-4 border-t border-border/20">
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <Ticket className="w-3 h-3 text-muted-foreground/60" />
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">Tickets</p>
+              </div>
+              <p className="text-base font-bold text-foreground tabular-nums">
+                {purchasedCount.toLocaleString()}
+              </p>
+            </div>
+            <div className="border-l border-border/15 pl-2">
+              <div className="flex items-center gap-1 mb-1">
+                <Calendar className="w-3 h-3 text-muted-foreground/60" />
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">Paid sessions</p>
+              </div>
+              <p className="text-base font-bold text-foreground tabular-nums">
+                {paidSessionCount.toLocaleString()}
+              </p>
+            </div>
+            <div className="border-l border-border/15 pl-2">
+              <div className="flex items-center gap-1 mb-1">
+                <TrendingUp className="w-3 h-3 text-gold/80" />
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">Avg / session</p>
+              </div>
+              <p className="text-base font-bold text-gold tabular-nums">
+                {showEarnings
+                  ? paidSessionCount > 0
+                    ? `$${(avgPerPaidSession / 100).toFixed(0)}`
+                    : "$0"
+                  : "••••"}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Pricing Insights — Feature 1 */}
-      <div className="bg-obsidian rounded-2xl border border-border/30 p-4">
+      {/* ─── Insights (promoted) ─────────────────────────────────────────── */}
+      <div className="rounded-2xl border border-gold/20 p-4 bg-gradient-to-br from-gold/[0.04] to-transparent">
         <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-gold" />
-          <h3 className="text-sm font-semibold text-foreground">Pricing Insights</h3>
+          <Lightbulb className="w-4 h-4 text-gold" />
+          <h3 className="text-sm font-semibold text-foreground">Smart Insights</h3>
+          {pricingInsights.length > 0 && (
+            <span className="ml-auto text-[10px] text-gold/80 font-semibold">
+              {pricingInsights.length} {pricingInsights.length === 1 ? "insight" : "insights"}
+            </span>
+          )}
         </div>
 
         {pricingInsights.length > 0 ? (
@@ -800,19 +856,78 @@ export function ProAnalyticsDashboard({
                 key={i}
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-electric/5 border border-electric/15"
+                transition={{ delay: i * 0.08 }}
+                className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-obsidian/60 border border-gold/15"
               >
-                <Lightbulb className="w-3.5 h-3.5 text-electric flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-electric/80 leading-relaxed">{insight}</p>
+                <span className="w-5 h-5 rounded-full bg-gold/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Lightbulb className="w-2.5 h-2.5 text-gold" />
+                </span>
+                <p className="text-xs text-foreground/85 leading-relaxed">{insight}</p>
               </motion.div>
             ))}
           </div>
         ) : (
-          <div className="px-3 py-3 rounded-xl bg-muted/20 border border-border/20">
-            <p className="text-xs text-muted-foreground/60 text-center">
-              Insights appear after 3+ completed paid sessions.
+          <div className="flex items-start gap-3 px-3 py-3 rounded-xl bg-obsidian/40 border border-border/15">
+            <Target className="w-4 h-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-foreground/80 font-medium">
+                Insights unlock after 3 paid sessions
+              </p>
+              <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                We'll surface pricing suggestions, scheduling patterns, and audience signals once you've completed a few sessions.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Session Performance Table — Feature 3 (replaces redundant Top Sessions card) */}
+      <SessionPerformanceTable rows={sessionRows} showEarnings={showEarnings} />
+
+      {/* ─── Audience Breakdown ──────────────────────────────────────────── */}
+      <div className="bg-obsidian rounded-2xl border border-border/30 p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Users className="w-4 h-4 text-electric" />
+          <h3 className="text-sm font-semibold text-foreground">Audience Breakdown</h3>
+          <span className="text-xs text-muted-foreground ml-auto tabular-nums">
+            {totalAttendees} {totalAttendees === 1 ? "attendee" : "attendees"}
+          </span>
+        </div>
+
+        {totalAttendees === 0 ? (
+          <div className="py-6 text-center">
+            <p className="text-xs text-muted-foreground/60">
+              Your audience appears here after your first session.
             </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {[
+              { label: "VIP Fans", sub: "5+ sessions", count: vipCount, pct: segmentPct(vipCount), color: "bg-gold", textColor: "text-gold" },
+              { label: "Repeat Attendees", sub: "2-4 sessions", count: repeatCount, pct: segmentPct(repeatCount), color: "bg-electric", textColor: "text-electric" },
+              { label: "New Attendees", sub: "first session", count: newCount, pct: segmentPct(newCount), color: "bg-muted-foreground/40", textColor: "text-muted-foreground" },
+            ].map(({ label, sub, count, pct, color, textColor }) => (
+              <div key={label}>
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <div>
+                    <span className="text-sm font-medium text-foreground">{label}</span>
+                    <span className="text-[10px] text-muted-foreground/60 ml-1.5">· {sub}</span>
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-base font-bold ${textColor} tabular-nums`}>{count}</span>
+                    <span className="text-[11px] text-muted-foreground/60 tabular-nums">{pct}%</span>
+                  </div>
+                </div>
+                <div className="h-2 rounded-full bg-border/20 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                    className={`h-full rounded-full ${color}`}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
