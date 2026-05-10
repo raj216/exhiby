@@ -21,7 +21,12 @@ export interface CreatorAttendee {
   userId: string;
   name: string;
   avatarUrl: string | null;
+  /** Number of tickets this user owns for this creator's sessions
+   *  (used for segmentation — represents engagement / commitment). */
   sessionsAttended: number;
+  /** Number of sessions this user actually JOINED (attended_at is set).
+   *  Use this for real conversion / attendance metrics — not segmentation. */
+  actualSessionsAttended: number;
   totalSpent: number; // cents
   lastAttended: Date;
   segment: AttendeeSegment;
@@ -31,6 +36,8 @@ export interface CreatorAudienceStats {
   uniqueAttendees: number;
   vipFans: number;      // 5+ sessions
   repeatAttendees: number; // 2+ sessions
+  /** Sum of actualSessionsAttended across all attendees — total real attendance events. */
+  totalActualAttendances: number;
 }
 
 export function useCreatorAudience(creatorId: string | undefined) {
@@ -39,6 +46,7 @@ export function useCreatorAudience(creatorId: string | undefined) {
     uniqueAttendees: 0,
     vipFans: 0,
     repeatAttendees: 0,
+    totalActualAttendances: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -82,7 +90,7 @@ export function useCreatorAudience(creatorId: string | undefined) {
 
       if (!tickets || tickets.length === 0) {
         setAttendees([]);
-        setStats({ uniqueAttendees: 0, vipFans: 0, repeatAttendees: 0 });
+        setStats({ uniqueAttendees: 0, vipFans: 0, repeatAttendees: 0, totalActualAttendances: 0 });
         setIsLoading(false);
         return;
       }
@@ -90,7 +98,7 @@ export function useCreatorAudience(creatorId: string | undefined) {
       // 3. Build per-user aggregation
       const userMap = new Map<
         string,
-        { sessionsAttended: number; totalSpent: number; lastAttended: Date }
+        { sessionsAttended: number; actualSessionsAttended: number; totalSpent: number; lastAttended: Date }
       >();
 
       for (const ticket of tickets) {
@@ -100,10 +108,13 @@ export function useCreatorAudience(creatorId: string | undefined) {
           : ticket.purchased_at
           ? new Date(ticket.purchased_at)
           : new Date();
+        // Real attendance = ticket has a non-null attended_at timestamp
+        const didAttend = !!ticket.attended_at;
 
         if (userMap.has(ticket.user_id)) {
           const existing = userMap.get(ticket.user_id)!;
           existing.sessionsAttended += 1;
+          if (didAttend) existing.actualSessionsAttended += 1;
           existing.totalSpent += price;
           if (attendedAt > existing.lastAttended) {
             existing.lastAttended = attendedAt;
@@ -111,6 +122,7 @@ export function useCreatorAudience(creatorId: string | undefined) {
         } else {
           userMap.set(ticket.user_id, {
             sessionsAttended: 1,
+            actualSessionsAttended: didAttend ? 1 : 0,
             totalSpent: price,
             lastAttended: attendedAt,
           });
@@ -146,6 +158,7 @@ export function useCreatorAudience(creatorId: string | undefined) {
           name: (profile as { name?: string })?.name || "Unknown",
           avatarUrl: (profile as { avatar_url?: string | null })?.avatar_url ?? null,
           sessionsAttended: data.sessionsAttended,
+          actualSessionsAttended: data.actualSessionsAttended,
           totalSpent: data.totalSpent,
           lastAttended: data.lastAttended,
           segment,
@@ -163,9 +176,10 @@ export function useCreatorAudience(creatorId: string | undefined) {
       const uniqueAttendees = list.length;
       const vipFans = list.filter((a) => a.segment === "VIP").length;
       const repeatAttendees = list.filter((a) => a.segment !== "NEW").length;
+      const totalActualAttendances = list.reduce((s, a) => s + a.actualSessionsAttended, 0);
 
       setAttendees(list);
-      setStats({ uniqueAttendees, vipFans, repeatAttendees });
+      setStats({ uniqueAttendees, vipFans, repeatAttendees, totalActualAttendances });
     } catch (err) {
       console.error("[useCreatorAudience] Error:", err);
     } finally {

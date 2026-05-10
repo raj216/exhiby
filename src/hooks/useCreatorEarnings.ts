@@ -14,7 +14,9 @@ export interface EarningRecord {
   amount_net: number; // cents
   currency: string;
   created_at: string;       // when the earning row was logged (purchase time)
-  session_date: string;     // when the session itself was scheduled (events.scheduled_at)
+  session_date: string;     // when the session was scheduled (events.scheduled_at)
+                            // OR purchase date as fallback if scheduled_at is null
+  session_date_estimated: boolean; // true when session_date fell back to created_at
   ticket_count: number;
   type: EarningType;
 }
@@ -112,6 +114,7 @@ export function useCreatorEarnings(userId: string | undefined) {
           existing.ticket_count += isTip ? 0 : 1;
         } else {
           const evt = eventMap.get(e.event_id);
+          const hasScheduled = !!evt?.scheduled_at;
           groupMap.set(key, {
             id: e.id,
             event_id: e.event_id,
@@ -122,7 +125,8 @@ export function useCreatorEarnings(userId: string | undefined) {
             amount_net: correctedNet,
             currency: e.currency,
             created_at: e.created_at,
-            session_date: evt?.scheduled_at || e.created_at, // fallback to purchase date if no schedule
+            session_date: hasScheduled ? evt!.scheduled_at! : e.created_at,
+            session_date_estimated: !hasScheduled,
             ticket_count: isTip ? 0 : 1,
             type: isTip ? "tip" : "ticket",
           });

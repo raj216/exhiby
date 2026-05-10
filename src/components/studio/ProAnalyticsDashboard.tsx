@@ -86,6 +86,8 @@ interface SessionRow {
   eventId: string;
   title: string;
   date: string;
+  /** True when the date fell back to purchase time (events.scheduled_at was null) */
+  dateEstimated: boolean;
   attendees: number;
   revenue: number;   // cents
   avgPrice: number;  // cents
@@ -98,6 +100,7 @@ function buildSessionRows(transactions: EarningRecord[]): SessionRow[] {
       eventId: t.event_id,
       title: t.event_title,
       date: t.session_date, // use the session's scheduled_at, not purchase timestamp
+      dateEstimated: t.session_date_estimated,
       attendees: t.ticket_count,
       revenue: t.amount_net,
       avgPrice: t.ticket_count > 0 ? Math.round(t.amount_gross / t.ticket_count) : 0,
@@ -378,6 +381,14 @@ function SessionPerformanceTable({ rows, showEarnings }: SessionTableProps) {
                   <p className="text-[10px] text-muted-foreground">
                     {new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </p>
+                  {row.dateEstimated && (
+                    <span
+                      title="Session schedule wasn't recorded — using ticket purchase date instead."
+                      className="px-1 py-0.5 rounded text-[8px] font-semibold tracking-wide bg-muted/40 text-muted-foreground/70 border border-border/30"
+                    >
+                      EST.
+                    </span>
+                  )}
                   {isBestRevenue && (
                     <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide bg-rose-500/15 text-rose-400 border border-rose-500/25">
                       Best Revenue
@@ -480,10 +491,12 @@ function ConversionFunnel({
     );
   }
 
-  // Cap at 1.0 — if attendances > purchases (e.g. free attendees joined paid sessions),
-  // the rate caps at 100% rather than showing nonsense like 150%.
+  // Real conversion rate. We do NOT cap or floor it — surface the real number.
+  // If attendance data is missing entirely (totalAttendances = 0 but purchases > 0)
+  // we explain that separately rather than showing a misleading "100% drop-off".
   const rawRate = purchasedCount > 0 ? totalAttendances / purchasedCount : 0;
-  const purchaseToAttended = Math.min(rawRate, 1);
+  const purchaseToAttended = rawRate;
+  const hasAttendanceData = totalAttendances > 0;
   const isAboveAttendBenchmark = purchaseToAttended >= BENCHMARKS.purchaseToAttended;
 
   const stages: { label: string; value: string; note: string | null; dropoff: string | null; aboveBenchmark: boolean | null; tip: string | null }[] = [
@@ -521,13 +534,17 @@ function ConversionFunnel({
     },
     {
       label: "Session Attended",
-      value: totalAttendances.toLocaleString(),
-      note: `Platform avg: ~${Math.round(BENCHMARKS.purchaseToAttended * 100)}% of buyers attend`,
-      dropoff: purchasedCount > 0
-        ? `↓ ${Math.round((1 - purchaseToAttended) * 100)}% drop-off`
+      value: hasAttendanceData
+        ? totalAttendances.toLocaleString()
+        : "Not tracked yet",
+      note: hasAttendanceData
+        ? `Platform avg: ~${Math.round(BENCHMARKS.purchaseToAttended * 100)}% of buyers attend`
+        : "Attendance is recorded when you mark check-ins on your live session.",
+      dropoff: hasAttendanceData && purchasedCount > 0
+        ? `↓ ${Math.round((1 - Math.min(purchaseToAttended, 1)) * 100)}% drop-off`
         : null,
-      aboveBenchmark: isAboveAttendBenchmark,
-      tip: !isAboveAttendBenchmark
+      aboveBenchmark: hasAttendanceData ? isAboveAttendBenchmark : null,
+      tip: hasAttendanceData && !isAboveAttendBenchmark
         ? "Try sending a reminder 30 mins before your session starts."
         : null,
     },
@@ -555,13 +572,21 @@ function ConversionFunnel({
       <div className="space-y-1.5">
         {stages.map((stage, i) => {
           const isGathering = stage.value === "Gathering data...";
+          const isAttendanceUntracked = i === 4 && !hasAttendanceData;
           const stage4Width = 65;
+          // Bar width logic:
+          //  • Gathering stages (1-3): aspirational taper (95%, 83%, 71%) hints at funnel
+          //  • Stage 4 (purchases): fixed baseline width
+          //  • Stage 5 (attendance): proportional to actual conversion, capped at 100%.
+          //    If attendance hasn't been tracked at all → 0 (we hide the bar entirely)
           const barWidth = isGathering
-            ? 95 - i * 12     // 95, 83, 71 — visible funnel taper
+            ? 95 - i * 12
             : i === 3
             ? stage4Width
             : i === 4
-            ? Math.max(10, Math.round(purchaseToAttended * stage4Width))
+            ? isAttendanceUntracked
+              ? 0
+              : Math.round(Math.min(purchaseToAttended, 1) * stage4Width)
             : 100;
 
           const barBg = isGathering
@@ -593,19 +618,25 @@ function ConversionFunnel({
 
                   {/* Bar (the funnel visual) — centered using flex */}
                   <div className="flex-1 flex justify-center">
-                    <div className="w-full max-w-[300px] flex justify-center">
-                      <motion.div
-                        initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: `${barWidth}%`, opacity: 1 }}
-                        transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                        className={`h-9 rounded-md ${barBg} flex items-center justify-center px-3`}
-                      >
-                        {!isGathering && (
-                          <span className="text-xs font-bold text-white tabular-nums whitespace-nowrap">
-                            {stage.value}
-                          </span>
-                        )}
-                      </motion.div>
+                    <div className="w-full max-w-[300px] flex justify-center min-h-9 items-center">
+                      {barWidth > 0 ? (
+                        <motion.div
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: `${barWidth}%`, opacity: 1 }}
+                          transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                          className={`h-9 rounded-md ${barBg} flex items-center justify-center px-3`}
+                        >
+                          {!isGathering && (
+                            <span className="text-xs font-bold text-white tabular-nums whitespace-nowrap">
+                              {stage.value}
+                            </span>
+                          )}
+                        </motion.div>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground/50 italic">
+                          {stage.value}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -685,13 +716,14 @@ export function ProAnalyticsDashboard({
   const hasRevenue = transactions.length > 0;
   const maxBarRevenue = Math.max(...monthlyRevenue.map((m) => m.revenue), 1);
 
-  // Funnel data — both metrics measured at the per-attendance level for valid comparison
+  // Funnel data — purchasedCount is paid tickets sold;
+  // totalAttendances is REAL attendance (tickets with attended_at set), not ticket count
   const purchasedCount = useMemo(
     () => transactions.filter((t) => t.type === "ticket").reduce((s, t) => s + t.ticket_count, 0),
     [transactions]
   );
   const totalAttendances = useMemo(
-    () => attendees.reduce((s, a) => s + (a.sessionsAttended || 0), 0),
+    () => attendees.reduce((s, a) => s + (a.actualSessionsAttended || 0), 0),
     [attendees]
   );
 
@@ -754,7 +786,9 @@ export function ProAnalyticsDashboard({
           <p className="text-[11px] text-muted-foreground/60 mt-1">
             {prevMonthRevenue > 0
               ? `vs $${(prevMonthRevenue / 100).toFixed(2)} last month`
-              : "First month earning revenue"}
+              : currentMonthRevenue > 0
+              ? "First month earning revenue"
+              : "No revenue yet this month"}
           </p>
 
           {/* Sparkline (6 months) */}
@@ -823,13 +857,13 @@ export function ProAnalyticsDashboard({
             <div className="border-l border-border/15 pl-2">
               <div className="flex items-center gap-1 mb-1">
                 <TrendingUp className="w-3 h-3 text-gold/80" />
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">Avg / session</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">Avg / paid session</p>
               </div>
               <p className="text-base font-bold text-gold tabular-nums">
                 {showEarnings
                   ? paidSessionCount > 0
-                    ? `$${(avgPerPaidSession / 100).toFixed(0)}`
-                    : "$0"
+                    ? `$${(avgPerPaidSession / 100).toFixed(2)}`
+                    : "$0.00"
                   : "••••"}
               </p>
             </div>
