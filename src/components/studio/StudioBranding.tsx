@@ -22,7 +22,6 @@ import {
   Pencil,
   ArrowUpRight,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -144,7 +143,12 @@ function StudioMockup({
   );
 }
 
-export function StudioBranding() {
+interface StudioBrandingProps {
+  /** Opens the Edit Profile modal — wired from the parent that owns it. */
+  onEditProfile?: () => void;
+}
+
+export function StudioBranding({ onEditProfile }: StudioBrandingProps = {}) {
   const { user } = useAuth();
   const [branding, setBranding] = useState<BrandingData>(DEFAULT_BRANDING);
   const [saved, setSaved] = useState<BrandingData>(DEFAULT_BRANDING);
@@ -359,24 +363,26 @@ export function StudioBranding() {
       </div>
 
       {/* ─── Edit Profile note (dedupe redirect) ─────────────────────────── */}
-      <Link
-        to="/settings"
-        onClick={() => triggerClickHaptic()}
-        className="group flex items-center gap-3 p-3 rounded-2xl border border-border/20 bg-carbon/30 hover:bg-carbon/60 transition-colors"
-      >
-        <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0">
-          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-foreground">
-            Cover photo &amp; studio URL
-          </p>
-          <p className="text-[11px] text-muted-foreground/80 mt-0.5">
-            Manage these in your profile — your username is your studio URL.
-          </p>
-        </div>
-        <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
-      </Link>
+      {onEditProfile && (
+        <button
+          type="button"
+          onClick={() => { triggerClickHaptic(); onEditProfile(); }}
+          className="group w-full flex items-center gap-3 p-3 rounded-2xl border border-border/20 bg-carbon/30 hover:bg-carbon/60 transition-colors text-left"
+        >
+          <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center flex-shrink-0">
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-foreground">
+              Cover photo &amp; studio URL
+            </p>
+            <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+              Manage these in your profile — your username is your studio URL.
+            </p>
+          </div>
+          <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+        </button>
+      )}
 
       {/* ─── Sticky save action ──────────────────────────────────────────── */}
       <AnimatePresence>

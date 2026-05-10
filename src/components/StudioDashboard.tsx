@@ -630,7 +630,7 @@ export function StudioDashboard({
           >
             {hasAdvancedAnalytics ? (
               <div className="space-y-8">
-                <StudioBranding />
+                <StudioBranding onEditProfile={() => setShowEditProfile(true)} />
                 <div className="border-t border-border/20" />
                 <SessionTemplates />
                 <div className="border-t border-border/20" />
