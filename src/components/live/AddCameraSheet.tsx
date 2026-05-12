@@ -11,6 +11,7 @@
  */
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { X, Tablet, ScanLine, Hand, MessageSquare } from "lucide-react";
@@ -63,7 +64,9 @@ export function AddCameraSheet({
     onClose();
   };
 
-  return (
+  // Render through a portal so Framer Motion parent transforms don't
+  // misposition the fixed backdrop/sheet on mobile.
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -170,6 +173,7 @@ export function AddCameraSheet({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

@@ -807,6 +807,7 @@ export default function LiveRoom() {
         creatorId={event.creator_id}
         eventTitle={event.title}
         creatorName={profile?.name || profile?.handle || "Studio"}
+        coverUrl={event.cover_url}
       />
     );
   }
@@ -1498,7 +1499,7 @@ export default function LiveRoom() {
             viewerCount={viewerCount}
             isUIVisible={isUIVisible && !showMaterials}
             isHost={isCreator}
-            onSwitchCamera={isCreator ? switchCamera : undefined}
+            onSwitchCamera={isCreator && isMobile ? switchCamera : undefined}
           />
 
           {/* Chat Overlay - uses unified realtime status */}
@@ -1537,7 +1538,7 @@ export default function LiveRoom() {
             isUIVisible={isUIVisible && !showChat}
             isEnding={isEnding}
             onToggleCamera={toggleCamera}
-            onSwitchCamera={switchCamera}
+            onSwitchCamera={isMobile ? switchCamera : undefined}
             onToggleMic={toggleMic}
             onEndStream={handleClose}
             onLeave={handleLeave}

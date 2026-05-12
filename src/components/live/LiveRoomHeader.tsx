@@ -54,11 +54,11 @@ export function LiveRoomHeader({
                 <p className="text-white font-semibold text-sm">{creatorName}</p>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
-                    <div className="relative">
-                      <div className="w-2 h-2 rounded-full bg-live" />
-                      <div className="absolute inset-0 w-2 h-2 rounded-full bg-live animate-ping" />
-                    </div>
-                    <span className="text-xs font-bold text-white">LIVE</span>
+                    <span className="relative flex h-2 w-2 flex-shrink-0 items-center justify-center">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-live opacity-75 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
+                    </span>
+                    <span className="text-xs font-bold text-white leading-none">LIVE</span>
                   </div>
                   <div className="flex items-center gap-1 text-white/70">
                     <Users className="w-3 h-3" />

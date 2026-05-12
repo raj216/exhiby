@@ -11,6 +11,7 @@ interface EventData {
   title: string;
   creator_id: string;
   is_live: boolean;
+  cover_url: string | null;
 }
 
 export default function CompanionModePage() {
@@ -32,7 +33,7 @@ export default function CompanionModePage() {
       try {
         const { data, error: fetchError } = await supabase
           .from("events")
-          .select("id, title, creator_id, is_live")
+          .select("id, title, creator_id, is_live, cover_url")
           .eq("id", eventId)
           .single();
 
@@ -100,6 +101,7 @@ export default function CompanionModePage() {
       creatorId={event.creator_id}
       eventTitle={event.title}
       creatorName={profile?.name || profile?.handle || "Studio"}
+      coverUrl={event.cover_url}
     />
   );
 }
