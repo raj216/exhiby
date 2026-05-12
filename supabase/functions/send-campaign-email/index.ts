@@ -21,8 +21,10 @@ interface CampaignRequest {
   segment: Segment;
   subject: string;
   body: string;
-  creator_name: string;
 }
+
+const MAX_SUBJECT_LEN = 200;
+const MAX_BODY_LEN = 10_000;
 
 function escapeHtml(s: string): string {
   return s
