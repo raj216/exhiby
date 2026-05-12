@@ -50,7 +50,7 @@ export function CompanionDeviceHint({ eventId, isLive }: CompanionDeviceHintProp
           transition={{ duration: 0.35, ease: "easeOut" }}
           onClick={() => setVisible(false)}
           aria-label="Dismiss tip"
-          className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/55 backdrop-blur-xl border border-white/15 shadow-lg pointer-events-auto"
+          className="fixed left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3.5 py-2 rounded-full bg-black/55 backdrop-blur-xl border border-white/15 shadow-lg pointer-events-auto"
           style={{ top: "calc(env(safe-area-inset-top) + 90px)" }}
         >
           <Smartphone className="w-3.5 h-3.5 text-white/80 flex-shrink-0" />

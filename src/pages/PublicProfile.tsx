@@ -166,6 +166,20 @@ export default function PublicProfile() {
 
         setProfile(profileData);
 
+        // Fetch profile_links separately — the RPC doesn't include this column
+        supabase
+          .from("profiles")
+          .select("profile_links")
+          .eq("user_id", profileData.user_id)
+          .maybeSingle()
+          .then(({ data: linksRow }) => {
+            if (linksRow?.profile_links) {
+              setProfile(prev =>
+                prev ? { ...prev, profile_links: linksRow.profile_links as any } : prev
+              );
+            }
+          });
+
         console.log("AUDIENCE PROFILE FETCH:", profileData);
         console.log("AUDIENCE is_verified:", (profileData as any)?.is_verified);
         fetchFollowData(profileData.user_id);
