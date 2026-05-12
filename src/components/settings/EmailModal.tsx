@@ -14,7 +14,7 @@ export function EmailModal({ isOpen, onClose }: EmailModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md bg-obsidian border-border/30">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md bg-obsidian border-border/30 rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
             <Mail className="w-5 h-5 text-electric" />

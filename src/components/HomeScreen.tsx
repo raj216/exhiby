@@ -533,63 +533,51 @@ export function HomeScreen({
                         style={{
                           background: '#1A1A1C',
                           border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '16px',
-                          padding: '32px',
+                          borderRadius: '20px',
+                          padding: '28px 24px',
                         }}
                       >
-                        <h2
-                          style={{
-                            fontFamily: '"Syne", sans-serif',
-                            fontWeight: 800,
-                            fontSize: '28px',
-                            color: '#FFFFFF',
-                            lineHeight: 1.1,
-                          }}
-                        >
+                        <h2 className="font-display" style={{ fontWeight: 800, fontSize: '26px', color: '#FFFFFF', lineHeight: 1.15 }}>
                           Your studio is live.
                         </h2>
-                        <p
-                          style={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontWeight: 400,
-                            fontSize: '17px',
-                            color: '#F5F2EC',
-                            marginTop: '12px',
-                          }}
-                        >
+                        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)', marginTop: '10px', lineHeight: 1.5 }}>
                           Go live or schedule your next session.
                         </p>
-                        <div style={{ marginTop: '28px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                        <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <button
                             onClick={onGoLive}
                             style={{
-                              background: '#FF6B58',
+                              background: 'linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))',
                               color: '#FFFFFF',
                               fontWeight: 600,
                               fontSize: '14px',
-                              borderRadius: '8px',
-                              padding: '14px 28px',
+                              borderRadius: '12px',
+                              padding: '13px 24px',
                               border: 'none',
                               cursor: 'pointer',
+                              boxShadow: '0 4px 20px hsla(7, 100%, 67%, 0.30)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
                             }}
                           >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                             Go Live Now
                           </button>
                           <button
                             onClick={onOpenStudio}
                             style={{
-                              background: 'transparent',
+                              background: 'rgba(255,255,255,0.06)',
                               color: '#F5F2EC',
                               fontWeight: 500,
                               fontSize: '14px',
-                              border: 'none',
-                              padding: 0,
+                              border: '1px solid rgba(255,255,255,0.12)',
+                              borderRadius: '12px',
+                              padding: '13px 20px',
                               cursor: 'pointer',
-                              textDecoration: 'underline',
-                              textUnderlineOffset: '4px',
                             }}
                           >
-                            Schedule a Session
+                            Schedule
                           </button>
                         </div>
                       </div>

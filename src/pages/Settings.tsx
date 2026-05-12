@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, User, Bell, Shield, CreditCard, Palmtree, MapPin, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare, Plus, CheckCircle, AlertCircle, ExternalLink, DollarSign, Ticket, Coins, TrendingUp, History, Landmark, Clock, Zap, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, User, Bell, Shield, CreditCard, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare, Plus, CheckCircle, AlertCircle, ExternalLink, DollarSign, Ticket, Coins, TrendingUp, History, Landmark, Clock, Zap, Check, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeConnect } from "@/hooks/useStripeConnect";
@@ -22,7 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePlan, PLAN_META, type PlanTier } from "@/hooks/usePlan";
 
 // Menu category types
-type SettingsCategory = "account" | "notifications" | "privacy" | "payments" | "vacation" | "shipping" | "help" | "guidelines";
+type SettingsCategory = "account" | "notifications" | "privacy" | "payments" | "help" | "guidelines";
 interface MenuItem {
   id: SettingsCategory;
   label: string;
@@ -52,16 +52,6 @@ const menuItems: MenuItem[] = [
   id: "payments",
   label: "Payments & Payouts",
   icon: CreditCard,
-  group: "studio"
-}, {
-  id: "vacation",
-  label: "Vacation Mode",
-  icon: Palmtree,
-  group: "studio"
-}, {
-  id: "shipping",
-  label: "Shipping Addresses",
-  icon: MapPin,
   group: "studio"
 },
 // Group 3: Support
@@ -302,10 +292,6 @@ function CategoryContent({
       return <PrivacyContent />;
     case "payments":
       return <PaymentsContent />;
-    case "vacation":
-      return <VacationContent />;
-    case "shipping":
-      return <ShippingContent />;
     case "help":
       return <HelpContent />;
     case "guidelines":
@@ -1321,55 +1307,6 @@ function TransactionHistoryView({ onBack }: { onBack: () => void }) {
       )}
     </div>
   );
-}
-
-// Vacation Mode Content
-function VacationContent() {
-  const [vacationMode, setVacationMode] = useState(false);
-  const handleToggle = () => {
-    triggerClickHaptic();
-    setVacationMode(!vacationMode);
-    toast({
-      title: vacationMode ? "Vacation Mode Off" : "Vacation Mode On",
-      description: vacationMode ? "Your studio is now active" : "Your studio is now on vacation"
-    });
-  };
-  return <div className="space-y-4">
-      <div className="p-6 bg-carbon rounded-xl border border-border/20">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-electric/10 flex items-center justify-center">
-              <Palmtree className="w-6 h-6 text-electric" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Vacation Mode</h3>
-              <p className="text-sm text-muted-foreground">
-                Pause your studio while you're away
-              </p>
-            </div>
-          </div>
-          <Switch checked={vacationMode} onCheckedChange={handleToggle} />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          When vacation mode is enabled, your followers will see that you're temporarily away. 
-          You won't be able to go live or schedule new sessions.
-        </p>
-      </div>
-    </div>;
-}
-
-// Shipping Addresses Content
-function ShippingContent() {
-  return <div className="space-y-4">
-      <SettingsCard title="Add New Address" description="Add a shipping address for physical art" action={<ChevronRight className="w-5 h-5 text-muted-foreground" />} onClick={() => toast({
-      title: "Address",
-      description: "Address form coming soon"
-    })} />
-      <div className="text-center py-8 text-muted-foreground">
-        <MapPin className="w-12 h-12 mx-auto mb-3 opacity-30" />
-        <p>No saved addresses yet</p>
-      </div>
-    </div>;
 }
 
 // Help Center Content
