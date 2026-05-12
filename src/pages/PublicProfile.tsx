@@ -364,12 +364,21 @@ export default function PublicProfile() {
         {/* Cover Image */}
         <div className="relative h-48 sm:h-56 w-full overflow-hidden">
           {profile.cover_url ? (
-            <img
-              src={profile.cover_url}
-              alt={`Cover photo of ${profile.name}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+            <>
+              <img
+                src={profile.cover_url}
+                alt={`Cover photo of ${profile.name}`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              {/* Accent color wash over cover image */}
+              {profile.accent_color && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: `linear-gradient(135deg, ${profile.accent_color}33 0%, transparent 60%)` }}
+                />
+              )}
+            </>
           ) : (
             <div
               className="w-full h-full"

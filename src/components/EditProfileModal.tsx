@@ -224,14 +224,14 @@ export function EditProfileModal({
           bio: bio.trim() || null,
           avatar_url: newAvatarUrl,
           cover_url: newCoverUrl,
+          profile_links: validLinks,  // save directly so public profiles can read it
         })
         .eq("user_id", user.id);
 
       if (updateError) throw updateError;
 
       // ── Step 2: Save profile links ──────────────────────────────────────────
-      // Primary path: Supabase auth user_metadata — works TODAY with zero DB
-      // migrations. Survives page refreshes, persists across sessions.
+      // Also mirror to auth user_metadata as a fast-read cache for own-profile view.
       // Secondary path: edge function adds profile_links column + saves to DB
       // (kicks in once deployed; self-heals the migration).
       await supabase.auth.updateUser({ data: { profile_links: validLinks } });
