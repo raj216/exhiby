@@ -266,7 +266,6 @@ export type Database = {
           live_started_at: string | null
           pinned_message_id: string | null
           price: number | null
-          primary_device_id: string | null
           scheduled_at: string
           title: string
           updated_at: string
@@ -288,7 +287,6 @@ export type Database = {
           live_started_at?: string | null
           pinned_message_id?: string | null
           price?: number | null
-          primary_device_id?: string | null
           scheduled_at: string
           title: string
           updated_at?: string
@@ -310,7 +308,6 @@ export type Database = {
           live_started_at?: string | null
           pinned_message_id?: string | null
           price?: number | null
-          primary_device_id?: string | null
           scheduled_at?: string
           title?: string
           updated_at?: string
