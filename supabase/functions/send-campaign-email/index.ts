@@ -21,8 +21,10 @@ interface CampaignRequest {
   segment: Segment;
   subject: string;
   body: string;
-  creator_name: string;
 }
+
+const MAX_SUBJECT_LEN = 200;
+const MAX_BODY_LEN = 10_000;
 
 function escapeHtml(s: string): string {
   return s
@@ -128,7 +130,7 @@ serve(async (req) => {
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: profile } = await serviceClient
       .from("profiles")
-      .select("plan")
+      .select("plan, name")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -140,13 +142,23 @@ serve(async (req) => {
       });
     }
 
-    const { segment, subject, body, creator_name }: CampaignRequest = await req.json();
+    // SECURITY: derive sender name from server-side profile, never from client input
+    const creator_name = (profile?.name && profile.name.trim()) || "A creator";
+
+    const { segment, subject, body }: CampaignRequest = await req.json();
 
     if (!subject?.trim() || !body?.trim()) {
       return new Response(JSON.stringify({ error: "Subject and body required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (subject.length > MAX_SUBJECT_LEN || body.length > MAX_BODY_LEN) {
+      return new Response(
+        JSON.stringify({ error: `Subject must be ≤ ${MAX_SUBJECT_LEN} chars and body ≤ ${MAX_BODY_LEN} chars` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Get all creator events

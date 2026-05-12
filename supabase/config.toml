@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.update-profile-links]
 verify_jwt = false
+
+[functions.post-session-thankyou]
+verify_jwt = false

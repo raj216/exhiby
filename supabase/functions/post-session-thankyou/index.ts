@@ -102,8 +102,25 @@ serve(async (req) => {
   }
 
   try {
+    // Auth: require either CRON secret or service-role bearer token (server-only function)
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const providedCron = req.headers.get("x-cron-secret");
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const providedBearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+    const cronOk = !!cronSecret && providedCron === cronSecret;
+    const bearerOk = providedBearer && providedBearer === serviceKey;
+
+    if (!cronOk && !bearerOk) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseServiceKey = serviceKey;
     const brevoApiKey = Deno.env.get("BREVO_API_KEY");
 
     if (!brevoApiKey) {
