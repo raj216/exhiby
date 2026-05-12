@@ -188,7 +188,7 @@ export function StudioDashboard({
       // auth.updateUser({ data: { profile_links } }) is the primary save path.
       let freshLinks: ProfileLink[] | null = null;
       if (!linksError && linksRow?.profile_links) {
-        freshLinks = linksRow.profile_links as ProfileLink[];
+        freshLinks = linksRow.profile_links as unknown as ProfileLink[];
       } else {
         const { data: authData } = await supabase.auth.getUser();
         const metaLinks = authData?.user?.user_metadata?.profile_links;

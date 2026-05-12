@@ -70,7 +70,7 @@ export function useCreatorAudience(creatorId: string | undefined) {
 
       if (!events || events.length === 0) {
         setAttendees([]);
-        setStats({ uniqueAttendees: 0, vipFans: 0, repeatAttendees: 0 });
+        setStats({ uniqueAttendees: 0, vipFans: 0, repeatAttendees: 0, totalActualAttendances: 0 });
         setIsLoading(false);
         return;
       }

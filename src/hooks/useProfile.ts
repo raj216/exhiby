@@ -59,7 +59,7 @@ export function useProfile() {
         .maybeSingle();
 
       if (!linksError && linksRow?.profile_links) {
-        profileLinks = linksRow.profile_links as ProfileLink[];
+        profileLinks = linksRow.profile_links as unknown as ProfileLink[];
       } else {
         const { data: authData } = await supabase.auth.getUser();
         const metaLinks = authData?.user?.user_metadata?.profile_links;
