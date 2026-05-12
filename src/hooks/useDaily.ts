@@ -347,8 +347,13 @@ export interface DailyParticipantInfo {
   // (i.e. the creator/host of the session). Both creator devices show owner=true,
   // which is how we detect "another instance of me is already here."
   owner: boolean;
+  // Custom flag we inject into userData at join-time when isHost=true.
+  // This is the reliable way to identify creator-device participants across
+  // multiple devices — Daily.co's built-in `owner` flag requires an owner
+  // token which we don't always use.
+  isCreatorHost: boolean;
   // Daily.co reports when each participant first joined the room. Used to
-  // break ties when multiple owner-flagged participants exist — earliest wins.
+  // break ties when multiple creator-host participants exist — earliest wins.
   joinedAt: number | null;
 }
 
@@ -454,6 +459,9 @@ export function useDaily({
         audioOn: p.tracks?.audio?.state === "playable",
         facingMode,
         owner: Boolean(p.owner),
+        // We set this in userData at join time (see call.join below) so it is
+        // available to all other participants immediately, no round-trip needed.
+        isCreatorHost: Boolean(userData?.isCreatorHost),
         joinedAt,
       };
     },
@@ -803,6 +811,11 @@ export function useDaily({
               startAudioOff: !isHost,
               // Request highest quality layer for art detail visibility
               receiveSettings: ART_STUDIO_RECEIVE_SETTINGS,
+              // Inject a custom flag so other devices can identify this as a
+              // creator/host device without needing Daily.co owner tokens.
+              // This is how the companion-device safety net detects a second
+              // creator opening the same room on another device.
+              userData: isHost ? { isCreatorHost: true } : undefined,
             });
 
             console.log("[useDaily] Join resolved");
@@ -879,9 +892,10 @@ export function useDaily({
                 }, 2000);
               }
               
-              // Best-effort: broadcast current facing mode to others (default: front/user)
+              // Best-effort: broadcast current facing mode to others (default: front/user).
+              // IMPORTANT: merge with existing userData so isCreatorHost flag is preserved.
               try {
-                call.setUserData({ facingMode: "user" });
+                call.setUserData({ isCreatorHost: true, facingMode: "user" });
               } catch (e) {
                 console.warn("[useDaily] Could not set facingMode userData:", e);
               }
@@ -1124,9 +1138,10 @@ export function useDaily({
       await call.setInputDevicesAsync({ videoDeviceId: nextDeviceId });
       currentFacingRef.current = nextFacing;
 
-      // Broadcast facing mode so viewers can render front camera correctly
+      // Broadcast facing mode so viewers can render front camera correctly.
+      // Preserve isCreatorHost flag in userData when updating facing mode.
       try {
-        call.setUserData({ facingMode: nextFacing });
+        call.setUserData({ isCreatorHost: true, facingMode: nextFacing });
       } catch (e) {
         console.warn("[useDaily] Could not set facingMode userData:", e);
       }

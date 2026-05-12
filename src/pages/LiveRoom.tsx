@@ -304,25 +304,39 @@ export default function LiveRoom() {
   });
 
   // Safety net for primary/companion role detection.
-  // After Daily.co successfully joins, check whether another owner-flagged
-  // participant is already in the room. If yes AND they joined before us,
-  // we are the SECOND broadcaster — leave immediately and render companion
-  // view. This kicks in whenever events.primary_device_id failed to do its
-  // job (e.g. the column is missing or the claim raced).
+  //
+  // After Daily.co successfully joins, check whether another creator-host
+  // participant is already in the room and joined before us. If so, we are
+  // the SECOND broadcaster — leave immediately and render the companion view.
+  //
+  // This fires whenever events.primary_device_id could not do its job (e.g.
+  // the column is missing from the DB, or the claim raced). We detect other
+  // creator devices via the custom `isCreatorHost: true` flag injected into
+  // Daily.co userData at join time — this is more reliable than Daily.co's
+  // built-in `owner` flag which requires an owner token we don't always use.
+  //
+  // The effect re-runs whenever remoteParticipants changes, so even if the
+  // phone's participant info arrives slightly after joined-meeting fires, we
+  // catch it on the next update.
   useEffect(() => {
     if (!isCreator) return;
     if (!isJoined) return;
     if (dailyDetectedSecondary) return;
 
+    // Use the local participant's join timestamp if available, otherwise fall
+    // back to now (we JUST joined, so any remote with an earlier stamp is older).
     const myJoinedAt = localParticipant?.joinedAt ?? Date.now();
-    const olderOwner = remoteParticipants.find(
-      (p) => p.owner && p.joinedAt != null && p.joinedAt < myJoinedAt
+
+    // Look for another creator-host who joined before us.
+    const olderCreatorDevice = remoteParticipants.find(
+      (p) => p.isCreatorHost && p.joinedAt != null && p.joinedAt < myJoinedAt
     );
 
-    if (olderOwner) {
+    if (olderCreatorDevice) {
       console.log(
-        "[LiveRoom] Daily safety net: another owner-device joined first " +
-          `(session ${olderOwner.sessionId}). Leaving Daily and switching to companion view.`
+        "[LiveRoom] Daily safety net: another creator-host device joined first " +
+          `(session ${olderCreatorDevice.sessionId}, joinedAt ${olderCreatorDevice.joinedAt} vs mine ${myJoinedAt}). ` +
+          "Leaving Daily and switching to companion view."
       );
       setDailyDetectedSecondary(true);
       leave().catch((err) => console.warn("[LiveRoom] leave() failed:", err));
