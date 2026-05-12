@@ -135,13 +135,21 @@ export default function Browse() {
   }, [liveStreams, selectedCategory]);
 
   // Filter upcoming sessions by category
+  // Exclude currently-live sessions from the "Upcoming" list — they're
+  // already shown in the Live Now section. Without this filter a session
+  // mid-stream appears twice on the page.
+  const scheduledOnly = useMemo(
+    () => upcomingSessions.filter((s) => s.status !== "live"),
+    [upcomingSessions]
+  );
+
   const filteredUpcomingSessions = useMemo(() => {
-    if (selectedCategory === "All") return upcomingSessions;
+    if (selectedCategory === "All") return scheduledOnly;
     const catId = getCategoryId(selectedCategory);
-    return upcomingSessions.filter(session => 
+    return scheduledOnly.filter(session =>
       session.category === catId || session.category === selectedCategory
     );
-  }, [upcomingSessions, selectedCategory]);
+  }, [scheduledOnly, selectedCategory]);
 
   // Handle category tab change
   const handleCategoryChange = (category: typeof CATEGORIES[number]) => {

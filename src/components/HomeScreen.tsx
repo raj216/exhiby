@@ -165,20 +165,26 @@ export function HomeScreen({
           })),
         });
 
-        // Map shared shape → HomeScreen local shape
+        // Map shared shape → HomeScreen local shape.
+        // The RPC returns BOTH "scheduled" and "live" status events; the
+        // Studio Schedule section must only show upcoming (not currently
+        // live) sessions, otherwise a session that's mid-stream shows up
+        // in both the Live Now carousel AND the Studio Schedule below it.
         setUpcomingEvents(
-          sessions.map((s) => ({
-            id: s.id,
-            title: s.title,
-            cover_url: s.cover_url,
-            scheduled_at: s.scheduled_at,
-            is_free: s.is_free,
-            price: s.price,
-            category: s.category,
-            description: s.description,
-            creator_id: s.creator_id,
-            creator: s.creator,
-          }))
+          sessions
+            .filter((s) => s.status !== "live")
+            .map((s) => ({
+              id: s.id,
+              title: s.title,
+              cover_url: s.cover_url,
+              scheduled_at: s.scheduled_at,
+              is_free: s.is_free,
+              price: s.price,
+              category: s.category,
+              description: s.description,
+              creator_id: s.creator_id,
+              creator: s.creator,
+            }))
         );
       } catch (err) {
         console.error('Error fetching upcoming events:', err);

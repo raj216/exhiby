@@ -127,23 +127,32 @@ export default function Schedule() {
     setSearchParams({ category: categoryId }, { replace: true });
   }, [selectedCategory, setSearchParams]);
 
+  // The /schedule page lists *upcoming* sessions. Currently-live sessions
+  // belong to Live Now, not the schedule, so we exclude status === "live"
+  // here too. Without this filter a session mid-stream incorrectly appears
+  // alongside the not-yet-started ones.
+  const scheduledOnly = useMemo(
+    () => sessions.filter((s) => s.status !== "live"),
+    [sessions]
+  );
+
   // Filter sessions by selected category
   const filteredSessions = useMemo(() => {
     if (selectedCategory === "All") {
       if (process.env.NODE_ENV === "development") {
-        console.log("[Schedule] Filter:", { selectedCategory, count: sessions.length });
+        console.log("[Schedule] Filter:", { selectedCategory, count: scheduledOnly.length });
       }
-      return sessions;
+      return scheduledOnly;
     }
     const categoryId = getCategoryId(selectedCategory);
-    const filtered = sessions.filter(
+    const filtered = scheduledOnly.filter(
       (s) => s.category === categoryId || s.category === selectedCategory
     );
     if (process.env.NODE_ENV === "development") {
       console.log("[Schedule] Filter:", { selectedCategory, categoryId, count: filtered.length });
     }
     return filtered;
-  }, [sessions, selectedCategory]);
+  }, [scheduledOnly, selectedCategory]);
 
   const handleCategorySelect = (categoryName: string) => {
     triggerHaptic("light");

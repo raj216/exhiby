@@ -343,6 +343,13 @@ export interface DailyParticipantInfo {
   audioOn: boolean;
   // Best-effort camera facing mode for the *sender* (used to correct front-camera mirroring)
   facingMode?: "user" | "environment" | null;
+  // True when this participant joined the room with an owner meeting token
+  // (i.e. the creator/host of the session). Both creator devices show owner=true,
+  // which is how we detect "another instance of me is already here."
+  owner: boolean;
+  // Daily.co reports when each participant first joined the room. Used to
+  // break ties when multiple owner-flagged participants exist — earliest wins.
+  joinedAt: number | null;
 }
 
 interface UseDailyOptions {
@@ -428,6 +435,15 @@ export function useDaily({
           ? userData.facingMode
           : null;
 
+      // joined_at can be Date | string | number depending on track version.
+      let joinedAt: number | null = null;
+      if (p.joined_at) {
+        const t = p.joined_at instanceof Date
+          ? p.joined_at.getTime()
+          : new Date(p.joined_at).getTime();
+        if (!Number.isNaN(t)) joinedAt = t;
+      }
+
       return {
         sessionId: p.session_id,
         userName: p.user_name || "Guest",
@@ -437,6 +453,8 @@ export function useDaily({
         videoOn: p.tracks?.video?.state === "playable",
         audioOn: p.tracks?.audio?.state === "playable",
         facingMode,
+        owner: Boolean(p.owner),
+        joinedAt,
       };
     },
     []

@@ -121,7 +121,13 @@ export default function LiveRoom() {
   // A creator device that lost the primary-claim race must NOT broadcast. We
   // pass null roomUrl to useDaily, which short-circuits the Daily.co join
   // entirely. Non-creator viewers always pass the real room url.
-  const shouldJoinDaily = !isCreator || deviceRole === "primary";
+  // dailyDetectedSecondary is a SECOND defence: even if events.primary_device_id
+  // is missing (migration not applied) or the claim raced, we re-check after
+  // Daily.co joins. If another owner-flagged participant is already in the
+  // room and joined before us, we leave and render the companion view.
+  const [dailyDetectedSecondary, setDailyDetectedSecondary] = useState(false);
+  const shouldJoinDaily = !isCreator
+    || (deviceRole === "primary" && !dailyDetectedSecondary);
 
   // Ticket check for paid events - prevents double charging on rejoin
   const { 
@@ -296,6 +302,39 @@ export default function LiveRoom() {
       }
     },
   });
+
+  // Safety net for primary/companion role detection.
+  // After Daily.co successfully joins, check whether another owner-flagged
+  // participant is already in the room. If yes AND they joined before us,
+  // we are the SECOND broadcaster — leave immediately and render companion
+  // view. This kicks in whenever events.primary_device_id failed to do its
+  // job (e.g. the column is missing or the claim raced).
+  useEffect(() => {
+    if (!isCreator) return;
+    if (!isJoined) return;
+    if (dailyDetectedSecondary) return;
+
+    const myJoinedAt = localParticipant?.joinedAt ?? Date.now();
+    const olderOwner = remoteParticipants.find(
+      (p) => p.owner && p.joinedAt != null && p.joinedAt < myJoinedAt
+    );
+
+    if (olderOwner) {
+      console.log(
+        "[LiveRoom] Daily safety net: another owner-device joined first " +
+          `(session ${olderOwner.sessionId}). Leaving Daily and switching to companion view.`
+      );
+      setDailyDetectedSecondary(true);
+      leave().catch((err) => console.warn("[LiveRoom] leave() failed:", err));
+    }
+  }, [
+    isCreator,
+    isJoined,
+    dailyDetectedSecondary,
+    localParticipant,
+    remoteParticipants,
+    leave,
+  ]);
 
   // Auto-hide UI after inactivity
   const resetHideTimer = useCallback(() => {
@@ -804,10 +843,16 @@ export default function LiveRoom() {
   }
 
   // ── COMPANION MODE ───────────────────────────────────────────────────────────
-  // Another device the same creator opened is already the primary broadcaster
-  // (per events.primary_device_id). This device shows the chat/audience
-  // management UI on top of a blurred cover-photo background — no camera.
-  if (isCreator && deviceRole === "companion" && event?.is_live) {
+  // Another device the same creator opened is already the primary broadcaster.
+  // We trust either signal: events.primary_device_id (fast, pre-Daily.co) or
+  // the Daily.co participants safety net (works even if the DB column is
+  // missing). Either way, render the chat/audience management UI on top of a
+  // blurred cover-photo background — no camera.
+  if (
+    isCreator &&
+    (deviceRole === "companion" || dailyDetectedSecondary) &&
+    event?.is_live
+  ) {
     return (
       <CompanionModeView
         eventId={event.id}
@@ -1562,9 +1607,10 @@ export default function LiveRoom() {
           />
 
           {/* Subtle one-time hint nudging the creator toward a second device.
-              Auto-detection (events.primary_device_id) handles the actual
-              role swap when they open the live URL on their laptop. */}
-          {isCreator && event && (
+              Only shown on the actual primary device (the one broadcasting).
+              The companion device renders CompanionModeView instead and never
+              reaches this branch. */}
+          {isCreator && event && deviceRole === "primary" && !dailyDetectedSecondary && (
             <CompanionDeviceHint
               eventId={event.id}
               isLive={dailyStatus === "joined" && !!event.is_live}
