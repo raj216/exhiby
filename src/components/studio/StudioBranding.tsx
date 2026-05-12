@@ -161,15 +161,16 @@ export function StudioBranding({ onEditProfile }: StudioBrandingProps = {}) {
 
     const [{ data: authData }, { data: profileData }] = await Promise.all([
       supabase.auth.getUser(),
-      supabase
+      (supabase
         .from("profiles")
-        .select("name, avatar_url, accent_color")
+        .select("name, avatar_url, accent_color" as any)
         .eq("user_id", user.id)
-        .maybeSingle(),
+        .maybeSingle() as any),
     ]);
 
     const meta = authData?.user?.user_metadata;
-    const accentFromDb = (profileData as { accent_color?: string | null } | null)?.accent_color;
+    const profileRow = profileData as { name?: string; avatar_url?: string | null; accent_color?: string | null } | null;
+    const accentFromDb = profileRow?.accent_color;
 
     // Prefer DB over metadata (DB is the source of truth on the public side)
     const accent = accentFromDb || meta?.studio_accent_color || DEFAULT_BRANDING.accentColor;
@@ -181,8 +182,8 @@ export function StudioBranding({ onEditProfile }: StudioBrandingProps = {}) {
     setBranding(loaded);
     setSaved(loaded);
     setProfile({
-      name: profileData?.name || "Your Studio",
-      avatar_url: profileData?.avatar_url ?? null,
+      name: profileRow?.name || "Your Studio",
+      avatar_url: profileRow?.avatar_url ?? null,
     });
     setIsLoading(false);
   }, [user]);
@@ -202,7 +203,7 @@ export function StudioBranding({ onEditProfile }: StudioBrandingProps = {}) {
       // Write canonical accent_color to profiles (read by PublicProfile, share cards, emails)
       await supabase
         .from("profiles")
-        .update({ accent_color: branding.accentColor })
+        .update({ accent_color: branding.accentColor } as any)
         .eq("user_id", user.id);
 
       // Mirror to user_metadata for UI cache
