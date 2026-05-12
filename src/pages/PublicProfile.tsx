@@ -166,21 +166,34 @@ export default function PublicProfile() {
 
         setProfile(profileData);
 
-        // Fetch columns the RPC doesn't return: profile_links + accent_color
+        // profile_links — not returned by the RPC, fetch separately
         supabase
           .from("profiles")
-          .select("profile_links, accent_color")
+          .select("profile_links")
           .eq("user_id", profileData.user_id)
           .maybeSingle()
           .then(({ data: row }) => {
-            if (!row) return;
-            setProfile(prev => {
-              if (!prev) return prev;
-              const patch: Partial<typeof prev> = {};
-              if (row.profile_links) patch.profile_links = row.profile_links as any;
-              if ((row as any).accent_color) patch.accent_color = (row as any).accent_color;
-              return { ...prev, ...patch };
-            });
+            if (row?.profile_links) {
+              setProfile(prev =>
+                prev ? { ...prev, profile_links: row.profile_links as any } : prev
+              );
+            }
+          });
+
+        // accent_color — column may not exist yet in generated types, keep separate
+        // so a missing column doesn't break the profile_links query above
+        supabase
+          .from("profiles")
+          .select("accent_color" as any)
+          .eq("user_id", profileData.user_id)
+          .maybeSingle()
+          .then(({ data: row }) => {
+            const color = (row as any)?.accent_color;
+            if (color) {
+              setProfile(prev =>
+                prev ? { ...prev, accent_color: color } : prev
+              );
+            }
           });
 
         console.log("AUDIENCE PROFILE FETCH:", profileData);

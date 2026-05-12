@@ -1,7 +1,7 @@
 import { useState, useEffect, type MouseEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image as ImageIcon, Ticket, ChevronRight, Pencil, Calendar, Clock, Radio, XCircle, Trash2, CheckCircle2, BadgeCheck, Share, History } from "lucide-react";
+import { ArrowLeft, Ticket, ChevronRight, Pencil, Calendar, Clock, Radio, XCircle, Trash2, CheckCircle2, BadgeCheck, Share, History } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import type { ProfileLink } from "./EditProfileModal";
