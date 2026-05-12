@@ -202,24 +202,22 @@ export function LiveRoomControls({
                       </Tooltip>
                     )}
 
-                    {/* Studio Companion — open show controls on a second device */}
+                    {/* Studio Companion — open show controls on a second device (all screen sizes) */}
                     {onOpenStudioCamera && (
-                      <div className="hidden lg:contents">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              onClick={onOpenStudioCamera}
-                              disabled={isEnding}
-                              className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none bg-white/10 text-white hover:bg-white/20"
-                            >
-                              <Smartphone className="w-5 h-5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p>Studio Companion</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={onOpenStudioCamera}
+                            disabled={isEnding}
+                            className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none bg-white/10 text-white hover:bg-white/20"
+                          >
+                            <Smartphone className="w-5 h-5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Studio Companion</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
 
                     <div className="w-px h-6 bg-white/20 mx-1" />

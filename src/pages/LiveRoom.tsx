@@ -40,6 +40,8 @@ import { SessionFeedbackModal } from "@/components/SessionFeedbackModal";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
 import { TipCreatorModal } from "@/components/TipCreatorModal";
 import { LiveRoomSkeleton } from "@/components/ui/loading-skeletons";
+import { CompanionModeView } from "@/components/live/CompanionModeView";
+import { useCreatorDeviceRole } from "@/hooks/useCreatorDeviceRole";
 
 interface EventData {
   id: string;
@@ -110,7 +112,14 @@ export default function LiveRoom() {
   const { isEventSaved, saveSession, removeSession: removeSavedSession } = useSavedSessions();
   
   const isCreator = user?.id === event?.creator_id;
-  
+
+  // ?companion=1 means this device opened the companion URL (e.g. via QR code)
+  const isCompanionParam = searchParams.get("companion") === "1";
+
+  // Detect whether this device is the primary (camera) or companion (chat-only) device.
+  // forceCompanion=true skips presence detection and immediately returns "companion".
+  const deviceRole = useCreatorDeviceRole(event?.id || null, isCreator, isCompanionParam);
+
   // Ticket check for paid events - prevents double charging on rejoin
   const { 
     hasValidTicket, 
@@ -768,7 +777,8 @@ export default function LiveRoom() {
     creator_id: event.creator_id,
   } : null;
 
-  if (loading || ticketLoading) {
+  // Show skeleton while event data loads OR while detecting device role (creator only)
+  if (loading || ticketLoading || (isCreator && !isCompanionParam && deviceRole === "checking")) {
     return (
       <>
         <LiveRoomSkeleton />
@@ -782,6 +792,22 @@ export default function LiveRoom() {
           onRecreateRoom={handleRecreateRoom}
         />
       </>
+    );
+  }
+
+  // ── COMPANION MODE ───────────────────────────────────────────────────────────
+  // Triggered when:
+  //   a) URL contains ?companion=1 (opened via QR code from the primary device), OR
+  //   b) Presence detection found another device already live as this creator
+  // In both cases the camera is NOT used — show the chat/audience management UI.
+  if (isCreator && (isCompanionParam || deviceRole === "companion") && event?.is_live) {
+    return (
+      <CompanionModeView
+        eventId={event.id}
+        creatorId={event.creator_id}
+        eventTitle={event.title}
+        creatorName={profile?.name || profile?.handle || "Studio"}
+      />
     );
   }
 
