@@ -96,7 +96,7 @@ export function AddCameraSheet({
             onDragEnd={(_, info) => {
               if (info.offset.y > 120 || info.velocity.y > 600) handleClose();
             }}
-            className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg z-[9999] rounded-t-3xl shadow-2xl overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-[9999] rounded-t-3xl shadow-2xl overflow-hidden"
             style={{
               backgroundColor: "#0e0e0e",
               paddingBottom: "env(safe-area-inset-bottom)",

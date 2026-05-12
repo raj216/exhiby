@@ -136,29 +136,33 @@ export function CompanionModeView({
   ];
 
   return (
-    <div className="fixed inset-0 bg-background flex flex-col overflow-hidden">
-      {/* ── Header ── */}
-      <div className="relative flex items-center justify-between px-4 pt-safe pt-4 pb-3 border-b border-border overflow-hidden" style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}>
-        {/* Cover photo background (blurred + darkened) */}
-        {coverUrl && (
-          <>
-            <img
-              src={coverUrl}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: "blur(16px) brightness(0.25)", transform: "scale(1.1)" }}
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </>
-        )}
-        {!coverUrl && <div className="absolute inset-0 bg-card" />}
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
+      {/* ── Full-page cover photo background ── */}
+      {coverUrl ? (
+        <>
+          <img
+            src={coverUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: "blur(48px) brightness(0.18) saturate(1.4)", transform: "scale(1.15)" }}
+          />
+          <div className="absolute inset-0 bg-black/60" />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-background" />
+      )}
 
-        {/* Content — above the bg */}
-        <div className="relative flex items-center gap-3 min-w-0">
+      {/* All UI floats above the background */}
+      <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 pb-3 border-b border-white/10" style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}>
+        {/* Content */}
+        <div className="flex items-center gap-3 min-w-0">
           {/* LIVE badge */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-live/20 border border-live/40 flex-shrink-0">
-            <span className="relative flex h-2 w-2 flex-shrink-0 items-center justify-center">
+            <span className="relative flex h-2 w-2 flex-shrink-0">
               <span className="absolute inline-flex h-full w-full rounded-full bg-live opacity-75 animate-ping" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
             </span>
@@ -172,13 +176,13 @@ export function CompanionModeView({
         </div>
 
         {/* Companion badge */}
-        <div className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/20 flex-shrink-0">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 border border-white/20 flex-shrink-0">
           <span className="text-xs text-white/70 font-medium">Companion</span>
         </div>
       </div>
 
       {/* ── Tab bar ── */}
-      <div className="flex border-b border-border bg-card">
+      <div className="flex border-b border-white/10 bg-black/30 backdrop-blur-sm">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -187,8 +191,8 @@ export function CompanionModeView({
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-colors ${
                 activeTab === tab.id
-                  ? "text-foreground border-b-2 border-electric"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-white border-b-2 border-electric"
+                  : "text-white/40 hover:text-white/70"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -266,14 +270,14 @@ export function CompanionModeView({
       </div>
 
       {/* ── End Stream button ── */}
-      <div className="px-4 py-3 pb-safe border-t border-border bg-card">
+      <div className="px-4 py-3 border-t border-white/10 bg-black/30 backdrop-blur-sm" style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
         <button
           onClick={handleEndStream}
           disabled={isEnding}
           className={`w-full py-3.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
             confirmEnd
               ? "bg-destructive text-white"
-              : "bg-muted/50 text-muted-foreground hover:bg-muted border border-border"
+              : "bg-white/10 text-white/70 hover:bg-white/15 border border-white/15"
           }`}
         >
           {isEnding ? (
@@ -288,6 +292,8 @@ export function CompanionModeView({
           )}
         </button>
       </div>
+
+      </div>{/* end z-10 wrapper */}
     </div>
   );
 }

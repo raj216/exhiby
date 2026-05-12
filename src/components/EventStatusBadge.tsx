@@ -95,7 +95,7 @@ export function EventStatusBadge({
         `}
       >
         {/* Gray dot for ended */}
-        <span className="relative flex-shrink-0">
+        <span className={`relative flex flex-shrink-0 ${styles.dot}`}>
           <span className={`relative inline-flex rounded-full ${styles.dot} bg-muted-foreground`} />
         </span>
 
@@ -128,11 +128,8 @@ export function EventStatusBadge({
         `}
       >
         {/* Pulsing red dot */}
-        <span className="relative flex-shrink-0">
-          <span
-            className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-crimson opacity-75`}
-            style={{ width: styles.dot.split(" ")[0].replace("w-", "") + "px" }}
-          />
+        <span className={`relative flex flex-shrink-0 ${styles.dot}`}>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-crimson opacity-75" />
           <span className={`relative inline-flex rounded-full ${styles.dot} bg-crimson`} />
         </span>
 

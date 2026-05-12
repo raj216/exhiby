@@ -5,108 +5,35 @@
  * device or a COMPANION (chat + audience management, no camera) device for a
  * live session.
  *
- * How it works:
- *   Each device that opens a live session as the creator joins a Supabase
- *   Realtime Presence channel named `creator-primary-{eventId}` and tracks:
- *     { deviceId: string, joinedAt: number }
+ * Rules:
+ *   • If the URL contains ?companion=1 (opened via QR code from the host
+ *     device) → "companion". This is the explicit, intentional path.
+ *   • If the user is the creator and no companion flag is set → "primary".
+ *     The creator opening the live URL directly always runs the full live room.
+ *   • "checking" is only returned briefly before the event finishes loading
+ *     (when isCreator is still false and forceCompanion is false).
  *
- *   After subscribing and announcing presence, we wait 1.2 s for the server to
- *   sync all currently-connected devices. Then:
- *   • If we are the ONLY device (or the one with the earliest `joinedAt`) →
- *     "primary"  → show the normal live room with camera
- *   • If another device joined earlier → "companion"  → show the companion
- *     management view (chat, hand-raises, materials — no camera)
- *
- * forceCompanion:
- *   When the URL contains ?companion=1 (e.g. from the QR code) we skip
- *   presence detection entirely and immediately return "companion".
- *
- * The `deviceId` is stable per-browser (localStorage) so refreshing the page
- * on the primary device keeps it as primary.
+ * Why no presence-based detection:
+ *   Presence timestamps have inherent race conditions — if another browser tab
+ *   or the Lovable preview loads first it claims the earliest joinedAt and
+ *   incorrectly becomes "primary", leaving the phone with the camera stuck in
+ *   companion mode. The QR code already carries ?companion=1, so we rely on
+ *   that explicit signal rather than a racy timestamp comparison.
  */
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { getDeviceId } from "@/lib/deviceId";
-
 export type CreatorDeviceRole = "checking" | "primary" | "companion";
-
-type PresenceEntry = { deviceId: string; joinedAt: number };
 
 export function useCreatorDeviceRole(
   eventId: string | null,
   isCreator: boolean,
   forceCompanion = false
 ): CreatorDeviceRole {
-  const [role, setRole] = useState<CreatorDeviceRole>(
-    forceCompanion ? "companion" : "checking"
-  );
+  // Explicit companion flag from the QR-code URL
+  if (forceCompanion) return "companion";
 
-  useEffect(() => {
-    // Forced companion (came from QR code URL ?companion=1)
-    if (forceCompanion) {
-      setRole("companion");
-      return;
-    }
+  // Creator opening the live room directly → always the primary device
+  if (isCreator && eventId) return "primary";
 
-    // Not a creator, or session not loaded yet — nothing to do
-    if (!eventId || !isCreator) return;
-
-    const deviceId = getDeviceId();
-    const joinedAt = Date.now();
-    let decisionMade = false;
-    let decisionTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const channelName = `creator-primary-${eventId}`;
-    const channel = supabase.channel(channelName, {
-      config: { presence: { key: deviceId } },
-    });
-
-    function resolveRole() {
-      if (decisionMade) return;
-      decisionMade = true;
-      if (decisionTimer) {
-        clearTimeout(decisionTimer);
-        decisionTimer = null;
-      }
-
-      const state = channel.presenceState<PresenceEntry>();
-      // presenceState returns { [key: string]: PresenceEntry[] }
-      const allEntries: PresenceEntry[] = Object.values(state).flat() as PresenceEntry[];
-
-      if (allEntries.length === 0) {
-        // No one is tracked yet (can happen if our own track hasn't synced back)
-        setRole("primary");
-        return;
-      }
-
-      // The device with the earliest joinedAt timestamp is the primary
-      const earliest = allEntries.reduce((min, e) =>
-        e.joinedAt < min.joinedAt ? e : min
-      );
-
-      setRole(earliest.deviceId === deviceId ? "primary" : "companion");
-    }
-
-    channel
-      // sync fires with current presence state — catches the case where
-      // another device is already in the channel when we subscribe
-      .on("presence", { event: "sync" }, resolveRole)
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          // Announce ourselves
-          await channel.track({ deviceId, joinedAt });
-          // Give 1.2 s for the server to sync all currently-connected devices.
-          // If sync fires first we'll resolve earlier.
-          decisionTimer = setTimeout(resolveRole, 1200);
-        }
-      });
-
-    return () => {
-      if (decisionTimer) clearTimeout(decisionTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [eventId, isCreator, forceCompanion]);
-
-  return role;
+  // Event hasn't loaded yet (isCreator is based on event.creator_id)
+  return "checking";
 }
