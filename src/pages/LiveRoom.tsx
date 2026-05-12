@@ -582,13 +582,17 @@ export default function LiveRoom() {
       if (isCreator && event) {
         console.log("[LiveRoom] Creator ending stream...");
 
+        // CRITICAL: end-of-stream must succeed even if the
+        // primary_device_id column does not exist yet (migration not
+        // applied). PostgREST rejects the whole UPDATE if any column in
+        // the payload is unknown, so we send the required fields first
+        // and clear primary_device_id as a separate best-effort call.
         const [updateRes] = await Promise.all([
           supabase
             .from("events")
             .update({
               is_live: false,
               live_ended_at: new Date().toISOString(),
-              primary_device_id: null, // free the primary slot
             })
             .eq("id", event.id),
 
@@ -596,9 +600,15 @@ export default function LiveRoom() {
           supabase.from("live_viewers").delete().eq("event_id", event.id),
         ]);
 
-        // Best-effort local clear so a quick refresh on the same device
-        // doesn't see its own stale claim before realtime propagates.
-        releasePrimary().catch(() => {});
+        // Free the primary-device slot. This is best-effort: if the column
+        // doesn't exist yet we just swallow the error — the main UPDATE
+        // above has already ended the stream successfully.
+        releasePrimary().catch((err) =>
+          console.warn(
+            "[LiveRoom] releasePrimary failed (non-fatal — column may be missing):",
+            err
+          )
+        );
 
         if (updateRes?.error) {
           console.error("[LiveRoom] Error ending stream:", updateRes.error);
