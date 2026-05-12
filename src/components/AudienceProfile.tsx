@@ -1,7 +1,7 @@
 import { useState, useEffect, type MouseEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Image as ImageIcon, ShoppingBag, Ticket, ChevronRight, Pencil, Calendar, Clock, Radio, XCircle, Trash2, CheckCircle2, BadgeCheck, Share, History } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Ticket, ChevronRight, Pencil, Calendar, Clock, Radio, XCircle, Trash2, CheckCircle2, BadgeCheck, Share, History } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { EditProfileModal } from "./EditProfileModal";
 import type { ProfileLink } from "./EditProfileModal";
@@ -46,7 +46,7 @@ const fallbackUser = {
   avatarImage: "",
   memberSince: "Dec 2024"
 };
-type TabType = "tickets" | "history" | "collection";
+type TabType = "tickets" | "history";
 export function AudienceProfile({
   onBack,
   onSwitchMode,
@@ -148,7 +148,7 @@ export function AudienceProfile({
   const displayBio = localProfile?.bio;
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const saved = sessionStorage.getItem("audienceProfile_activeTab");
-    return (saved === "tickets" || saved === "collection") ? saved as TabType : "tickets";
+    return saved === "tickets" ? saved as TabType : "tickets";
   });
 
   const handleTabChange = (tab: TabType) => {
@@ -162,9 +162,8 @@ export function AudienceProfile({
     label: string;
     icon: typeof Ticket;
   }[] = [
-    { id: "tickets",    label: "My Tickets", icon: Ticket },
-    { id: "history",    label: "History",    icon: History },
-    { id: "collection", label: "Collection", icon: ShoppingBag },
+    { id: "tickets", label: "My Tickets", icon: Ticket },
+    { id: "history", label: "History",    icon: History },
   ];
   const handleShare = () => {
     triggerClickHaptic();
@@ -663,23 +662,6 @@ export function AudienceProfile({
               </motion.div>
             )}
 
-            {/* Collection Tab - Empty state until collections table exists */}
-            {activeTab === "collection" && <motion.div key="collection" initial={{
-            opacity: 0,
-            y: 10
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} exit={{
-            opacity: 0,
-            y: -10
-          }} className="p-4">
-                <div className="flex flex-col items-center justify-center py-12 bg-obsidian rounded-2xl border border-border/30">
-                  <ImageIcon className="w-12 h-12 text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">No items collected yet</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Purchase art to build your collection</p>
-                </div>
-              </motion.div>}
           </AnimatePresence>
         </div>
       </div>

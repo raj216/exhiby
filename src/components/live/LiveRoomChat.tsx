@@ -234,12 +234,23 @@ export function LiveRoomChat({
               <h3 className="text-white font-semibold">Live Chat</h3>
               <StatusIndicator />
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
+            <div className="flex items-center gap-1">
+              {onReload && (
+                <button
+                  onClick={onReload}
+                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                  title="Refresh messages"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-white/70" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
           </div>
 
           {/* Pinned message banner */}
