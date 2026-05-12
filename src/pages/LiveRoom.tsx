@@ -113,11 +113,15 @@ export default function LiveRoom() {
   const isCreator = user?.id === event?.creator_id;
 
   // Detect whether this device is the primary (camera) or companion (chat-only) device.
-  // Source of truth is the events.primary_device_id column — the device that
-  // successfully starts broadcasting claims it; other creator devices read it
-  // and switch to companion mode.
-  const { role: deviceRole, claimPrimary, releasePrimary } =
+  // Source of truth is the events.primary_device_id column — claimed atomically
+  // on page load. Companion devices never join Daily.co (see roomUrl gate below).
+  const { role: deviceRole, releasePrimary } =
     useCreatorDeviceRole(event?.id || null, isCreator);
+
+  // A creator device that lost the primary-claim race must NOT broadcast. We
+  // pass null roomUrl to useDaily, which short-circuits the Daily.co join
+  // entirely. Non-creator viewers always pass the real room url.
+  const shouldJoinDaily = !isCreator || deviceRole === "primary";
 
   // Ticket check for paid events - prevents double charging on rejoin
   const { 
@@ -239,20 +243,13 @@ export default function LiveRoom() {
     switchCamera,
     toggleMic,
   } = useDaily({
-    roomUrl: event?.room_url || null,
+    roomUrl: shouldJoinDaily ? (event?.room_url || null) : null,
     isHost: isCreator,
     userName: profile?.name || profile?.handle || user?.email?.split("@")[0] || "Guest",
     joinTimeoutMs: 12000,
     onJoined: () => {
       console.log("[LiveRoom] Successfully joined Daily room");
       toast.success("Connected to stream");
-      // Creator's device successfully started broadcasting — claim primary slot
-      // so any other device the same creator opens switches to companion mode.
-      if (isCreator) {
-        claimPrimary().catch((err) =>
-          console.error("[LiveRoom] claimPrimary failed:", err)
-        );
-      }
     },
     onLeft: () => {
       console.log("[LiveRoom] Left Daily room");
