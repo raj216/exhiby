@@ -10,7 +10,6 @@ import {
   Video,
   VideoOff,
   SwitchCamera,
-  Smartphone,
   Share2,
   LogOut,
 } from "lucide-react";
@@ -41,8 +40,8 @@ interface LiveRoomControlsProps {
   // Hand raises for creator
   handRaiseCount?: number;
   onOpenHandRaises?: () => void;
-  // Studio camera (second camera via phone QR)
-  onOpenStudioCamera?: () => void;
+  // Studio camera state passthrough (the QR opener has been removed; flag remains
+  // for the existing studio-camera-connected indicator elsewhere).
   studioCameraConnected?: boolean;
   onShare?: () => void;
 }
@@ -66,7 +65,6 @@ export function LiveRoomControls({
   unreadChatCount = 0,
   handRaiseCount = 0,
   onOpenHandRaises,
-  onOpenStudioCamera,
   studioCameraConnected = false,
   onShare,
 }: LiveRoomControlsProps) {
@@ -198,24 +196,6 @@ export function LiveRoomControls({
                         </TooltipTrigger>
                         <TooltipContent side="top">
                           <p>Switch camera</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* Studio Companion — open show controls on a second device (all screen sizes) */}
-                    {onOpenStudioCamera && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={onOpenStudioCamera}
-                            disabled={isEnding}
-                            className="relative w-9 h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-60 disabled:pointer-events-none bg-white/10 text-white hover:bg-white/20"
-                          >
-                            <Smartphone className="w-5 h-5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>Studio Companion</p>
                         </TooltipContent>
                       </Tooltip>
                     )}

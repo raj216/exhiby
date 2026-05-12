@@ -30,9 +30,9 @@ import {
   ReconnectingBanner,
   LiveCountdown,
   StudioCameraView,
-  AddCameraSheet,
   STUDIO_CAM_PREFIX,
 } from "@/components/live";
+import { CompanionDeviceHint } from "@/components/live/CompanionDeviceHint";
 import { HandRaisesDrawer } from "@/components/live/HandRaisesDrawer";
 import { DebugPanel } from "@/components/live/DebugPanel";
 import { VideoQualityBadge } from "@/components/live/VideoQualityBadge";
@@ -82,7 +82,6 @@ export default function LiveRoom() {
   const [showChat, setShowChat] = useState(false);
   const [showMaterials, setShowMaterials] = useState(false);
   const [showHandRaises, setShowHandRaises] = useState(false);
-  const [showAddCameraSheet, setShowAddCameraSheet] = useState(false);
   
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -113,12 +112,12 @@ export default function LiveRoom() {
   
   const isCreator = user?.id === event?.creator_id;
 
-  // ?companion=1 means this device opened the companion URL (e.g. via QR code)
-  const isCompanionParam = searchParams.get("companion") === "1";
-
   // Detect whether this device is the primary (camera) or companion (chat-only) device.
-  // forceCompanion=true skips presence detection and immediately returns "companion".
-  const deviceRole = useCreatorDeviceRole(event?.id || null, isCreator, isCompanionParam);
+  // Source of truth is the events.primary_device_id column — the device that
+  // successfully starts broadcasting claims it; other creator devices read it
+  // and switch to companion mode.
+  const { role: deviceRole, claimPrimary, releasePrimary } =
+    useCreatorDeviceRole(event?.id || null, isCreator);
 
   // Ticket check for paid events - prevents double charging on rejoin
   const { 
@@ -247,6 +246,13 @@ export default function LiveRoom() {
     onJoined: () => {
       console.log("[LiveRoom] Successfully joined Daily room");
       toast.success("Connected to stream");
+      // Creator's device successfully started broadcasting — claim primary slot
+      // so any other device the same creator opens switches to companion mode.
+      if (isCreator) {
+        claimPrimary().catch((err) =>
+          console.error("[LiveRoom] claimPrimary failed:", err)
+        );
+      }
     },
     onLeft: () => {
       console.log("[LiveRoom] Left Daily room");
@@ -546,12 +552,17 @@ export default function LiveRoom() {
             .update({
               is_live: false,
               live_ended_at: new Date().toISOString(),
+              primary_device_id: null, // free the primary slot
             })
             .eq("id", event.id),
 
           // Clean up all viewers (doesn't need to block UI)
           supabase.from("live_viewers").delete().eq("event_id", event.id),
         ]);
+
+        // Best-effort local clear so a quick refresh on the same device
+        // doesn't see its own stale claim before realtime propagates.
+        releasePrimary().catch(() => {});
 
         if (updateRes?.error) {
           console.error("[LiveRoom] Error ending stream:", updateRes.error);
@@ -778,7 +789,7 @@ export default function LiveRoom() {
   } : null;
 
   // Show skeleton while event data loads OR while detecting device role (creator only)
-  if (loading || ticketLoading || (isCreator && !isCompanionParam && deviceRole === "checking")) {
+  if (loading || ticketLoading || (isCreator && deviceRole === "checking")) {
     return (
       <>
         <LiveRoomSkeleton />
@@ -796,11 +807,10 @@ export default function LiveRoom() {
   }
 
   // ── COMPANION MODE ───────────────────────────────────────────────────────────
-  // Triggered when:
-  //   a) URL contains ?companion=1 (opened via QR code from the primary device), OR
-  //   b) Presence detection found another device already live as this creator
-  // In both cases the camera is NOT used — show the chat/audience management UI.
-  if (isCreator && (isCompanionParam || deviceRole === "companion") && event?.is_live) {
+  // Another device the same creator opened is already the primary broadcaster
+  // (per events.primary_device_id). This device shows the chat/audience
+  // management UI on top of a blurred cover-photo background — no camera.
+  if (isCreator && deviceRole === "companion" && event?.is_live) {
     return (
       <CompanionModeView
         eventId={event.id}
@@ -1550,19 +1560,17 @@ export default function LiveRoom() {
             unreadChatCount={showChat ? 0 : chatUnreadCount}
             handRaiseCount={handRaiseCount}
             onOpenHandRaises={handleOpenHandRaises}
-            onOpenStudioCamera={isCreator ? () => setShowAddCameraSheet(true) : undefined}
             studioCameraConnected={studioCameraConnected}
             onShare={handleShare}
           />
 
-          {/* Add Studio Camera QR Sheet (Creator Only) */}
+          {/* Subtle one-time hint nudging the creator toward a second device.
+              Auto-detection (events.primary_device_id) handles the actual
+              role swap when they open the live URL on their laptop. */}
           {isCreator && event && (
-            <AddCameraSheet
-              isOpen={showAddCameraSheet}
-              onClose={() => setShowAddCameraSheet(false)}
-              cameraUrl={`${window.location.origin}/studio-camera/${event.id}`}
-              companionUrl={`${window.location.origin}/live/${event.id}?companion=1`}
-              isConnected={studioCameraConnected}
+            <CompanionDeviceHint
+              eventId={event.id}
+              isLive={dailyStatus === "joined" && !!event.is_live}
             />
           )}
 

@@ -11,4 +11,3 @@ export { LiveCountdown } from './LiveCountdown';
 export { HandRaisesDrawer } from './HandRaisesDrawer';
 export { VideoQualityBadge } from './VideoQualityBadge';
 export { StudioCameraView, STUDIO_CAM_PREFIX } from './StudioCameraView';
-export { AddCameraSheet } from './AddCameraSheet';
