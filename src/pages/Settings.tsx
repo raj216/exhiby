@@ -304,7 +304,7 @@ function CategoryContent({
 // Creator Studio Toggles — Feature 6 (auto thank-you email) + Feature 7 (tipping)
 function CreatorStudioToggles() {
   const { user } = useAuth();
-  const { userMode } = useUserMode();
+  const { mode: userMode } = useUserMode();
   const [autoThankyou, setAutoThankyou] = useState(true);
   const [tippingEnabled, setTippingEnabled] = useState(false);
   const [loaded, setLoaded] = useState(false);

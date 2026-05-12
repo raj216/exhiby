@@ -66,8 +66,8 @@ export function useCreatorDeviceRole(
         deviceId,
       });
 
-      const { data: claimed, error } = await supabase
-        .from("events")
+      const { data: claimed, error } = await (supabase
+        .from("events") as any)
         .update({ primary_device_id: deviceId })
         .eq("id", eventId)
         .or(`primary_device_id.is.null,primary_device_id.eq.${deviceId}`)
@@ -110,15 +110,15 @@ export function useCreatorDeviceRole(
       }
 
       // 0 rows updated → someone else holds primary
-      const { data: row } = await supabase
-        .from("events")
+      const { data: row } = await (supabase
+        .from("events") as any)
         .select("primary_device_id")
         .eq("id", eventId)
         .maybeSingle();
 
       if (cancelled) return;
 
-      const holder = row?.primary_device_id;
+      const holder = (row as { primary_device_id?: string | null } | null)?.primary_device_id;
       if (holder && holder !== deviceId) {
         console.log("[useCreatorDeviceRole] → companion (held by", holder, ")");
         setRole("companion");
@@ -177,8 +177,8 @@ export function useCreatorDeviceRole(
   // ── Release primary slot — called when ending the stream ────────────────
   const releasePrimary = useCallback(async () => {
     if (!eventId) return;
-    const { error } = await supabase
-      .from("events")
+    const { error } = await (supabase
+      .from("events") as any)
       .update({ primary_device_id: null })
       .eq("id", eventId)
       .eq("primary_device_id", deviceId);

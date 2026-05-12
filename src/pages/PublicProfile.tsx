@@ -37,7 +37,7 @@ interface PublicProfileData {
   avatar_url: string | null;
   bio: string | null;
   cover_url: string | null;
-  accent_color: string | null;
+  accent_color?: string | null;
   website: string | null;
   created_at: string | null;
   is_founding_member: boolean | null;
@@ -173,10 +173,13 @@ export default function PublicProfile() {
         await fetchLiveEvent(profileData.user_id);
 
         // Track profile visit for conversion funnel (Feature 2). Fire-and-forget.
-        supabase
-          .from("profile_views")
-          .insert({ creator_id: profileData.user_id, viewer_user_id: user?.id ?? null })
-          .then(() => {}).catch(() => {});
+        try {
+          await (supabase as any)
+            .from("profile_views")
+            .insert({ creator_id: profileData.user_id, viewer_user_id: user?.id ?? null });
+        } catch {
+          // ignore — table may not exist yet
+        }
 
         channel = supabase
           .channel(`creator-live-${profileData.user_id}`)
