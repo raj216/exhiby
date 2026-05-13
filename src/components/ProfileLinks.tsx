@@ -35,13 +35,13 @@ export function ProfileLinks({ links, className = "" }: ProfileLinksProps) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-obsidian border border-border/40 text-sm text-foreground/80 hover:border-electric/40 hover:text-electric hover:bg-electric/5 transition-all"
+          className="group flex items-center gap-1.5 px-3 py-2 rounded-full bg-obsidian border border-border/40 text-foreground/80 hover:border-electric/40 hover:text-electric hover:bg-electric/5 transition-all min-h-[36px]"
         >
           <span className="text-electric/70 group-hover:text-electric transition-colors">
             {TYPE_ICON[link.type]}
           </span>
-          <span className="font-medium text-xs">{getDisplayLabel(link)}</span>
-          <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+          <span className="font-medium text-[13px] leading-none max-w-[180px] truncate">{getDisplayLabel(link)}</span>
+          <ExternalLink className="w-2.5 h-2.5 opacity-40 group-hover:opacity-80 transition-opacity shrink-0" />
         </a>
       ))}
     </div>
