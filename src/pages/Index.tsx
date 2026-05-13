@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
-import { LiveSession } from "@/components/LiveSession";
-import { CreatorProfile } from "@/components/CreatorProfile";
-import { ProfileScreen } from "@/components/ProfileScreen";
 import { BottomNavigation } from "@/components/BottomNavigation";
-import { PassportStamp, LogoutOverlay } from "@/components/auth";
+
+// Sub-screens: never visible on first paint — each gets its own chunk
+const LiveSession    = lazy(() => import("@/components/LiveSession").then(m => ({ default: m.LiveSession })));
+const CreatorProfile = lazy(() => import("@/components/CreatorProfile").then(m => ({ default: m.CreatorProfile })));
+const ProfileScreen  = lazy(() => import("@/components/ProfileScreen").then(m => ({ default: m.ProfileScreen })));
+const PassportStamp  = lazy(() => import("@/components/auth/PassportStamp").then(m => ({ default: m.PassportStamp })));
+const LogoutOverlay  = lazy(() => import("@/components/auth/LogoutOverlay").then(m => ({ default: m.LogoutOverlay })));
 import { PageTransition } from "@/components/PageTransition";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -279,7 +282,11 @@ function IndexContent() {
 
   // Welcome stamp animation for returning users
   if (showWelcomeStamp) {
-    return <PassportStamp userName={userName} onComplete={handleStampComplete} />;
+    return (
+      <Suspense fallback={null}>
+        <PassportStamp userName={userName} onComplete={handleStampComplete} />
+      </Suspense>
+    );
   }
 
   // Render current screen with smooth transitions
@@ -288,19 +295,23 @@ function IndexContent() {
       case "creatorProfile":
         return (
           <PageTransition key="creatorProfile" direction={transitionDirection}>
-            <CreatorProfile onBack={handleBack} />
+            <Suspense fallback={null}>
+              <CreatorProfile onBack={handleBack} />
+            </Suspense>
           </PageTransition>
         );
-      
+
       case "profile":
         return (
           <PageTransition key="profile" direction={transitionDirection}>
-            <ProfileScreen 
-              onBack={handleBack} 
-              onGoLive={() => setShowWizard(true)}
-              onSchedule={() => setShowScheduleModal(true)}
-              refreshScheduleKey={refreshScheduleKey}
-            />
+            <Suspense fallback={null}>
+              <ProfileScreen
+                onBack={handleBack}
+                onGoLive={() => setShowWizard(true)}
+                onSchedule={() => setShowScheduleModal(true)}
+                refreshScheduleKey={refreshScheduleKey}
+              />
+            </Suspense>
           </PageTransition>
         );
       
@@ -380,10 +391,12 @@ function IndexContent() {
       />
 
       {/* Cinematic Logout Overlay */}
-      <LogoutOverlay 
-        isActive={showLogoutOverlay} 
-        onComplete={handleLogoutComplete} 
-      />
+      <Suspense fallback={null}>
+        <LogoutOverlay
+          isActive={showLogoutOverlay}
+          onComplete={handleLogoutComplete}
+        />
+      </Suspense>
 
       {/* Search Overlay */}
       <Suspense fallback={null}>
@@ -445,11 +458,13 @@ function IndexContent() {
         </AnimatePresence>
       </Suspense>
 
-      <AnimatePresence>
-        {showLiveSession && eventData && (
-          <LiveSession eventData={eventData} onClose={handleCloseLiveSession} />
-        )}
-      </AnimatePresence>
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {showLiveSession && eventData && (
+            <LiveSession eventData={eventData} onClose={handleCloseLiveSession} />
+          )}
+        </AnimatePresence>
+      </Suspense>
     </div>
   );
 }

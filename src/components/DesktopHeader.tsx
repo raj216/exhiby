@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Search, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,7 +8,7 @@ import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CreatorActivationModal } from "./CreatorActivationModal";
+const CreatorActivationModal = lazy(() => import("./CreatorActivationModal").then(m => ({ default: m.CreatorActivationModal })));
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
 import { NotificationsDrawer } from "./NotificationsDrawer";
@@ -214,11 +214,13 @@ export function DesktopHeader({
       />
 
       {/* Creator Activation Modal */}
-      <CreatorActivationModal
-        isOpen={showActivationModal}
-        onClose={() => setShowActivationModal(false)}
-        onSuccess={handleActivationSuccess}
-      />
+      <Suspense fallback={null}>
+        <CreatorActivationModal
+          isOpen={showActivationModal}
+          onClose={() => setShowActivationModal(false)}
+          onSuccess={handleActivationSuccess}
+        />
+      </Suspense>
 
       {/* Welcome Banner */}
       <WelcomeBanner

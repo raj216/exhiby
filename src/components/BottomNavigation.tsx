@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Search, User, Compass, Video } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useProfile } from "@/hooks/useProfile";
-import { CreatorActivationModal } from "./CreatorActivationModal";
+const CreatorActivationModal = lazy(() => import("./CreatorActivationModal").then(m => ({ default: m.CreatorActivationModal })));
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
 import { ProfileDrawer } from "./ProfileDrawer";
@@ -339,11 +339,13 @@ export function BottomNavigation({
       </motion.div>
 
       {/* Creator Activation Modal */}
-      <CreatorActivationModal
-        isOpen={showActivationModal}
-        onClose={() => setShowActivationModal(false)}
-        onSuccess={handleActivationSuccess}
-      />
+      <Suspense fallback={null}>
+        <CreatorActivationModal
+          isOpen={showActivationModal}
+          onClose={() => setShowActivationModal(false)}
+          onSuccess={handleActivationSuccess}
+        />
+      </Suspense>
 
       {/* Welcome Banner */}
       <WelcomeBanner

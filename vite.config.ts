@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    // Warn at 400 KB (down from default 500 KB) to catch chunk bloat earlier
+    chunkSizeWarningLimit: 400,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -26,6 +28,10 @@ export default defineConfig(({ mode }) => ({
           "vendor-supabase": ["@supabase/supabase-js"],
           // Query layer
           "vendor-query": ["@tanstack/react-query"],
+          // Daily.co WebRTC SDK — very large, only needed in live room
+          "vendor-daily": ["@daily-co/daily-js"],
+          // Date utilities — used across many pages
+          "vendor-date": ["date-fns"],
         },
       },
     },

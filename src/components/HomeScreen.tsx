@@ -1,15 +1,17 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveMarqueeCard } from "./LiveMarqueeCard";
 import { UpcomingEventCard } from "./UpcomingEventCard";
-import { LiveStudioView, StudioRoom } from "./studio";
-import { PaymentDrawer } from "./PaymentDrawer";
-import { CreatorActivationModal } from "./CreatorActivationModal";
 import { DesktopHeader } from "./DesktopHeader";
 import { MobileHeader } from "./MobileHeader";
 import { LeftSidebar } from "./LeftSidebar";
 import { HomeScreenSkeleton } from "./ui/loading-skeletons";
+
+// Heavy modals/overlays — only shown on user action, never on first paint
+const LiveStudioView        = lazy(() => import("./studio").then(m => ({ default: m.LiveStudioView })));
+const PaymentDrawer         = lazy(() => import("./PaymentDrawer").then(m => ({ default: m.PaymentDrawer })));
+const CreatorActivationModal = lazy(() => import("./CreatorActivationModal").then(m => ({ default: m.CreatorActivationModal })));
 
 import { useUserMode } from "@/contexts/UserModeContext";
 import { ChevronRight, Clock, Calendar } from "lucide-react";
@@ -599,33 +601,39 @@ export function HomeScreen({
 
       </div>
 
-      {portalEvent && <PaymentDrawer isOpen={showPaymentDrawer} onClose={() => {
-      setShowPaymentDrawer(false);
-      setPortalEvent(null);
-    }} onPaymentSuccess={handlePaymentSuccess} price={portalEvent.price} eventTitle={portalEvent.title} artistName={portalEvent.artistName} coverImage={portalEvent.coverImage} eventId={portalEvent.id} isFree={portalEvent.price <= 0} />}
+      <Suspense fallback={null}>
+        {portalEvent && <PaymentDrawer isOpen={showPaymentDrawer} onClose={() => {
+          setShowPaymentDrawer(false);
+          setPortalEvent(null);
+        }} onPaymentSuccess={handlePaymentSuccess} price={portalEvent.price} eventTitle={portalEvent.title} artistName={portalEvent.artistName} coverImage={portalEvent.coverImage} eventId={portalEvent.id} isFree={portalEvent.price <= 0} />}
+      </Suspense>
 
-      <AnimatePresence>
-        {showLiveRoom && portalEvent && <LiveStudioView room={{
-        id: portalEvent.id,
-        title: portalEvent.title,
-        isLive: portalEvent.isLive,
-        artistName: portalEvent.artistName,
-        artistAvatar: portalEvent.artistAvatar,
-        coverImage: portalEvent.coverImage,
-        materials: portalEvent.materials || [],
-        price: portalEvent.price,
-        viewers: portalEvent.viewers
-      }} onClose={handleCloseLiveRoom} />}
-      </AnimatePresence>
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {showLiveRoom && portalEvent && <LiveStudioView room={{
+            id: portalEvent.id,
+            title: portalEvent.title,
+            isLive: portalEvent.isLive,
+            artistName: portalEvent.artistName,
+            artistAvatar: portalEvent.artistAvatar,
+            coverImage: portalEvent.coverImage,
+            materials: portalEvent.materials || [],
+            price: portalEvent.price,
+            viewers: portalEvent.viewers
+          }} onClose={handleCloseLiveRoom} />}
+        </AnimatePresence>
+      </Suspense>
 
-      <CreatorActivationModal
-        isOpen={showArtistActivation}
-        onClose={() => setShowArtistActivation(false)}
-        onSuccess={() => {
-          setShowArtistActivation(false);
-          localStorage.setItem("showCreatorWelcome", "true");
-          window.location.reload();
-        }}
-      />
+      <Suspense fallback={null}>
+        <CreatorActivationModal
+          isOpen={showArtistActivation}
+          onClose={() => setShowArtistActivation(false)}
+          onSuccess={() => {
+            setShowArtistActivation(false);
+            localStorage.setItem("showCreatorWelcome", "true");
+            window.location.reload();
+          }}
+        />
+      </Suspense>
     </div>;
 }
