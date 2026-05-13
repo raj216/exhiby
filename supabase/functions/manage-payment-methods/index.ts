@@ -80,6 +80,10 @@ serve(async (req) => {
 
       case "set_default": {
         if (!paymentMethodId) throw new Error("paymentMethodId required");
+        const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+        if (pm.customer !== customerId) {
+          return respond({ error: "Forbidden" }, 403);
+        }
         await stripe.customers.update(customerId, {
           invoice_settings: { default_payment_method: paymentMethodId },
         });
@@ -88,6 +92,10 @@ serve(async (req) => {
 
       case "remove": {
         if (!paymentMethodId) throw new Error("paymentMethodId required");
+        const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+        if (pm.customer !== customerId) {
+          return respond({ error: "Forbidden" }, 403);
+        }
         await stripe.paymentMethods.detach(paymentMethodId);
         return respond({ success: true });
       }
