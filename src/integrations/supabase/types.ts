@@ -1153,6 +1153,7 @@ export type Database = {
           is_founding_member: boolean
           is_verified: boolean
           name: string
+          profile_links: Json
           user_id: string
           verified_at: string
           website: string
@@ -1187,6 +1188,7 @@ export type Database = {
           is_founding_member: boolean
           is_verified: boolean
           name: string
+          profile_links: Json
           user_id: string
           verified_at: string
           website: string
