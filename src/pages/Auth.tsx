@@ -5,6 +5,7 @@ import { ResetPassword } from "@/components/auth/ResetPassword";
 import { getAndClearReturnUrl } from "@/components/auth/RequireAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Seo } from "@/components/Seo";
 
 const RETURN_URL_KEY = "exhiby_return_url";
 
@@ -154,5 +155,14 @@ export default function Auth() {
     return null;
   }
 
-  return <NightAdmission onComplete={handleComplete} />;
+  return (
+    <>
+      <Seo
+        title="Sign in to Exhiby — Live Studio Access"
+        description="Sign in or create your Exhiby account to enter live creative studios, follow artists, and join curated sessions."
+        path="/auth"
+      />
+      <NightAdmission onComplete={handleComplete} />
+    </>
+  );
 }

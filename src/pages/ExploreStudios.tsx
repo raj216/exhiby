@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/lib/categories";
 import { triggerHaptic } from "@/lib/haptics";
 import { ExploreStudiosSkeleton } from "@/components/ui/loading-skeletons";
+import { Seo } from "@/components/Seo";
 
 interface CreatorProfile {
   name: string;
@@ -200,6 +201,17 @@ export default function ExploreStudios() {
 
   return (
     <div className="min-h-screen bg-carbon">
+      <Seo
+        title="Explore Studios — Discover Live Artists | Exhiby"
+        description="Explore creative studios on Exhiby. Find artists going live now and curated upcoming sessions across painting, music, design, and more."
+        path="/explore"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Explore Studios",
+          url: "https://joinexhiby.com/explore",
+        }}
+      />
       {/* Header */}
       <header className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/20">
         <div className="flex items-center gap-4 px-4 lg:px-6 py-4">

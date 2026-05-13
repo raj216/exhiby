@@ -16,6 +16,7 @@ import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationHistory, type Screen } from "@/hooks/useNavigationHistory";
 import { supabase } from "@/integrations/supabase/client";
+import { Seo } from "@/components/Seo";
 
 import { toast } from "sonner";
 
@@ -326,6 +327,17 @@ function IndexContent() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Exhiby — Live Studio Access for Artists & Collectors"
+        description="Enter live creative studios. Watch artists work, learn in real time, and join curated ticketed sessions on Exhiby."
+        path="/"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Exhiby",
+          url: "https://joinexhiby.com",
+        }}
+      />
       {/* App content with scale effect when modals open */}
       <motion.div
         animate={{

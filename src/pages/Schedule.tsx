@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Seo } from "@/components/Seo";
 
 export default function Schedule() {
   const navigate = useNavigate();
@@ -179,6 +180,11 @@ export default function Schedule() {
       ref={containerRef as React.RefObject<HTMLDivElement>}
       className="min-h-screen bg-carbon overflow-y-auto"
     >
+      <Seo
+        title="Schedule — Upcoming Live Studio Sessions | Exhiby"
+        description="See upcoming scheduled live art sessions on Exhiby. Filter by category and add sessions to your calendar."
+        path="/schedule"
+      />
       {/* Pull to Refresh Indicator - Mobile only */}
       {isMobile && (pullDistance > 0 || isRefreshing) && (
         <PullToRefreshIndicator
