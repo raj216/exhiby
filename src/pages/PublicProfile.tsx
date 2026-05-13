@@ -144,7 +144,7 @@ export default function PublicProfile() {
         let profileData: PublicProfileData | null = null;
         if (!rpcError && data && Array.isArray(data) && data.length > 0) {
           console.log("PublicProfile loaded via RPC for user_id:", userId);
-          profileData = data[0] as PublicProfileData;
+          profileData = data[0] as unknown as PublicProfileData;
         } else {
           const { data: fallbackData, error: fallbackError } = await supabase.rpc("get_public_profile_by_profile_id", {
             profile_id: userId
@@ -156,7 +156,7 @@ export default function PublicProfile() {
           });
           if (!fallbackError && fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
             console.log("PublicProfile loaded via RPC for user_id:", fallbackData[0].user_id);
-            profileData = fallbackData[0] as PublicProfileData;
+            profileData = fallbackData[0] as unknown as PublicProfileData;
           }
         }
         if (!profileData) {
