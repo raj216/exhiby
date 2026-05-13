@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES } from "@/lib/categories";
 import { triggerHaptic } from "@/lib/haptics";
 import { ExploreStudiosSkeleton } from "@/components/ui/loading-skeletons";
+import { Seo } from "@/components/Seo";
 
 interface CreatorProfile {
   name: string;
