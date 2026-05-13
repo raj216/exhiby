@@ -108,6 +108,11 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-carbon text-foreground overflow-x-hidden">
+      <Seo
+        title="Pricing — Free, Pro, Plus plans for creators | Exhiby"
+        description="Pick a Studio plan on Exhiby. Free for getting started. Pro adds advanced analytics, audience email, and studio tools. Plus is everything, unlimited."
+        path="/pricing"
+      />
       {/* ── Nav bar ── */}
       <header className="sticky top-0 z-40 flex items-center gap-3 px-5 py-4 bg-carbon/90 backdrop-blur-xl border-b border-border/20">
         <button
