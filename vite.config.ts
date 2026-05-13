@@ -29,7 +29,5 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Slightly raise the warning threshold — we know about the Daily.co chunk
-    chunkSizeWarningLimit: 600,
   },
 }));

@@ -9,9 +9,11 @@ import { UserModeProvider } from "@/contexts/UserModeContext";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { LiveNotificationToast } from "@/components/LiveNotificationToast";
 
-// Home + Auth load eagerly — they're the first thing any visitor sees
+// Only the home page loads eagerly — it's what every visitor sees first
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
+
+// Auth is lazy — only needed when someone clicks Sign In
+const Auth = lazy(() => import("./pages/Auth"));
 
 // Every other route is lazy — only downloaded when the user navigates there.
 // This cuts the initial JS bundle from 607 KB to the fraction needed for the home page.
@@ -32,23 +34,12 @@ const ProfileResolver  = lazy(() => import("./pages/ProfileResolver"));
 const StudioCameraPage = lazy(() => import("./pages/StudioCameraPage"));
 const Pricing          = lazy(() => import("./pages/Pricing"));
 
-// Minimal dark-screen fallback — matches the app's carbon background so
-// there's no white flash while a lazy chunk downloads.
+// Minimal dark-screen fallback — carbon background, no white flash.
+// Uses Tailwind's animate-spin (keyframes already in the global CSS) so
+// no <style> tag is injected on every mount.
 const PageLoader = () => (
-  <div
-    style={{ minHeight: "100svh", background: "#0F0F11", display: "flex", alignItems: "center", justifyContent: "center" }}
-  >
-    <div
-      style={{
-        width: 20,
-        height: 20,
-        borderRadius: "50%",
-        border: "2px solid rgba(99,102,241,0.25)",
-        borderTopColor: "#6366f1",
-        animation: "spin 0.7s linear infinite",
-      }}
-    />
-    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+  <div className="min-h-svh bg-carbon flex items-center justify-center">
+    <div className="w-5 h-5 rounded-full border-2 border-electric/25 border-t-electric animate-spin" />
   </div>
 );
 

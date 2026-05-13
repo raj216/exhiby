@@ -1,26 +1,30 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { HomeScreen } from "@/components/HomeScreen";
-import { GoLiveWizard } from "@/components/GoLiveWizard";
-import { ScheduleEventModal } from "@/components/ScheduleEventModal";
 import { LiveSession } from "@/components/LiveSession";
 import { CreatorProfile } from "@/components/CreatorProfile";
 import { ProfileScreen } from "@/components/ProfileScreen";
-import { SearchOverlay } from "@/components/SearchOverlay";
-import { CategoriesOverlay } from "@/components/CategoriesOverlay";
 import { BottomNavigation } from "@/components/BottomNavigation";
-import { PassportStamp, LogoutOverlay, PassportModal, PlanOnboarding } from "@/components/auth";
+import { PassportStamp, LogoutOverlay } from "@/components/auth";
 import { PageTransition } from "@/components/PageTransition";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigationHistory, type Screen } from "@/hooks/useNavigationHistory";
 import { supabase } from "@/integrations/supabase/client";
 import { Seo } from "@/components/Seo";
-
 import { toast } from "sonner";
+// Type-only import — stripped at build time, no runtime cost
+import type { EventData } from "@/components/GoLiveWizard";
 
-import { EventData } from "@/components/GoLiveWizard";
+// Heavy modals/overlays — none are visible on first paint, so load them lazily.
+// Each gets its own null-fallback Suspense so no spinner flashes on the page.
+const GoLiveWizard      = lazy(() => import("@/components/GoLiveWizard").then(m => ({ default: m.GoLiveWizard })));
+const ScheduleEventModal = lazy(() => import("@/components/ScheduleEventModal").then(m => ({ default: m.ScheduleEventModal })));
+const SearchOverlay     = lazy(() => import("@/components/SearchOverlay").then(m => ({ default: m.SearchOverlay })));
+const CategoriesOverlay = lazy(() => import("@/components/CategoriesOverlay").then(m => ({ default: m.CategoriesOverlay })));
+const PassportModal     = lazy(() => import("@/components/auth").then(m => ({ default: m.PassportModal })));
+const PlanOnboarding    = lazy(() => import("@/components/auth").then(m => ({ default: m.PlanOnboarding })));
 
 function IndexContent() {
   const navigate = useNavigate();
@@ -246,26 +250,30 @@ function IndexContent() {
   // Passport setup for first-time users (mandatory, non-skippable)
   if (needsPassportSetup) {
     return (
-      <PassportModal
-        userName={userName}
-        onComplete={() => {
-          setNeedsPassportSetup(false);
-          setNeedsPlanSelection(true);
-        }}
-      />
+      <Suspense fallback={null}>
+        <PassportModal
+          userName={userName}
+          onComplete={() => {
+            setNeedsPassportSetup(false);
+            setNeedsPlanSelection(true);
+          }}
+        />
+      </Suspense>
     );
   }
 
   // Plan selection — shown once after passport, before entering the app
   if (needsPlanSelection) {
     return (
-      <PlanOnboarding
-        onComplete={() => {
-          setNeedsPlanSelection(false);
-          setShowWelcomeStamp(true);
-          sessionStorage.setItem("exhiby_stamp_shown", "true");
-        }}
-      />
+      <Suspense fallback={null}>
+        <PlanOnboarding
+          onComplete={() => {
+            setNeedsPlanSelection(false);
+            setShowWelcomeStamp(true);
+            sessionStorage.setItem("exhiby_stamp_shown", "true");
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -377,57 +385,65 @@ function IndexContent() {
         onComplete={handleLogoutComplete} 
       />
 
-      {/* Search Overlay - Top header search (keyword/profile search only) */}
-      <SearchOverlay
-        isOpen={showSearch}
-        onClose={() => setShowSearch(false)}
-        onSelectArtist={() => {
-          setShowSearch(false);
-          navigateToScreen("creatorProfile");
-        }}
-        onJoinLive={() => {
-          setShowSearch(false);
-          toast.success("Joining live room...");
-        }}
-        onSelectCategory={(tag) => {
-          toast.info(`Filtering by ${tag}`);
-        }}
-        onOpenOwnProfile={() => {
-          setShowSearch(false);
-          navigateToScreen("profile");
-        }}
-      />
+      {/* Search Overlay */}
+      <Suspense fallback={null}>
+        <SearchOverlay
+          isOpen={showSearch}
+          onClose={() => setShowSearch(false)}
+          onSelectArtist={() => {
+            setShowSearch(false);
+            navigateToScreen("creatorProfile");
+          }}
+          onJoinLive={() => {
+            setShowSearch(false);
+            toast.success("Joining live room...");
+          }}
+          onSelectCategory={(tag) => {
+            toast.info(`Filtering by ${tag}`);
+          }}
+          onOpenOwnProfile={() => {
+            setShowSearch(false);
+            navigateToScreen("profile");
+          }}
+        />
+      </Suspense>
 
-      {/* Categories Overlay - Bottom nav "Categories" tab */}
-      <CategoriesOverlay
-        isOpen={showCategories}
-        onClose={() => setShowCategories(false)}
-        onSelectCategory={(tag) => {
-          setShowCategories(false);
-          toast.info(`Filtering by ${tag}`);
-        }}
-      />
+      {/* Categories Overlay */}
+      <Suspense fallback={null}>
+        <CategoriesOverlay
+          isOpen={showCategories}
+          onClose={() => setShowCategories(false)}
+          onSelectCategory={(tag) => {
+            setShowCategories(false);
+            toast.info(`Filtering by ${tag}`);
+          }}
+        />
+      </Suspense>
 
-      <AnimatePresence>
-        {showWizard && (
-          <GoLiveWizard
-            onClose={() => setShowWizard(false)}
-            onGoLive={handleGoLive}
-          />
-        )}
-      </AnimatePresence>
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {showWizard && (
+            <GoLiveWizard
+              onClose={() => setShowWizard(false)}
+              onGoLive={handleGoLive}
+            />
+          )}
+        </AnimatePresence>
+      </Suspense>
 
-      <AnimatePresence>
-        {showScheduleModal && (
-          <ScheduleEventModal
-            isOpen={showScheduleModal}
-            onClose={() => setShowScheduleModal(false)}
-            onEventCreated={() => {
-              setRefreshScheduleKey(prev => prev + 1);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      <Suspense fallback={null}>
+        <AnimatePresence>
+          {showScheduleModal && (
+            <ScheduleEventModal
+              isOpen={showScheduleModal}
+              onClose={() => setShowScheduleModal(false)}
+              onEventCreated={() => {
+                setRefreshScheduleKey(prev => prev + 1);
+              }}
+            />
+          )}
+        </AnimatePresence>
+      </Suspense>
 
       <AnimatePresence>
         {showLiveSession && eventData && (
