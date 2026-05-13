@@ -188,6 +188,11 @@ export default function Browse() {
 
   return (
     <div className="min-h-screen bg-carbon flex flex-col" style={{ height: "100dvh" }}>
+      <Seo
+        title="Browse Studios — Live & Upcoming Art Sessions | Exhiby"
+        description="Browse live creative studios and upcoming sessions on Exhiby. Filter by category and join artists in real time."
+        path="/browse"
+      />
       {/* Fixed Header */}
       <header 
         className="flex-shrink-0 px-4 pb-3 border-b border-border/30 bg-carbon/95 backdrop-blur-sm z-20"
