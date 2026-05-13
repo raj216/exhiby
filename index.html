@@ -8,16 +8,12 @@
     <meta name="description" content="Enter live creative studios. Watch artists work, learn in real time, and join curated ticketed sessions.">
     <meta name="author" content="Exhiby" />
 
-    
-    
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://joinexhiby.com/" />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/zwpV8t5i7fPgbsUHl2s84aN8Gk33/social-images/social-1772120556343-Support_your_favorite_artists_—_live._(2).webp">
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Exhiby" />
-    
-    
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/zwpV8t5i7fPgbsUHl2s84aN8Gk33/social-images/social-1772120556343-Support_your_favorite_artists_—_live._(2).webp">
 
     <!-- canonical is set per-route via react-helmet-async -->
@@ -30,28 +26,34 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#FF4444" />
 
-    <!-- Font preconnects for faster LCP -->
+    <!-- Preconnect to font CDNs — establishes TCP/TLS before fonts are requested -->
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
     <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Clash Display for Headlines (font-display: swap) -->
-    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" />
-    <!-- Inter for UI (font-display: swap) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-    
-  
-  
-  
-  
-  
-  
-  
-  <meta property="og:title" content="Exhiby - Live Studio Access">
-  <meta name="twitter:title" content="Exhiby - Live Studio Access">
-  <meta property="og:description" content="Enter live creative studios. Watch artists work, learn in real time, and join curated ticketed sessions.">
-  <meta name="twitter:description" content="Enter live creative studios. Watch artists work, learn in real time, and join curated ticketed sessions.">
-</head>
+
+    <!-- Non-blocking font loading (loadCSS pattern).
+         Fonts load AFTER first paint — never delay FCP or LCP.
+         font-display:swap in the URLs handles text flash gracefully. -->
+    <link rel="preload" as="style"
+          href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap"
+          onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap">
+    </noscript>
+
+    <link rel="preload" as="style"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap"
+          onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap">
+    </noscript>
+
+    <meta property="og:title" content="Exhiby - Live Studio Access">
+    <meta name="twitter:title" content="Exhiby - Live Studio Access">
+    <meta property="og:description" content="Enter live creative studios. Watch artists work, learn in real time, and join curated ticketed sessions.">
+    <meta name="twitter:description" content="Enter live creative studios. Watch artists work, learn in real time, and join curated ticketed sessions.">
+  </head>
 
   <body>
     <script type="application/ld+json">
