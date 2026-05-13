@@ -224,7 +224,7 @@ export function EditProfileModal({
           bio: bio.trim() || null,
           avatar_url: newAvatarUrl,
           cover_url: newCoverUrl,
-          profile_links: validLinks,  // save directly so public profiles can read it
+          profile_links: validLinks as unknown as any,  // save directly so public profiles can read it
         })
         .eq("user_id", user.id);
 
