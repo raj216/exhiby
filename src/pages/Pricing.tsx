@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ArrowLeft, Zap, Mail, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePlan } from "@/hooks/usePlan";
+import { Seo } from "@/components/Seo";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Plan {
