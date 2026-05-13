@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { PullToRefreshIndicator } from "@/components/PullToRefreshIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Seo } from "@/components/Seo";
 
 export default function Schedule() {
   const navigate = useNavigate();
