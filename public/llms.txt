@@ -1,0 +1,20 @@
+# Exhiby
+
+> Exhiby is a live studio platform where artists open their creative studios in real time and collectors join curated, ticketed sessions to watch, learn, and support the work as it happens.
+
+Exhiby connects independent artists ("Studios") with audiences ("Collectors"). Creators host live sessions — painting, music, design, writing, performance — that viewers can attend live, tip, chat in, and follow. Sessions can be free or paid, scheduled in advance or started ad-hoc.
+
+## Pages
+
+- [Home](/): Landing page introducing live studio access and featured artists.
+- [Explore Studios](/explore): Browse currently live and upcoming creative studio sessions.
+- [Browse](/browse): Discover artists and sessions by category.
+- [Schedule](/schedule): Upcoming scheduled live sessions across the platform.
+- [Pricing](/pricing): Free, Pro, and Plus plans for creators.
+- [Sign in](/auth): Email and Google authentication for artists and collectors.
+
+## Optional
+
+- [Tickets](/tickets-history): A signed-in collector's purchased session tickets.
+- [Earnings](/earnings-history): A signed-in creator's session earnings history.
+- [Settings](/settings): Account and notification preferences.
