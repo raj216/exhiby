@@ -156,7 +156,8 @@ serve(async (req) => {
           );
         }
 
-        const origin = req.headers.get("origin") || "https://exhiby.lovable.app";
+        // SECURITY: Never trust client-supplied origin (open redirect risk).
+        const origin = Deno.env.get("PUBLIC_SITE_URL") ?? "https://exhiby.lovable.app";
         const accountLink = await stripe.accountLinks.create({
           account: accountId,
           refresh_url: `${origin}/earnings-history?stripe_onboarding=refresh`,
