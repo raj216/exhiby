@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Upload, Trash2, ImageIcon, Pencil, Check } from "lucide-react";
@@ -30,7 +30,7 @@ export function PortfolioGrid({
   isOwner = false
 }: PortfolioGridProps) {
   const { user } = useAuth();
-  const { items, isLoading, addItem, deleteItem, updateItem, refetch } = usePortfolioItems(userId);
+  const { items, isLoading, addItem, deleteItem, updateItem, isUpdating, refetch } = usePortfolioItems(userId);
   const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -41,7 +41,6 @@ export function PortfolioGrid({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const editTitleRef = useRef<HTMLInputElement>(null);
 
   const canEdit = isOwner && user;
@@ -88,10 +87,10 @@ export function PortfolioGrid({
     e.stopPropagation();
     if (!selectedImage) return;
     triggerClickHaptic();
-    setIsSavingEdit(true);
     try {
       await updateItem(selectedImage.id, editTitle, editDescription);
-      // Optimistically update the selectedImage so the lightbox reflects the change immediately
+      // Optimistically update selectedImage so the lightbox reflects the
+      // change immediately without waiting for the background query refetch
       setSelectedImage(prev =>
         prev ? { ...prev, title: editTitle.trim() || null, description: editDescription.trim() || null } : prev
       );
@@ -99,17 +98,8 @@ export function PortfolioGrid({
       toast({ title: "Artwork updated." });
     } catch {
       toast({ title: "Update failed", description: "Please try again", variant: "destructive" });
-    } finally {
-      setIsSavingEdit(false);
     }
   };
-
-  // Reset edit state whenever the selected image changes
-  useEffect(() => {
-    setIsEditing(false);
-    setEditTitle("");
-    setEditDescription("");
-  }, [selectedImage?.id]);
 
   const handleAddClick = () => {
     triggerClickHaptic();
@@ -212,7 +202,7 @@ export function PortfolioGrid({
                 onClick={handleDeleteClick}
                 className="w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center"
               >
-                <Trash2 className="w-4.5 h-4.5 text-destructive" />
+                <Trash2 className="w-4 h-4 text-destructive" />
               </button>
             )}
 
@@ -229,18 +219,22 @@ export function PortfolioGrid({
               <>
                 <button
                   onClick={handleCancelEdit}
-                  className="w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center"
+                  disabled={isUpdating}
+                  className="w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center disabled:opacity-40"
                   aria-label="Cancel edit"
                 >
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  disabled={isSavingEdit}
+                  disabled={isUpdating}
                   className="w-10 h-10 rounded-full bg-electric/20 border border-electric/50 flex items-center justify-center disabled:opacity-50"
                   aria-label="Save changes"
                 >
-                  <Check className="w-4 h-4 text-electric" />
+                  {isUpdating
+                    ? <div className="w-4 h-4 border-2 border-electric/40 border-t-electric rounded-full animate-spin" />
+                    : <Check className="w-4 h-4 text-electric" />
+                  }
                 </button>
               </>
             )}
