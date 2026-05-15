@@ -62,17 +62,47 @@ export function EditProfileModal({
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize form with profile data
+  // Draft key — scoped to the user so multiple accounts don't collide
+  const draftKey = user ? `exhiby_profile_draft_${user.id}` : null;
+
+  // On open: restore a saved draft if one exists, else initialize from profile.
+  // Only reacts to isOpen so live profile prop updates don't overwrite mid-edit typing.
   useEffect(() => {
-    if (profile) {
-      setName(profile.name || "");
-      setUsername(profile.handle || "");
-      setBio(profile.bio || "");
-      setAvatarPreview(profile.avatarUrl);
-      setCoverPreview(profile.coverUrl || null);
-      setProfileLinks(profile.profileLinks || []);
+    if (!isOpen || !profile) return;
+
+    let draft: { name?: string; username?: string; bio?: string; profileLinks?: ProfileLink[] } | null = null;
+    if (draftKey) {
+      try {
+        const raw = localStorage.getItem(draftKey);
+        if (raw) draft = JSON.parse(raw);
+      } catch {
+        // Corrupt draft — ignore and fall through to profile data
+      }
     }
-  }, [profile, isOpen]);
+
+    setName(draft?.name         ?? profile.name    ?? "");
+    setUsername(draft?.username  ?? profile.handle  ?? "");
+    setBio(draft?.bio            ?? profile.bio     ?? "");
+    setProfileLinks(draft?.profileLinks ?? profile.profileLinks ?? []);
+
+    // Image state always comes from profile — blob URLs die with the page and
+    // can't be persisted, so we never try to draft-restore them.
+    setAvatarPreview(profile.avatarUrl);
+    setCoverPreview(profile.coverUrl ?? null);
+    setAvatarBlob(null);
+    setCoverBlob(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // intentionally omit profile/user — read via closure on open only
+
+  // Auto-save text fields to localStorage while the modal is open.
+  // 400 ms debounce keeps writes infrequent; cleanup cancels on fast typing.
+  useEffect(() => {
+    if (!isOpen || !draftKey) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem(draftKey, JSON.stringify({ name, username, bio, profileLinks }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [name, username, bio, profileLinks, isOpen, draftKey]);
 
   const addLink = () => {
     if (profileLinks.length >= 6) return;
@@ -241,6 +271,9 @@ export function EditProfileModal({
       supabase.functions.invoke("update-profile-links", { body: { links: validLinks } })
         .catch(e => console.warn("[EditProfileModal] edge fn non-fatal:", e));
 
+      // Draft fulfilled — clear it so the next open starts fresh from DB data
+      if (draftKey) localStorage.removeItem(draftKey);
+
       toast({ title: "Profile saved", description: validLinks.length > 0 ? `Profile and ${validLinks.length} link${validLinks.length > 1 ? "s" : ""} saved!` : "Profile updated successfully!" });
       // Pass saved links back so the parent can do an immediate optimistic update.
       onProfileUpdated(validLinks);
@@ -258,7 +291,8 @@ export function EditProfileModal({
   };
 
   const handleClose = () => {
-    // Reset state
+    // User deliberately cancelled — clear draft so next open is fresh
+    if (draftKey) localStorage.removeItem(draftKey);
     setAvatarBlob(null);
     setCoverBlob(null);
     setTempImage(null);
