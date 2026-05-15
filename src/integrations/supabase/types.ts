@@ -1017,6 +1017,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      check_handle_available: {
+        Args: { target_handle: string }
+        Returns: boolean
+      }
       create_notification: {
         Args: {
           p_link?: string
