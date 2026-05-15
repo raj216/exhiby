@@ -673,6 +673,7 @@ export type Database = {
           name: string
           plan: string
           profile_links: Json
+          stripe_customer_id: string | null
           updated_at: string
           user_id: string
           verified_at: string | null
@@ -692,6 +693,7 @@ export type Database = {
           name: string
           plan?: string
           profile_links?: Json
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id: string
           verified_at?: string | null
@@ -711,6 +713,7 @@ export type Database = {
           name?: string
           plan?: string
           profile_links?: Json
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string
           verified_at?: string | null

@@ -297,8 +297,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[create-live-room] Unexpected error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...getCorsHeaders(null), "Content-Type": "application/json" },
     });
