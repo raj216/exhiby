@@ -7,7 +7,6 @@ import { toast } from "@/hooks/use-toast";
 import { usePortfolioItems, PortfolioItem } from "@/hooks/usePortfolioItems";
 import { useAuth } from "@/contexts/AuthContext";
 import { AddArtModal } from "@/components/AddArtModal";
-import { supabase } from "@/integrations/supabase/client";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import {
   AlertDialog,
@@ -134,23 +133,13 @@ export function PortfolioGrid({
 
     setIsDeleting(true);
     try {
-      // Extract file path from URL to delete from storage
-      const imageUrl = selectedImage.image_url;
-      const storagePathMatch = imageUrl.match(/portfolio\/(.+)$/);
-      
-      if (storagePathMatch) {
-        const filePath = storagePathMatch[1];
-        await supabase.storage.from("portfolio").remove([filePath]);
-      }
-
-      // Delete from database
+      // deleteItem handles both DB row deletion AND storage cleanup internally.
+      // No manual storage call here — that was causing a double-deletion.
       await deleteItem(selectedImage.id);
-      
-      // Close modals and refresh
+
       setShowDeleteConfirm(false);
       setSelectedImage(null);
-      await refetch();
-      
+
       toast({ title: "Artwork deleted." });
     } catch (error) {
       console.error("Delete error:", error);
