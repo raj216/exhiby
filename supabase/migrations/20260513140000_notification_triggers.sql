@@ -76,6 +76,20 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  -- Skip notification if the recipient already has an unread notification for this
+  -- conversation in the last 5 minutes — avoids spamming during active chats
+  IF EXISTS (
+    SELECT 1
+    FROM public.notifications
+    WHERE user_id = v_recipient_id
+      AND type = 'new_message'
+      AND link = '/messages/' || NEW.conversation_id::text
+      AND is_read = false
+      AND created_at > NOW() - INTERVAL '5 minutes'
+  ) THEN
+    RETURN NEW;
+  END IF;
+
   -- Trim message content to a short preview (max 80 chars)
   v_preview := LEFT(TRIM(NEW.content), 80);
   IF LENGTH(TRIM(NEW.content)) > 80 THEN

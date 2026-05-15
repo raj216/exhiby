@@ -24,19 +24,22 @@ interface NotificationsDrawerProps {
 const SWIPE_THRESHOLD = 100;
 
 // Map notification type → icon + accent colour
+// Static map — defined outside component so it's never recreated on render
+const NOTIF_ICON_CFG: Record<string, { bg: string; color: string; El: React.ElementType }> = {
+  new_follower:     { bg: "bg-electric/10",  color: "text-electric",   El: UserPlus },
+  new_message:      { bg: "bg-blue-500/10",  color: "text-blue-400",   El: MessageCircle },
+  studio_live:      { bg: "bg-live/10",      color: "text-live",       El: Radio },
+  studio_scheduled: { bg: "bg-gold/10",      color: "text-gold",       El: Calendar },
+  starting_soon:    { bg: "bg-gold/10",      color: "text-gold",       El: Clock },
+  tip_received:     { bg: "bg-crimson/10",   color: "text-crimson",    El: Heart },
+};
+const NOTIF_ICON_DEFAULT = { bg: "bg-muted/30", color: "text-muted-foreground", El: Bell };
+
 function NotifIcon({ type }: { type: string }) {
-  const cfg: Record<string, { icon: React.ReactNode; bg: string; color: string }> = {
-    new_follower:    { icon: <UserPlus   className="w-3.5 h-3.5" />, bg: "bg-electric/10",  color: "text-electric" },
-    new_message:     { icon: <MessageCircle className="w-3.5 h-3.5" />, bg: "bg-blue-500/10",  color: "text-blue-400" },
-    studio_live:     { icon: <Radio      className="w-3.5 h-3.5" />, bg: "bg-live/10",     color: "text-live" },
-    studio_scheduled:{ icon: <Calendar   className="w-3.5 h-3.5" />, bg: "bg-gold/10",     color: "text-gold" },
-    starting_soon:   { icon: <Clock      className="w-3.5 h-3.5" />, bg: "bg-gold/10",     color: "text-gold" },
-    tip_received:    { icon: <Heart      className="w-3.5 h-3.5" />, bg: "bg-crimson/10",  color: "text-crimson" },
-  };
-  const { icon, bg, color } = cfg[type] ?? { icon: <Bell className="w-3.5 h-3.5" />, bg: "bg-muted/30", color: "text-muted-foreground" };
+  const { bg, color, El } = NOTIF_ICON_CFG[type] ?? NOTIF_ICON_DEFAULT;
   return (
     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${bg} ${color}`}>
-      {icon}
+      <El className="w-3.5 h-3.5" />
     </div>
   );
 }
