@@ -58,19 +58,21 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
     const checkHandle = async () => {
       setIsCheckingHandle(true);
       setHandleError(null);
-      
+
       try {
-        const { data, error } = await supabase
-          .rpc("get_public_profile_by_handle", { target_handle: handle });
+        // Returns true if the handle is unclaimed OR belongs to the current user
+        const { data, error } = await supabase.rpc(
+          "check_username_available_for_update",
+          { p_username: handle }
+        );
 
         if (error) throw error;
 
-        // If the handle exists but belongs to the current user, it's still available
-        if (data && data.length > 0 && data[0].user_id !== user?.id) {
+        if (data === true) {
+          setHandleAvailable(true);
+        } else {
           setHandleError("Handle not available");
           setHandleAvailable(false);
-        } else {
-          setHandleAvailable(true);
         }
       } catch (error) {
         console.error("Handle check error:", error);
@@ -298,7 +300,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                       <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
                     )}
                     {!isCheckingHandle && handleAvailable && (
-                      <Check className="w-4 h-4 text-electric" />
+                      <Check className="w-4 h-4 text-green-500" />
                     )}
                     {!isCheckingHandle && handleError && handle.length >= 3 && (
                       <X className="w-4 h-4 text-destructive" />
@@ -309,7 +311,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                   <p className="mt-2 text-xs text-destructive">{handleError}</p>
                 )}
                 {handleAvailable && !isCheckingHandle && (
-                  <p className="mt-2 text-xs text-electric">Handle available!</p>
+                  <p className="mt-2 text-xs text-green-500 font-medium">@{handle} is yours</p>
                 )}
               </motion.div>
 
