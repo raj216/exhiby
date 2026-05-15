@@ -117,14 +117,14 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       if (cancelled) return;
 
       try {
-        const { data, error } = await supabase.rpc("get_public_profile_by_handle", {
+        const { data, error } = await supabase.rpc("check_handle_available", {
           target_handle: username,
         });
 
         if (cancelled) return;
         if (error) throw error;
 
-        if (data && data.length > 0) {
+        if (data === false) {
           setUsernameError("Username already taken");
           setUsernameAvailable(false);
           // Fire-and-forget suggestion generation
