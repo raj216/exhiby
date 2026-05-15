@@ -100,7 +100,7 @@ serve(async (req) => {
 
   if (updateError) {
     console.error("[update-profile-links] update error:", updateError);
-    return new Response(JSON.stringify({ error: updateError.message, code: updateError.code }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
