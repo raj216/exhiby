@@ -1266,6 +1266,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      tickets_only_attended_at_changed: { Args: never; Returns: boolean }
       upsert_live_viewer: {
         Args: { p_event_id: string; p_user_id: string }
         Returns: undefined
