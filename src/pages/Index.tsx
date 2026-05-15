@@ -119,11 +119,13 @@ function IndexContent() {
           // Store userName for later use
           setUserName(profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Guest");
           
-          // Passport is incomplete only when handle is missing.
+          // Route to PassportModal if:
+          //   (a) no profile row at all — rare race before trigger fires, or
+          //   (b) profile exists but handle is missing.
           // Avatar is optional — never block login over a missing photo.
-          if (profile && !profile.handle) {
+          if (!profile || !profile.handle) {
             setNeedsPassportSetup(true);
-          } else if (profile) {
+          } else {
             // Passport complete — check if plan selection was shown
             const planDone = user?.user_metadata?.plan_onboarding_done;
             if (!planDone) {

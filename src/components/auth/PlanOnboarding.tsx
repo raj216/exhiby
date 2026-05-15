@@ -97,25 +97,29 @@ export function PlanOnboarding({ onComplete }: PlanOnboardingProps) {
   const [saving, setSaving] = useState(false);
 
   const handleSelect = async (plan: Plan) => {
-    if (plan.ctaHref) {
-      window.location.href = plan.ctaHref;
-      return;
-    }
-
     if (!user) return;
     setSaving(true);
 
     try {
-      // Mark plan selected in auth metadata (prevents showing this screen again)
+      // Mark plan selected in auth metadata (prevents showing this screen again).
+      // This runs for ALL plans — including Pro/Plus — before opening the mailto link.
+      // Without this, users who click Pro/Plus are sent away before plan_onboarding_done
+      // is written, causing an infinite PlanOnboarding loop on every login.
       await supabase.auth.updateUser({
         data: { plan_onboarding_done: true, selected_plan: plan.id },
       });
 
-      // Persist plan in profiles row
+      // Persist plan choice in profiles row (best-effort, column may not exist yet)
       await supabase
         .from("profiles")
         .update({ plan: plan.id } as never)
         .eq("user_id", user.id);
+
+      // For paid plans: open contact email in a new tab so the user
+      // stays in the app and the onboarding flow completes normally.
+      if (plan.ctaHref) {
+        window.open(plan.ctaHref, "_blank", "noopener,noreferrer");
+      }
 
       onComplete();
     } catch {
