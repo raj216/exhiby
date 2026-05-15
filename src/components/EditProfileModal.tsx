@@ -38,6 +38,23 @@ const LINK_TYPE_OPTIONS: { value: ProfileLink["type"]; label: string; icon: Reac
   { value: "other",   label: "Other",   icon: <LinkIcon className="w-3.5 h-3.5" /> },
 ];
 
+// Drafts older than this are discarded — stale content from months ago is more
+// confusing than helpful. Defined outside the component so it's truly constant.
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Type guard for draft link items — ensures each has the fields that
+// updateLink / removeLink rely on (they match by l.id; a missing id silently
+// breaks both operations with no thrown error).
+function isValidProfileLink(l: unknown): l is ProfileLink {
+  return (
+    typeof l === "object" && l !== null &&
+    typeof (l as ProfileLink).id === "string" && (l as ProfileLink).id.length > 0 &&
+    typeof (l as ProfileLink).url === "string" &&
+    typeof (l as ProfileLink).label === "string" &&
+    ["website", "social", "shop", "other"].includes((l as ProfileLink).type)
+  );
+}
+
 export function EditProfileModal({
   isOpen,
   onClose,
@@ -62,47 +79,90 @@ export function EditProfileModal({
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  // Draft key — scoped to the user so multiple accounts don't collide
+  // Draft key — scoped per-user so multiple accounts on the same device don't collide
   const draftKey = user ? `exhiby_profile_draft_${user.id}` : null;
 
-  // On open: restore a saved draft if one exists, else initialize from profile.
-  // Only reacts to isOpen so live profile prop updates don't overwrite mid-edit typing.
-  useEffect(() => {
-    if (!isOpen || !profile) return;
+  // Tracks whether we've already initialized this open session.
+  // Lets us safely include `profile` in deps without overwriting typing when
+  // the parent re-renders with a fresh profile object.
+  const initializedRef = useRef(false);
 
-    let draft: { name?: string; username?: string; bio?: string; profileLinks?: ProfileLink[] } | null = null;
+  // Init effect — runs when isOpen or profile changes.
+  // initializedRef prevents re-initializing while the user is mid-edit if the
+  // parent passes a fresh profile object (e.g. after a background refetch).
+  useEffect(() => {
+    if (!isOpen) {
+      // Modal closed — reset so the next open always re-initializes
+      initializedRef.current = false;
+      return;
+    }
+    if (!profile || initializedRef.current) return;
+    initializedRef.current = true;
+
+    // Attempt to restore a saved draft
+    let draft: {
+      name?: string; username?: string; bio?: string;
+      profileLinks?: unknown[]; savedAt?: number;
+    } | null = null;
+
     if (draftKey) {
       try {
         const raw = localStorage.getItem(draftKey);
-        if (raw) draft = JSON.parse(raw);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          // Discard drafts older than 7 days — stale content is more confusing than helpful
+          if (parsed?.savedAt && Date.now() - parsed.savedAt <= DRAFT_MAX_AGE_MS) {
+            draft = parsed;
+          } else if (parsed?.savedAt) {
+            // Expired — clean up immediately
+            localStorage.removeItem(draftKey);
+          }
+        }
       } catch {
-        // Corrupt draft — ignore and fall through to profile data
+        // Corrupt JSON — silently discard and fall back to profile data
       }
     }
 
-    setName(draft?.name         ?? profile.name    ?? "");
-    setUsername(draft?.username  ?? profile.handle  ?? "");
-    setBio(draft?.bio            ?? profile.bio     ?? "");
-    setProfileLinks(draft?.profileLinks ?? profile.profileLinks ?? []);
+    // Validate each link from the draft before trusting it.
+    // A missing `id` field would silently break updateLink / removeLink.
+    const safeLinks = Array.isArray(draft?.profileLinks)
+      ? (draft!.profileLinks as unknown[]).filter(isValidProfileLink)
+      : null;
 
-    // Image state always comes from profile — blob URLs die with the page and
-    // can't be persisted, so we never try to draft-restore them.
+    setName(draft?.name           ?? profile.name    ?? "");
+    setUsername(draft?.username    ?? profile.handle  ?? "");
+    setBio(draft?.bio              ?? profile.bio     ?? "");
+    setProfileLinks(safeLinks      ?? profile.profileLinks ?? []);
+
+    // Image state always comes from profile — blob URLs die with the page
+    // and cannot be persisted to localStorage.
     setAvatarPreview(profile.avatarUrl);
     setCoverPreview(profile.coverUrl ?? null);
     setAvatarBlob(null);
     setCoverBlob(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]); // intentionally omit profile/user — read via closure on open only
+  }, [isOpen, profile]); // both needed: profile may arrive after modal opens
 
   // Auto-save text fields to localStorage while the modal is open.
   // 400 ms debounce keeps writes infrequent; cleanup cancels on fast typing.
+  // savedAt timestamp lets the restore logic expire old drafts.
   useEffect(() => {
     if (!isOpen || !draftKey) return;
     const timer = setTimeout(() => {
-      localStorage.setItem(draftKey, JSON.stringify({ name, username, bio, profileLinks }));
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({ name, username, bio, profileLinks, savedAt: Date.now() })
+      );
     }, 400);
     return () => clearTimeout(timer);
   }, [name, username, bio, profileLinks, isOpen, draftKey]);
+
+  // Note on browser back button: if the user dismisses the modal via the device
+  // back gesture (which calls onClose on the parent without going through
+  // handleClose), the draft is NOT cleared. This is intentional — we cannot
+  // distinguish "back button" from "page reload" in a React cleanup, and
+  // surviving a page reload is the primary goal. A leftover draft from a back-
+  // button dismiss expires automatically after 7 days and is low-friction to
+  // clear (just re-open and hit Cancel).
 
   const addLink = () => {
     if (profileLinks.length >= 6) return;
