@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X, UserPlus, MessageCircle, Radio, Calendar, Clock, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
@@ -22,6 +22,24 @@ interface NotificationsDrawerProps {
 
 // Swipe threshold for dismissing notification
 const SWIPE_THRESHOLD = 100;
+
+// Map notification type → icon + accent colour
+function NotifIcon({ type }: { type: string }) {
+  const cfg: Record<string, { icon: React.ReactNode; bg: string; color: string }> = {
+    new_follower:    { icon: <UserPlus   className="w-3.5 h-3.5" />, bg: "bg-electric/10",  color: "text-electric" },
+    new_message:     { icon: <MessageCircle className="w-3.5 h-3.5" />, bg: "bg-blue-500/10",  color: "text-blue-400" },
+    studio_live:     { icon: <Radio      className="w-3.5 h-3.5" />, bg: "bg-live/10",     color: "text-live" },
+    studio_scheduled:{ icon: <Calendar   className="w-3.5 h-3.5" />, bg: "bg-gold/10",     color: "text-gold" },
+    starting_soon:   { icon: <Clock      className="w-3.5 h-3.5" />, bg: "bg-gold/10",     color: "text-gold" },
+    tip_received:    { icon: <Heart      className="w-3.5 h-3.5" />, bg: "bg-crimson/10",  color: "text-crimson" },
+  };
+  const { icon, bg, color } = cfg[type] ?? { icon: <Bell className="w-3.5 h-3.5" />, bg: "bg-muted/30", color: "text-muted-foreground" };
+  return (
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${bg} ${color}`}>
+      {icon}
+    </div>
+  );
+}
 
 // Notification item component with swipe and dismiss support
 function NotificationItem({
@@ -125,13 +143,14 @@ function NotificationItem({
           className="w-full text-left p-4 hover:bg-muted/30 transition-colors duration-200 border-b border-border/10 last:border-b-0 group"
         >
           <div className="flex items-start gap-3">
-            {/* Unread indicator */}
-            <div className="pt-1.5 w-2 flex-shrink-0">
+            {/* Type icon with unread badge */}
+            <div className="relative flex-shrink-0 mt-0.5">
+              <NotifIcon type={notification.type} />
               {!notification.is_read && (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="w-2 h-2 rounded-full bg-crimson"
+                  className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-crimson border-2 border-carbon"
                 />
               )}
             </div>
@@ -173,13 +192,14 @@ function NotificationItem({
       className="w-full text-left p-4 hover:bg-muted/30 transition-colors duration-200 border-b border-border/10 last:border-b-0 group relative"
     >
       <div className="flex items-start gap-3">
-        {/* Unread indicator */}
-        <div className="pt-1.5 w-2 flex-shrink-0">
+        {/* Type icon with unread badge */}
+        <div className="relative flex-shrink-0 mt-0.5">
+          <NotifIcon type={notification.type} />
           {!notification.is_read && (
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="w-2 h-2 rounded-full bg-crimson"
+              className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-crimson border-2 border-carbon"
             />
           )}
         </div>
