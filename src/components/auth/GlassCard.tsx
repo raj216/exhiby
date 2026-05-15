@@ -377,9 +377,10 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                     <label className="block text-sm text-muted-foreground mb-2">
                       Username
                     </label>
-                    <div className="relative flex items-center">
-                      {/* @ prefix */}
-                      <span className="absolute left-4 text-sm text-muted-foreground pointer-events-none select-none">
+                    <div className="relative">
+                      {/* @ prefix — top-1/2 -translate-y-1/2 vertically centers
+                          inside the input (py-4 makes it ~52px tall) */}
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none select-none">
                         @
                       </span>
                       <input
@@ -395,7 +396,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                         spellCheck={false}
                       />
                       {/* Status indicator */}
-                      <div className="absolute right-4">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
                         {isCheckingUsername && (
                           <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
                         )}
