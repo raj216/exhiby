@@ -139,21 +139,12 @@ export default function ExploreStudios() {
       )
       .subscribe();
 
-    const rolesChannel = supabase
-      .channel("explore_studios_roles")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "user_roles" },
-        () => {
-          console.log("[ExploreStudios] Role change detected, refreshing...");
-          fetchStudios();
-        }
-      )
-      .subscribe();
+    // Note: the `explore_studios_roles` channel was removed for privacy —
+    // broadcasting `user_roles` row changes leaked role assignments to all
+    // authenticated users. New creator activations show up on next refresh.
 
     return () => {
       supabase.removeChannel(eventsChannel);
-      supabase.removeChannel(rolesChannel);
     };
   }, []);
 
