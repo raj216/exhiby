@@ -194,7 +194,8 @@ serve(async (req) => {
       }
     } else {
       // No saved method — create a Checkout session for the tip
-      const origin = body?.origin || req.headers.get("origin") || "https://exhiby.lovable.app";
+      // SECURITY: Never trust client-supplied origin (open redirect risk).
+      const origin = Deno.env.get("PUBLIC_SITE_URL") ?? "https://exhiby.lovable.app";
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
