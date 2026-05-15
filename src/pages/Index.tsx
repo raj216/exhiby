@@ -28,6 +28,7 @@ const SearchOverlay     = lazy(() => import("@/components/SearchOverlay").then(m
 const CategoriesOverlay = lazy(() => import("@/components/CategoriesOverlay").then(m => ({ default: m.CategoriesOverlay })));
 const PassportModal     = lazy(() => import("@/components/auth").then(m => ({ default: m.PassportModal })));
 const PlanOnboarding    = lazy(() => import("@/components/auth").then(m => ({ default: m.PlanOnboarding })));
+const InstallBanner     = lazy(() => import("@/components/InstallBanner").then(m => ({ default: m.InstallBanner })));
 
 function IndexContent() {
   const navigate = useNavigate();
@@ -392,6 +393,11 @@ function IndexContent() {
         onGoLive={() => setShowWizard(true)}
         onLogout={handleLogout}
       />
+
+      {/* PWA Install Banner — iOS instructions / Android one-tap install */}
+      <Suspense fallback={null}>
+        <InstallBanner />
+      </Suspense>
 
       {/* Cinematic Logout Overlay */}
       <Suspense fallback={null}>
