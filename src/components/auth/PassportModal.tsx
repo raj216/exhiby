@@ -10,6 +10,50 @@ interface PassportModalProps {
   onComplete: () => void;
 }
 
+// Matches DB constraint exactly: '^[a-zA-Z0-9_]+$'  (no dots)
+const HANDLE_REGEX = /^[a-z0-9_]+$/;
+
+/**
+ * Generates Instagram-style handle alternatives for a taken base handle.
+ * Runs all candidate checks in parallel, returns only available ones.
+ * userId is used to exclude the current user's own existing handle.
+ */
+async function generateSuggestions(base: string, userId?: string): Promise<string[]> {
+  const year = new Date().getFullYear().toString().slice(-2);
+  const r = () => String(Math.floor(Math.random() * 900) + 100);
+
+  const candidates = [
+    `${base}${year}`,
+    `${base}${r()}`,
+    `${base}_art`,
+    `${base}_studio`,
+    `${base}_official`,
+    `the_${base}`,
+  ]
+    .map((s) => s.slice(0, 20))
+    .filter((s) => s.length >= 3 && HANDLE_REGEX.test(s));
+
+  const unique = [...new Set(candidates)];
+
+  const settled = await Promise.all(
+    unique.map(async (candidate) => {
+      try {
+        const { data } = await supabase.rpc("get_public_profile_by_handle", {
+          target_handle: candidate,
+        });
+        // Available if no row returned, or the only row belongs to the current user
+        if (!data || data.length === 0) return candidate;
+        if (userId && data[0].user_id === userId) return candidate;
+        return null;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  return settled.filter(Boolean).slice(0, 4) as string[];
+}
+
 export function PassportModal({ userName, onComplete }: PassportModalProps) {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -19,71 +63,101 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
   const [isCheckingHandle, setIsCheckingHandle] = useState(false);
   const [handleError, setHandleError] = useState<string | null>(null);
   const [handleAvailable, setHandleAvailable] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Auto-generate handle from userName on mount, or use handle from user metadata
+  // Pre-fill handle from user metadata or derive from name
   useEffect(() => {
     if (user?.user_metadata?.handle) {
-      setHandle(user.user_metadata.handle);
+      setHandle(
+        String(user.user_metadata.handle)
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, "")
+          .slice(0, 20)
+      );
     } else if (userName) {
-      const generatedHandle = userName
-        .toLowerCase()
-        .replace(/[^a-z0-9_.]/g, "")
-        .slice(0, 20);
-      setHandle(generatedHandle);
+      setHandle(
+        userName
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, "") // strip chars not in DB constraint
+          .slice(0, 20)
+      );
     }
   }, [userName, user]);
 
-  // Debounced handle validation
+  // Debounced handle validation with race-condition protection
   useEffect(() => {
+    // Reset ALL derived state immediately on every keystroke
+    setHandleAvailable(false);
+    setHandleError(null);
+    setSuggestions([]);
+
     if (!handle || handle.length < 3) {
-      setHandleError(handle.length > 0 ? "Handle must be at least 3 characters" : null);
-      setHandleAvailable(false);
+      setIsCheckingHandle(false);
+      if (handle.length > 0) setHandleError("At least 3 characters required");
       return;
     }
 
-    if (!/^[a-z0-9_.]+$/.test(handle)) {
-      setHandleError("Use letters, numbers, _ or . only");
-      setHandleAvailable(false);
+    if (!HANDLE_REGEX.test(handle)) {
+      setIsCheckingHandle(false);
+      setHandleError("Letters, numbers, and _ only");
       return;
     }
 
     if (handle.length > 20) {
-      setHandleError("Handle must be at most 20 characters");
-      setHandleAvailable(false);
+      setIsCheckingHandle(false);
+      setHandleError("Max 20 characters");
       return;
     }
 
-    const checkHandle = async () => {
-      setIsCheckingHandle(true);
-      setHandleError(null);
-      
-      try {
-        const { data, error } = await supabase
-          .rpc("get_public_profile_by_handle", { target_handle: handle });
+    // Valid format: show spinner immediately (before debounce fires)
+    setIsCheckingHandle(true);
 
+    // Cancellation flag — prevents stale async results from updating state
+    // after the user has already typed something new
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      if (cancelled) return;
+
+      try {
+        const { data, error } = await supabase.rpc("get_public_profile_by_handle", {
+          target_handle: handle,
+        });
+
+        if (cancelled) return;
         if (error) throw error;
 
-        // If the handle exists but belongs to the current user, it's still available
-        if (data && data.length > 0 && data[0].user_id !== user?.id) {
+        const takenByOther =
+          data && data.length > 0 && data[0].user_id !== user?.id;
+
+        if (takenByOther) {
           setHandleError("Handle not available");
           setHandleAvailable(false);
+          // Generate suggestions in the background
+          generateSuggestions(handle, user?.id).then((s) => {
+            if (!cancelled) setSuggestions(s);
+          });
         } else {
           setHandleAvailable(true);
+          setHandleError(null);
         }
-      } catch (error) {
-        console.error("Handle check error:", error);
-        setHandleError("Could not verify handle");
-        setHandleAvailable(false);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Handle check error:", err);
+          setHandleError("Could not verify handle. Try again.");
+        }
       } finally {
-        setIsCheckingHandle(false);
+        if (!cancelled) setIsCheckingHandle(false);
       }
-    };
+    }, 600);
 
-    const timer = setTimeout(checkHandle, 500);
-    return () => clearTimeout(timer);
-  }, [handle]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [handle, user?.id]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,9 +175,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
 
     setAvatarFile(file);
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
     reader.readAsDataURL(file);
   };
 
@@ -115,7 +187,6 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
     try {
       let avatarUrl: string | undefined;
 
-      // Upload avatar only if a file was selected (optional)
       if (avatarFile) {
         const fileExt = avatarFile.name.split(".").pop();
         const fileName = `${user.id}/avatar.${fileExt}`;
@@ -133,11 +204,8 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
         avatarUrl = urlData.publicUrl;
       }
 
-      // Update profile with handle and optionally avatar
       const updateData: Record<string, string> = { handle };
-      if (avatarUrl) {
-        updateData.avatar_url = avatarUrl;
-      }
+      if (avatarUrl) updateData.avatar_url = avatarUrl;
 
       const { error: updateError } = await supabase
         .from("profiles")
@@ -146,20 +214,16 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
 
       if (updateError) throw updateError;
 
-      // Show success animation
       setShowSuccess(true);
-      
-      setTimeout(() => {
-        onComplete();
-      }, 1500);
-    } catch (error: any) {
+      setTimeout(() => onComplete(), 1500);
+    } catch (error: unknown) {
       console.error("Passport error:", error);
-      toast.error(error.message || "Failed to complete passport");
+      const msg = error instanceof Error ? error.message : "Failed to complete passport";
+      toast.error(msg);
       setIsSubmitting(false);
     }
   };
 
-  // Photo is now optional - only handle availability is required
   const canSubmit = handleAvailable && !isCheckingHandle && !isSubmitting;
 
   return (
@@ -190,9 +254,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
               initial={{ rotate: -20, scale: 0 }}
               animate={{ rotate: 0, scale: 1 }}
               transition={{ type: "spring", damping: 12, stiffness: 200 }}
-              style={{
-                boxShadow: "0 0 40px hsl(var(--primary) / 0.5)",
-              }}
+              style={{ boxShadow: "0 0 40px hsl(var(--primary) / 0.5)" }}
             >
               <Check className="w-16 h-16 text-primary" />
             </motion.div>
@@ -214,10 +276,9 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
             exit={{ y: -50, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
-            {/* Frosted glass effect */}
+            {/* Frosted glass */}
             <div className="absolute inset-0 backdrop-blur-2xl bg-card/80 border border-border/30" />
 
-            {/* Content */}
             <div className="relative z-10 p-6 md:p-8">
               {/* Header */}
               <motion.div
@@ -284,16 +345,29 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                 <label className="block text-sm text-muted-foreground mb-2">
                   Claim your Handle
                 </label>
-                <div className="relative">
+                <div className="relative flex items-center">
+                  {/* @ prefix */}
+                  <span className="absolute left-4 text-sm text-muted-foreground pointer-events-none select-none">
+                    @
+                  </span>
                   <input
                     type="text"
                     value={handle}
-                    onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                    onChange={(e) =>
+                      setHandle(
+                        e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "")
+                      )
+                    }
                     placeholder="yourhandle"
-                    className="premium-input"
+                    className="premium-input pl-8 pr-10"
                     maxLength={20}
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  {/* Status indicator */}
+                  <div className="absolute right-4">
                     {isCheckingHandle && (
                       <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
                     )}
@@ -305,12 +379,60 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                     )}
                   </div>
                 </div>
-                {handleError && (
-                  <p className="mt-2 text-xs text-destructive">{handleError}</p>
-                )}
-                {handleAvailable && !isCheckingHandle && (
-                  <p className="mt-2 text-xs text-electric">Handle available!</p>
-                )}
+
+                {/* Feedback line */}
+                <AnimatePresence mode="wait">
+                  {handleError && (
+                    <motion.p
+                      key="error"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="mt-1.5 text-xs text-destructive"
+                    >
+                      {handleError}
+                    </motion.p>
+                  )}
+                  {handleAvailable && !isCheckingHandle && (
+                    <motion.p
+                      key="available"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="mt-1.5 text-xs text-electric"
+                    >
+                      @{handle} is available ✓
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                {/* Instagram-style suggestions when handle is taken */}
+                <AnimatePresence>
+                  {handleError === "Handle not available" && suggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-2.5"
+                    >
+                      <p className="text-xs text-muted-foreground mb-1.5">
+                        Try one of these:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {suggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setHandle(s)}
+                            className="px-3 py-1 rounded-full text-xs font-medium bg-muted/40 text-foreground hover:bg-electric/15 hover:text-electric border border-border/40 hover:border-electric/40 transition-all duration-150"
+                          >
+                            @{s}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* Submit Button */}
@@ -330,11 +452,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
               >
-                {isSubmitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  "Enter"
-                )}
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enter"}
               </motion.button>
             </div>
           </motion.div>
