@@ -291,7 +291,7 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
                   Finish Your Passport
                 </h2>
                 <p className="text-muted-foreground text-sm">
-                  Add a photo and claim your handle.
+                  Claim your handle. Photo is optional — add it anytime.
                 </p>
               </motion.div>
 

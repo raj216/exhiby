@@ -119,8 +119,9 @@ function IndexContent() {
           // Store userName for later use
           setUserName(profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Guest");
           
-          // Check if passport is incomplete (no handle or avatar)
-          if (profile && (!profile.handle || !profile.avatar_url)) {
+          // Passport is incomplete only when handle is missing.
+          // Avatar is optional — never block login over a missing photo.
+          if (profile && !profile.handle) {
             setNeedsPassportSetup(true);
           } else if (profile) {
             // Passport complete — check if plan selection was shown
