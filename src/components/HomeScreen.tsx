@@ -506,31 +506,44 @@ export function HomeScreen({
                       style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '48px', paddingBottom: '48px' }}
                       className="px-4 lg:px-6"
                     >
-                      <p style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,107,88,0.65)' }}>
-                        For Artists
-                      </p>
-                      <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#F5F2EC', lineHeight: 1.1, marginTop: '12px' }}>
-                        Open your studio. Earn from what you already do.
-                      </h2>
-                      <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.50)', marginTop: '16px' }}>
-                        Free to join. No commission for your first 3 months.
-                      </p>
-                      <button
-                        onClick={() => setShowArtistActivation(true)}
+                      <div
                         style={{
-                          background: '#FF6B58',
-                          color: '#FFFFFF',
-                          fontWeight: 600,
-                          fontSize: '14px',
-                          borderRadius: '8px',
-                          padding: '14px 28px',
-                          border: 'none',
-                          marginTop: '28px',
-                          cursor: 'pointer',
+                          background: '#1A1A1C',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '20px',
+                          padding: '28px 24px',
                         }}
                       >
-                        Open Your Studio Free
-                      </button>
+                        <p style={{ fontSize: '12px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,107,88,0.65)' }}>
+                          For Artists
+                        </p>
+                        <h2
+                          className="font-display"
+                          style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.15, marginTop: '12px' }}
+                        >
+                          Open your studio. Earn from what you already do.
+                        </h2>
+                        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)', marginTop: '10px', lineHeight: 1.5 }}>
+                          Free to join. No commission for your first 3 months.
+                        </p>
+                        <button
+                          onClick={() => setShowArtistActivation(true)}
+                          style={{
+                            background: 'linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))',
+                            color: '#FFFFFF',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                            borderRadius: '12px',
+                            padding: '13px 24px',
+                            border: 'none',
+                            marginTop: '24px',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 20px hsla(7, 100%, 67%, 0.30)',
+                          }}
+                        >
+                          Open Your Studio Free
+                        </button>
+                      </div>
                     </section>
                   ) : (
                     <section

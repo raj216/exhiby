@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Upload, Trash2, ImageIcon } from "lucide-react";
+import { Plus, X, Upload, Trash2, ImageIcon, Pencil, Check } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { toast } from "@/hooks/use-toast";
 import { usePortfolioItems, PortfolioItem } from "@/hooks/usePortfolioItems";
@@ -30,12 +30,19 @@ export function PortfolioGrid({
   isOwner = false
 }: PortfolioGridProps) {
   const { user } = useAuth();
-  const { items, isLoading, addItem, deleteItem, refetch } = usePortfolioItems(userId);
+  const { items, isLoading, addItem, deleteItem, updateItem, refetch } = usePortfolioItems(userId);
   const [selectedImage, setSelectedImage] = useState<PortfolioItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Inline edit state — lives in the lightbox
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editTitleRef = useRef<HTMLInputElement>(null);
 
   const canEdit = isOwner && user;
 
@@ -54,7 +61,55 @@ export function PortfolioGrid({
 
   const handleCloseLightbox = () => {
     setSelectedImage(null);
+    setIsEditing(false);
+    setEditTitle("");
+    setEditDescription("");
   };
+
+  const handleStartEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedImage) return;
+    triggerClickHaptic();
+    setEditTitle(selectedImage.title ?? "");
+    setEditDescription(selectedImage.description ?? "");
+    setIsEditing(true);
+    // Focus the title input on next tick
+    setTimeout(() => editTitleRef.current?.focus(), 50);
+  };
+
+  const handleCancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(false);
+    setEditTitle("");
+    setEditDescription("");
+  };
+
+  const handleSaveEdit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedImage) return;
+    triggerClickHaptic();
+    setIsSavingEdit(true);
+    try {
+      await updateItem(selectedImage.id, editTitle, editDescription);
+      // Optimistically update the selectedImage so the lightbox reflects the change immediately
+      setSelectedImage(prev =>
+        prev ? { ...prev, title: editTitle.trim() || null, description: editDescription.trim() || null } : prev
+      );
+      setIsEditing(false);
+      toast({ title: "Artwork updated." });
+    } catch {
+      toast({ title: "Update failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Reset edit state whenever the selected image changes
+  useEffect(() => {
+    setIsEditing(false);
+    setEditTitle("");
+    setEditDescription("");
+  }, [selectedImage?.id]);
 
   const handleAddClick = () => {
     triggerClickHaptic();
@@ -145,21 +200,57 @@ export function PortfolioGrid({
           className="absolute inset-0 bg-carbon/95 backdrop-blur-xl"
         />
 
-        {/* Delete Button (for owner) - top left */}
+        {/* Top-left action buttons (owner only) */}
         {canEdit && (
-          <button
-            onClick={handleDeleteClick}
-            className="absolute top-4 left-4 w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center z-20"
+          <div
+            className="absolute left-4 z-20 flex items-center gap-2"
             style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
           >
-            <Trash2 className="w-5 h-5 text-destructive" />
-          </button>
+            {/* Delete — hidden while editing */}
+            {!isEditing && (
+              <button
+                onClick={handleDeleteClick}
+                className="w-10 h-10 rounded-full bg-destructive/20 border border-destructive/50 flex items-center justify-center"
+              >
+                <Trash2 className="w-4.5 h-4.5 text-destructive" />
+              </button>
+            )}
+
+            {/* Edit / Save / Cancel */}
+            {!isEditing ? (
+              <button
+                onClick={handleStartEdit}
+                className="w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center"
+                aria-label="Edit artwork details"
+              >
+                <Pencil className="w-4 h-4 text-muted-foreground" />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleCancelEdit}
+                  className="w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center"
+                  aria-label="Cancel edit"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isSavingEdit}
+                  className="w-10 h-10 rounded-full bg-electric/20 border border-electric/50 flex items-center justify-center disabled:opacity-50"
+                  aria-label="Save changes"
+                >
+                  <Check className="w-4 h-4 text-electric" />
+                </button>
+              </>
+            )}
+          </div>
         )}
 
         {/* Close Button - top right */}
         <button
           onClick={handleCloseLightbox}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center z-20"
+          className="absolute right-4 z-20 w-10 h-10 rounded-full bg-surface-elevated border border-border/50 flex items-center justify-center"
           style={{ top: 'max(1rem, env(safe-area-inset-top, 1rem))' }}
         >
           <X className="w-5 h-5 text-foreground" />
@@ -171,7 +262,7 @@ export function PortfolioGrid({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative z-10 flex flex-col items-center px-4"
+          className="relative z-10 flex flex-col items-center px-4 w-full"
           style={{
             maxWidth: "min(92vw, 800px)",
             maxHeight: "calc(80dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
@@ -185,7 +276,7 @@ export function PortfolioGrid({
                 src={selectedImage.image_url}
                 alt={selectedImage.title || "Portfolio artwork"}
                 className="max-w-full object-contain"
-                style={{ maxHeight: "calc(65dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))" }}
+                style={{ maxHeight: "calc(55dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))" }}
                 onError={(e) => {
                   console.error("Image failed to load:", selectedImage.image_url);
                   (e.target as HTMLImageElement).style.display = 'none';
@@ -198,29 +289,79 @@ export function PortfolioGrid({
             </div>
           )}
 
-          {/* Metadata: Title and Description */}
-          {(selectedImage.title || selectedImage.description) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="mt-4 max-w-lg w-full text-center space-y-2"
-            >
-              {/* Title */}
-              {selectedImage.title && (
-                <h3 className="text-xl font-display text-foreground">
-                  {selectedImage.title}
-                </h3>
+          {/* Metadata — read view or inline edit */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="mt-4 max-w-lg w-full"
+          >
+            <AnimatePresence mode="wait">
+              {isEditing ? (
+                /* ── Edit mode ─────────────────────────────── */
+                <motion.div
+                  key="edit-form"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="space-y-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div>
+                    <input
+                      ref={editTitleRef}
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value.slice(0, 10))}
+                      placeholder="Artwork title"
+                      maxLength={10}
+                      className="w-full px-3 py-2 rounded-xl bg-surface-elevated border border-border/50 text-foreground text-center font-display text-lg focus:outline-none focus:border-electric/50 placeholder:text-muted-foreground/40"
+                    />
+                    <p className="text-xs text-muted-foreground/50 text-right mt-1">{editTitle.length}/10</p>
+                  </div>
+                  <div>
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value.slice(0, 50))}
+                      placeholder="Brief description…"
+                      maxLength={50}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-xl bg-surface-elevated border border-border/50 text-muted-foreground text-sm text-center focus:outline-none focus:border-electric/50 placeholder:text-muted-foreground/40 resize-none leading-relaxed"
+                    />
+                    <p className="text-xs text-muted-foreground/50 text-right mt-0.5">{editDescription.length}/50</p>
+                  </div>
+                </motion.div>
+              ) : (
+                /* ── Read view ─────────────────────────────── */
+                <motion.div
+                  key="read-view"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-center space-y-2"
+                >
+                  {selectedImage.title && (
+                    <h3 className="text-xl font-display text-foreground">
+                      {selectedImage.title}
+                    </h3>
+                  )}
+                  {selectedImage.description && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
+                      {selectedImage.description}
+                    </p>
+                  )}
+                  {/* Hint for owner when no metadata yet */}
+                  {canEdit && !selectedImage.title && !selectedImage.description && (
+                    <p className="text-xs text-muted-foreground/40 italic">
+                      Tap the pencil to add a title or description
+                    </p>
+                  )}
+                </motion.div>
               )}
-
-              {/* Description */}
-              {selectedImage.description && (
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
-                  {selectedImage.description}
-                </p>
-              )}
-            </motion.div>
-          )}
+            </AnimatePresence>
+          </motion.div>
         </motion.div>
       </motion.div>
     </AnimatePresence>,
