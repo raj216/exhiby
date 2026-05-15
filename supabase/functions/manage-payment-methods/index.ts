@@ -116,7 +116,7 @@ serve(async (req) => {
   } catch (err) {
     console.error("[manage-payment-methods]", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
