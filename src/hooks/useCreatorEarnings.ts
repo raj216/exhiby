@@ -8,7 +8,6 @@ export interface EarningRecord {
   id: string;
   event_id: string;
   event_title: string;
-  user_id: string;
   amount_gross: number; // cents
   platform_fee: number; // cents
   amount_net: number; // cents
