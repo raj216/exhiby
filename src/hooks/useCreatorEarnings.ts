@@ -43,7 +43,7 @@ export function useCreatorEarnings(userId: string | undefined) {
       const [earningsRes, payoutsRes] = await Promise.all([
         supabase
           .from("creator_earnings")
-          .select("id, event_id, user_id, amount_gross, platform_fee, amount_net, currency, created_at, status, ticket_id")
+          .select("id, event_id, amount_gross, platform_fee, amount_net, currency, created_at, status, ticket_id")
           .eq("creator_id", userId)
           .eq("status", "succeeded")
           .order("created_at", { ascending: false }),
