@@ -61,7 +61,70 @@ serve(async (req) => {
   }
 
   const body  = await req.json().catch(() => ({}));
-  const links = Array.isArray(body?.links) ? body.links : [];
+  const rawLinks = Array.isArray(body?.links) ? body.links : [];
+
+  // ── Server-side validation ────────────────────────────────────────────
+  const ALLOWED_TYPES = new Set(["website", "social", "shop", "other"]);
+  const MAX_LINKS = 6;
+  const MAX_URL_LEN = 2048;
+  const MAX_LABEL_LEN = 100;
+  const MAX_TYPE_LEN = 32;
+
+  if (rawLinks.length > MAX_LINKS) {
+    return new Response(
+      JSON.stringify({ error: `Too many links (max ${MAX_LINKS})` }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const links: Array<Record<string, unknown>> = [];
+  for (const item of rawLinks) {
+    if (!item || typeof item !== "object") {
+      return new Response(
+        JSON.stringify({ error: "Invalid link entry" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const url = typeof item.url === "string" ? item.url.trim() : "";
+    const label = typeof item.label === "string" ? item.label.trim() : "";
+    const type = typeof item.type === "string" ? item.type.trim() : "other";
+
+    if (!url || url.length > MAX_URL_LEN) {
+      return new Response(
+        JSON.stringify({ error: `URL required and must be ≤ ${MAX_URL_LEN} chars` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    // Only allow http(s) URLs — reject javascript:, data:, etc.
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid URL" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return new Response(
+        JSON.stringify({ error: "Only http(s) URLs are allowed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (label.length > MAX_LABEL_LEN) {
+      return new Response(
+        JSON.stringify({ error: `Label must be ≤ ${MAX_LABEL_LEN} chars` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (type.length > MAX_TYPE_LEN || !ALLOWED_TYPES.has(type)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid type. Allowed: ${[...ALLOWED_TYPES].join(", ")}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    links.push({ url, label, type });
+  }
 
   // ── Step 1: Ensure profile_links column exists (self-healing migration) ──
   const dbUrl = Deno.env.get("SUPABASE_DB_URL");
