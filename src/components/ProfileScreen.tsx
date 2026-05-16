@@ -46,8 +46,11 @@ export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey
     setShowVerification(true);
   };
 
-  const handleVerificationComplete = async () => {
-    await activateCreatorRole();
+  const handleVerificationComplete = () => {
+    // Application submitted for manual review — creator role is NOT activated
+    // here. It activates only after admin approval via the creator_applications
+    // table. Nothing to do on the client side; the submitted screen already
+    // informed the user about the 24-hour review window.
   };
 
   // Show skeleton while profile is loading

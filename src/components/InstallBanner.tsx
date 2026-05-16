@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download } from "lucide-react";
+import { X, Download, Loader2 } from "lucide-react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 // ── iOS Share icon SVG ────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ function Step({
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function InstallBanner() {
-  const { showBanner, platform, triggerInstall, dismiss } = usePWAInstall();
+  const { showBanner, platform, isInstalling, triggerInstall, dismiss } = usePWAInstall();
 
   return (
     <AnimatePresence>
@@ -77,9 +77,12 @@ export function InstallBanner() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 120, opacity: 0 }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          // Sits above the bottom nav bar (≈76px) with a small gap
-          className="fixed left-3 right-3 z-30"
-          style={{ bottom: "80px" }}
+          // Sits above the bottom nav bar (≈76px) with a gap.
+          // calc() adds env(safe-area-inset-bottom) for notched iPhones (X/11/12/…)
+          // so the banner never overlaps the nav on any device.
+          // z-[50] keeps it above the nav (z-40) and the raised Go Live button.
+          className="fixed left-3 right-3 z-[50]"
+          style={{ bottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}
         >
           <div className="bg-carbon/98 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl overflow-hidden max-w-lg mx-auto">
 
@@ -88,7 +91,7 @@ export function InstallBanner() {
               {/* App icon */}
               <div className="w-10 h-10 rounded-xl bg-obsidian border border-border/30 flex-shrink-0 overflow-hidden">
                 <img
-                  src="/android-chrome-192x192.png"
+                  src={platform === "ios" ? "/apple-touch-icon.png" : "/android-chrome-192x192.png"}
                   alt="Exhiby"
                   className="w-full h-full object-cover"
                 />
@@ -160,15 +163,26 @@ export function InstallBanner() {
               <div className="px-4 py-4">
                 <button
                   onClick={triggerInstall}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-opacity active:opacity-80"
+                  disabled={isInstalling}
+                  aria-busy={isInstalling}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-opacity active:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{
                     background:
                       "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
-                    boxShadow: "0 4px 16px hsla(7, 100%, 67%, 0.30)",
+                    boxShadow: isInstalling ? "none" : "0 4px 16px hsla(7, 100%, 67%, 0.30)",
                   }}
                 >
-                  <Download className="w-4 h-4" />
-                  Install App
+                  {isInstalling ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Installing…
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Install App
+                    </>
+                  )}
                 </button>
               </div>
             )}
