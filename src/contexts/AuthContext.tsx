@@ -102,8 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setSession(null);
       
-      // Sign out from Supabase (local scope to avoid server-side issues)
-      const { error } = await supabase.auth.signOut({ scope: "local" });
+      // Sign out globally to revoke the refresh token server-side.
+      // This prevents reuse from localStorage on shared/compromised devices.
+      const { error } = await supabase.auth.signOut({ scope: "global" });
       
       if (error) {
         console.error("[AuthContext] signOut error:", error);
