@@ -118,7 +118,6 @@ export function useCreatorEarnings(userId: string | undefined) {
             id: e.id,
             event_id: e.event_id,
             event_title: evt?.title || "Untitled Session",
-            user_id: e.user_id,
             amount_gross: gross,
             platform_fee: correctedFee,
             amount_net: correctedNet,
