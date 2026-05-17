@@ -18,8 +18,8 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  console.log(`[stripe-webhook] ENV CHECK: STRIPE_SECRET_KEY=${stripeSecretKey ? "SET (" + stripeSecretKey.substring(0, 7) + "...)" : "MISSING"}`);
-  console.log(`[stripe-webhook] ENV CHECK: STRIPE_WEBHOOK_SECRET=${webhookSecret ? "SET (" + webhookSecret.substring(0, 8) + "...)" : "MISSING"}`);
+  console.log(`[stripe-webhook] ENV CHECK: STRIPE_SECRET_KEY=${stripeSecretKey ? "SET" : "MISSING"}`);
+  console.log(`[stripe-webhook] ENV CHECK: STRIPE_WEBHOOK_SECRET=${webhookSecret ? "SET" : "MISSING"}`);
   console.log(`[stripe-webhook] ENV CHECK: SUPABASE_URL=${supabaseUrl ? "SET" : "MISSING"}`);
   console.log(`[stripe-webhook] ENV CHECK: SUPABASE_SERVICE_ROLE_KEY=${supabaseServiceKey ? "SET" : "MISSING"}`);
 
