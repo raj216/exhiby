@@ -14,6 +14,16 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Production only: mark console.log/info/debug as side-effect-free so the
+  // minifier drops them. console.error and console.warn are intentionally NOT
+  // listed — real error reporting must survive in production. In dev (mode !==
+  // "production") nothing is stripped, so local debugging is unaffected.
+  esbuild: {
+    pure:
+      mode === "production"
+        ? ["console.log", "console.info", "console.debug"]
+        : [],
+  },
   build: {
     // Warn at 400 KB (down from default 500 KB) to catch chunk bloat earlier
     chunkSizeWarningLimit: 400,
