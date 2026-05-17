@@ -1,0 +1,1 @@
+REVOKE SELECT (stripe_checkout_session_id) ON public.tickets FROM anon, authenticated;
