@@ -17,6 +17,20 @@ export default defineConfig(({ mode }) => ({
   build: {
     // Warn at 400 KB (down from default 500 KB) to catch chunk bloat earlier
     chunkSizeWarningLimit: 400,
+    // Stop eagerly <link rel="modulepreload">-ing vendor chunks that are NOT
+    // needed for the first paint of the auth/landing page. These were stealing
+    // mobile bandwidth from the render-blocking CSS, delaying FCP.
+    // The chunks still load normally the moment their code is actually imported
+    // — this only removes the speculative preload hint. Purely a network
+    // prioritisation change; zero functional/behaviour impact.
+    modulePreload: {
+      resolveDependencies: (_filename, deps) =>
+        deps.filter(
+          (dep) =>
+            !dep.includes("vendor-date") &&   // date-fns: no dates on login screen
+            !dep.includes("vendor-daily"),    // Daily WebRTC: live room only
+        ),
+    },
     rollupOptions: {
       output: {
         manualChunks: {
