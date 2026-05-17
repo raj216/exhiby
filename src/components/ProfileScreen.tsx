@@ -17,7 +17,10 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey }: ProfileScreenProps) {
-  const { mode, isVerifiedCreator, activateCreatorRole, toggleMode, setMode } = useUserMode();
+  // activateCreatorRole intentionally NOT destructured — creator access is now
+  // granted server-side via the creator_applications approval trigger, not
+  // client-side on verification submit.
+  const { mode, isVerifiedCreator, toggleMode, setMode } = useUserMode();
   const [showVerification, setShowVerification] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const { profile, isLoading: profileLoading } = useProfile();
