@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, DollarSign, Ticket, Eye, EyeOff, BadgeCheck, ChevronRight, Pencil, Award, Zap, Calendar, Check, Clock, Share, Star, TrendingUp, Users, BarChart3, RefreshCw, Lock } from "lucide-react";
@@ -20,7 +20,11 @@ import { useCreatorRatings } from "@/hooks/useCreatorRatings";
 import { useCreatorStats } from "@/hooks/useCreatorStats";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import { AudienceTab } from "./studio/AudienceTab";
-import { ProAnalyticsDashboard } from "./studio/ProAnalyticsDashboard";
+// Lazy — pulls in recharts (~400KB). Only Pro users on the analytics tab ever
+// render this, so it must NOT be in the main studio chunk.
+const ProAnalyticsDashboard = lazy(() =>
+  import("./studio/ProAnalyticsDashboard").then(m => ({ default: m.ProAnalyticsDashboard }))
+);
 import { SessionTemplates } from "./studio/SessionTemplates";
 import { RecurringSessions } from "./studio/RecurringSessions";
 import { StudioBranding } from "./studio/StudioBranding";
@@ -611,14 +615,23 @@ export function StudioDashboard({
           </motion.div>
         )}
 
-        {/* Pro Analytics Dashboard — visible to Pro/Plus users */}
+        {/* Pro Analytics Dashboard — visible to Pro/Plus users.
+            Lazy-loaded: recharts only downloads when this actually renders. */}
         {hasAdvancedAnalytics && (
-          <ProAnalyticsDashboard
-            transactions={earningsData?.transactions ?? []}
-            attendees={audienceAttendees}
-            showEarnings={showEarnings}
-            profileSlug={localProfile?.handle ?? undefined}
-          />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-16">
+                <div className="w-6 h-6 rounded-full border-2 border-electric/25 border-t-electric animate-spin" />
+              </div>
+            }
+          >
+            <ProAnalyticsDashboard
+              transactions={earningsData?.transactions ?? []}
+              attendees={audienceAttendees}
+              showEarnings={showEarnings}
+              profileSlug={localProfile?.handle ?? undefined}
+            />
+          </Suspense>
         )}
       </div>}
 
