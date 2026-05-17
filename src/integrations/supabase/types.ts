@@ -118,6 +118,57 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_applications: {
+        Row: {
+          answer_background: string
+          answer_teaching: string
+          created_at: string
+          id: string
+          photo_creating_url: string
+          photo_finished_url: string
+          photo_progress_url: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          social_link: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer_background: string
+          answer_teaching: string
+          created_at?: string
+          id?: string
+          photo_creating_url: string
+          photo_finished_url: string
+          photo_progress_url: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_link?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer_background?: string
+          answer_teaching?: string
+          created_at?: string
+          id?: string
+          photo_creating_url?: string
+          photo_finished_url?: string
+          photo_progress_url?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_link?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       creator_earnings: {
         Row: {
           amount_gross: number
