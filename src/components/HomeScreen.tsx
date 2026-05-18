@@ -11,7 +11,7 @@ import { HomeScreenSkeleton } from "./ui/loading-skeletons";
 // Heavy modals/overlays — only shown on user action, never on first paint
 const LiveStudioView        = lazy(() => import("./studio").then(m => ({ default: m.LiveStudioView })));
 const PaymentDrawer         = lazy(() => import("./PaymentDrawer").then(m => ({ default: m.PaymentDrawer })));
-const CreatorActivationModal = lazy(() => import("./CreatorActivationModal").then(m => ({ default: m.CreatorActivationModal })));
+const CreatorVerificationFlow = lazy(() => import("./CreatorVerificationFlow").then(m => ({ default: m.CreatorVerificationFlow })));
 
 import { useUserMode } from "@/contexts/UserModeContext";
 import { ChevronRight, Clock, Calendar } from "lucide-react";
@@ -638,13 +638,13 @@ export function HomeScreen({
       </Suspense>
 
       <Suspense fallback={null}>
-        <CreatorActivationModal
+        <CreatorVerificationFlow
           isOpen={showArtistActivation}
           onClose={() => setShowArtistActivation(false)}
-          onSuccess={() => {
+          onComplete={() => {
+            // Application submitted for admin review — not a creator yet.
+            // The flow shows its own "Application Sent" screen; just close.
             setShowArtistActivation(false);
-            localStorage.setItem("showCreatorWelcome", "true");
-            window.location.reload();
           }}
         />
       </Suspense>

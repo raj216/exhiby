@@ -8,7 +8,7 @@ import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-const CreatorActivationModal = lazy(() => import("./CreatorActivationModal").then(m => ({ default: m.CreatorActivationModal })));
+const CreatorVerificationFlow = lazy(() => import("./CreatorVerificationFlow").then(m => ({ default: m.CreatorVerificationFlow })));
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
 import { NotificationsDrawer } from "./NotificationsDrawer";
@@ -65,10 +65,11 @@ export function DesktopHeader({
   };
 
   const handleActivationSuccess = () => {
+    // Submitting an application does NOT make the user a creator — access is
+    // granted only after admin approval. CreatorVerificationFlow shows its own
+    // "Application Sent" confirmation, so here we just close. No welcome
+    // banner / reload (those belong to the post-approval experience).
     setShowActivationModal(false);
-    // Set flag to show welcome banner after page refresh
-    localStorage.setItem("showCreatorWelcome", "true");
-    window.location.reload();
   };
 
   return (
@@ -213,12 +214,12 @@ export function DesktopHeader({
         onClose={() => setShowNotifications(false)}
       />
 
-      {/* Creator Activation Modal */}
+      {/* Creator Verification Flow — real application submitted for admin review */}
       <Suspense fallback={null}>
-        <CreatorActivationModal
+        <CreatorVerificationFlow
           isOpen={showActivationModal}
           onClose={() => setShowActivationModal(false)}
-          onSuccess={handleActivationSuccess}
+          onComplete={handleActivationSuccess}
         />
       </Suspense>
 

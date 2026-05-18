@@ -5,7 +5,7 @@ import { Home, Search, User, Compass, Video } from "lucide-react";
 import { triggerClickHaptic } from "@/lib/haptics";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useProfile } from "@/hooks/useProfile";
-const CreatorActivationModal = lazy(() => import("./CreatorActivationModal").then(m => ({ default: m.CreatorActivationModal })));
+const CreatorVerificationFlow = lazy(() => import("./CreatorVerificationFlow").then(m => ({ default: m.CreatorVerificationFlow })));
 import { WelcomeBanner } from "./WelcomeBanner";
 import { ConfettiEffect } from "./ConfettiEffect";
 import { ProfileDrawer } from "./ProfileDrawer";
@@ -121,10 +121,10 @@ export function BottomNavigation({
   };
 
   const handleActivationSuccess = () => {
-    setShowConfetti(true);
-    setTimeout(() => {
-      setShowWelcomeBanner(true);
-    }, 300);
+    // Application submitted for admin review — the user is NOT a creator yet,
+    // so no confetti / welcome banner here (those belong post-approval).
+    // CreatorVerificationFlow shows its own "Application Sent" screen.
+    setShowActivationModal(false);
   };
 
   const handleBannerComplete = () => {
@@ -340,10 +340,10 @@ export function BottomNavigation({
 
       {/* Creator Activation Modal */}
       <Suspense fallback={null}>
-        <CreatorActivationModal
+        <CreatorVerificationFlow
           isOpen={showActivationModal}
           onClose={() => setShowActivationModal(false)}
-          onSuccess={handleActivationSuccess}
+          onComplete={handleActivationSuccess}
         />
       </Suspense>
 
