@@ -260,16 +260,37 @@ export default function AdminCreators() {
         .select("user_id, name, handle, avatar_url")
         .in("user_id", userIds);
 
-      const enriched: Application[] = apps.map(a => {
-        const p = profiles?.find(pr => pr.user_id === a.user_id);
-        return {
-          ...a,
-          status: a.status as "pending" | "approved" | "rejected",
-          applicant_name:   p?.name   ?? null,
-          applicant_handle: p?.handle ?? null,
-          applicant_avatar: p?.avatar_url ?? null,
-        };
-      });
+      // Bucket is private — turn stored storage paths into short-lived signed
+      // URLs (1h, ample for a review session). Legacy rows that stored a full
+      // http URL are passed through unchanged so nothing hard-breaks.
+      const signPath = async (val: string): Promise<string> => {
+        if (!val || val.startsWith("http")) return val;
+        const { data } = await supabase.storage
+          .from("creator-applications")
+          .createSignedUrl(val, 3600);
+        return data?.signedUrl ?? val;
+      };
+
+      const enriched: Application[] = await Promise.all(
+        apps.map(async a => {
+          const p = profiles?.find(pr => pr.user_id === a.user_id);
+          const [creating, progress, finished] = await Promise.all([
+            signPath(a.photo_creating_url),
+            signPath(a.photo_progress_url),
+            signPath(a.photo_finished_url),
+          ]);
+          return {
+            ...a,
+            photo_creating_url: creating,
+            photo_progress_url: progress,
+            photo_finished_url: finished,
+            status: a.status as "pending" | "approved" | "rejected",
+            applicant_name:   p?.name   ?? null,
+            applicant_handle: p?.handle ?? null,
+            applicant_avatar: p?.avatar_url ?? null,
+          };
+        })
+      );
 
       setApplications(enriched);
     } catch {

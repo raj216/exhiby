@@ -124,11 +124,11 @@ export function CreatorVerificationFlow({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("creator-applications")
-        .getPublicUrl(path);
-
-      setPhotos(prev => ({ ...prev, [key]: { preview, url: publicUrl, uploading: false } }));
+      // Store the storage PATH (not a public URL) — the bucket is private.
+      // AdminCreators generates short-lived signed URLs from this path for
+      // review. The on-screen preview uses the local object URL, so the
+      // upload UX is unaffected by this change.
+      setPhotos(prev => ({ ...prev, [key]: { preview, url: path, uploading: false } }));
     } catch {
       toast.error("Upload failed — please try again.");
       setPhotos(prev => ({ ...prev, [key]: emptyPhoto() }));
