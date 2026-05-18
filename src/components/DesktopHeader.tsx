@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Search, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,8 +9,6 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const CreatorVerificationFlow = lazy(() => import("./CreatorVerificationFlow").then(m => ({ default: m.CreatorVerificationFlow })));
-import { WelcomeBanner } from "./WelcomeBanner";
-import { ConfettiEffect } from "./ConfettiEffect";
 import { NotificationsDrawer } from "./NotificationsDrawer";
 import { ProfileDrawer } from "./ProfileDrawer";
 
@@ -40,20 +38,8 @@ export function DesktopHeader({
   const { unreadCount } = useNotifications();
   const { hasUnread: hasUnreadMessages } = useUnreadMessages();
   const [showActivationModal, setShowActivationModal] = useState(false);
-  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
-
-  // Check for welcome banner on mount
-  useEffect(() => {
-    const shouldShowWelcome = localStorage.getItem("showCreatorWelcome");
-    if (shouldShowWelcome === "true") {
-      setShowWelcomeBanner(true);
-      setShowConfetti(true);
-      localStorage.removeItem("showCreatorWelcome");
-    }
-  }, []);
 
   const getInitials = (name: string) => {
     return name
@@ -223,17 +209,6 @@ export function DesktopHeader({
         />
       </Suspense>
 
-      {/* Welcome Banner */}
-      <WelcomeBanner
-        isVisible={showWelcomeBanner}
-        onComplete={() => setShowWelcomeBanner(false)}
-      />
-
-      {/* Confetti Effect */}
-      <ConfettiEffect
-        isActive={showConfetti}
-        onComplete={() => setShowConfetti(false)}
-      />
     </>
   );
 }

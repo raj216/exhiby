@@ -6,8 +6,6 @@ import { triggerClickHaptic } from "@/lib/haptics";
 import { useUserMode } from "@/contexts/UserModeContext";
 import { useProfile } from "@/hooks/useProfile";
 const CreatorVerificationFlow = lazy(() => import("./CreatorVerificationFlow").then(m => ({ default: m.CreatorVerificationFlow })));
-import { WelcomeBanner } from "./WelcomeBanner";
-import { ConfettiEffect } from "./ConfettiEffect";
 import { ProfileDrawer } from "./ProfileDrawer";
 type AudienceTab = "home" | "search" | "passport" | "profile";
 type CreatorTab = "home" | "search" | "profile";
@@ -56,8 +54,6 @@ export function BottomNavigation({
   const { profile } = useProfile();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
-  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
 
   const location = useLocation();
   useEffect(() => {
@@ -125,10 +121,6 @@ export function BottomNavigation({
     // so no confetti / welcome banner here (those belong post-approval).
     // CreatorVerificationFlow shows its own "Application Sent" screen.
     setShowActivationModal(false);
-  };
-
-  const handleBannerComplete = () => {
-    setShowWelcomeBanner(false);
   };
 
   return (
@@ -347,17 +339,6 @@ export function BottomNavigation({
         />
       </Suspense>
 
-      {/* Welcome Banner */}
-      <WelcomeBanner
-        isVisible={showWelcomeBanner}
-        onComplete={handleBannerComplete}
-      />
-
-      {/* Confetti Effect */}
-      <ConfettiEffect
-        isActive={showConfetti}
-        onComplete={() => setShowConfetti(false)}
-      />
     </>
   );
 }
