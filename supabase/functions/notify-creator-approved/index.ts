@@ -18,14 +18,19 @@ function escapeHtml(unsafe: string): string {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // notify-creator-approved
-// Called (fire-and-forget) from the /admin/creators page after an admin sets a
-// creator application to "approved". Does two things:
-//   1. Inserts an in-app notification (bell) for the creator
-//   2. Sends a "You're approved" email via Brevo
-// Caller MUST be an admin. The function independently re-verifies that the
-// target user's creator_applications row is actually 'approved' before acting
-// — never trusts the client. Idempotent: if a creator_approved notification
-// already exists for the user, it skips (no duplicate email/notification).
+// Called (fire-and-forget) from /admin/creators after an admin approves a
+// creator application. Sends an approval email AND writes an in-app bell.
+//
+// Idempotency / ordering (deliberate — see review notes):
+//   sent_emails can't be used here (its event_id is NOT NULL + FK to events;
+//   an approval has no event). Instead the in-app notification row is the
+//   dedup marker, written LAST — only AFTER the email send succeeds. So a
+//   failed email never writes the marker and a retry re-sends. A partial
+//   unique index on notifications(user_id) WHERE type='creator_approved'
+//   makes that final insert atomic/race-safe (concurrent invoke → 23505).
+//
+// Caller MUST be an admin; the function independently re-verifies that the
+// target user's application is genuinely 'approved' (never trusts the client).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const handler = async (req: Request): Promise<Response> => {
@@ -109,7 +114,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ── Idempotency: skip if we already notified this creator ────────────────
+    // ── Fast-path dedup: marker exists ⟺ a prior run fully succeeded ─────────
+    // (Valid because the marker is written LAST, only after a successful email.)
     const { data: existing } = await supabase
       .from("notifications")
       .select("id")
@@ -138,26 +144,21 @@ const handler = async (req: Request): Promise<Response> => {
     const creatorName = escapeHtml(profile?.name || "Creator");
     const creatorEmail = authUser?.user?.email;
 
-    // ── 1. In-app notification (bell) ────────────────────────────────────────
-    const { error: notifError } = await supabase.from("notifications").insert({
-      user_id: targetUserId,
-      type: "creator_approved",
-      title: "You're a verified creator! 🎉",
-      message: "Your application was approved — your Studio is now open. Go live whenever you're ready.",
-      link: "/?screen=profile",
-      is_read: false,
-    });
-    if (notifError) {
-      console.error("notification insert failed:", notifError);
-      // Continue — still try the email; don't fail the whole call on the bell.
+    // No email → cannot send. Write NO dedup marker, so a later retry can
+    // still deliver once an email is available.
+    if (authUserError || !creatorEmail) {
+      console.error("Creator email not found:", authUserError);
+      return new Response(
+        JSON.stringify({ sent: false, emailFailed: true, reason: "no_email" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // ── 2. Approval email via Brevo ──────────────────────────────────────────
-    if (!authUserError && creatorEmail) {
-      const domain = "https://joinexhiby.com";
-      const studioLink = `${domain}/?screen=profile`;
+    // ── 1. Send the approval email FIRST ─────────────────────────────────────
+    const domain = "https://joinexhiby.com";
+    const studioLink = `${domain}/?screen=profile`;
 
-      const htmlContent = `
+    const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -206,42 +207,64 @@ const handler = async (req: Request): Promise<Response> => {
   </table>
 </body>
 </html>
-      `;
+    `;
 
-      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-          "api-key": brevoApiKey,
-        },
-        body: JSON.stringify({
-          sender: { name: "Exhiby Studio", email: "studio@joinexhiby.com" },
-          to: [{ email: creatorEmail, name: creatorName }],
-          subject: "You're approved — your Exhiby Studio is open 🎉",
-          htmlContent,
-        }),
-      });
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "api-key": brevoApiKey,
+      },
+      body: JSON.stringify({
+        sender: { name: "Exhiby Studio", email: "studio@joinexhiby.com" },
+        to: [{ email: creatorEmail, name: creatorName }],
+        subject: "You're approved — your Exhiby Studio is open 🎉",
+        htmlContent,
+      }),
+    });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Brevo send failed:", errorText);
-        // Notification already inserted; report partial success rather than 500.
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Brevo send failed:", errorText);
+      // No dedup marker written → a retry will re-attempt the email.
+      return new Response(
+        JSON.stringify({ sent: false, emailFailed: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── 2. Email delivered — now write the in-app bell as the dedup marker ────
+    // The partial unique index makes this atomic: a concurrent invoke that
+    // already wrote it yields 23505, which we treat as "already done".
+    const { error: notifError } = await supabase.from("notifications").insert({
+      user_id: targetUserId,
+      type: "creator_approved",
+      title: "You're a verified creator! 🎉",
+      message: "Your application was approved — your Studio is now open. Go live whenever you're ready.",
+      link: "/?screen=profile",
+      is_read: false,
+    });
+
+    if (notifError) {
+      // 23505 = unique-index race: another invocation already completed.
+      if ((notifError as any).code === "23505") {
         return new Response(
-          JSON.stringify({ sent: false, notified: !notifError, emailFailed: true }),
+          JSON.stringify({ sent: true, deduped: true }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    } else {
-      console.error("Creator email not found:", authUserError);
+      // Non-race insert failure: the EMAIL already delivered (the high-value
+      // channel), so this is still a success — just flag the missing bell.
+      console.error("notification insert failed (email already sent):", notifError);
       return new Response(
-        JSON.stringify({ sent: false, notified: !notifError, emailFailed: true }),
+        JSON.stringify({ sent: true, notifyWarning: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ sent: true, notified: !notifError }),
+      JSON.stringify({ sent: true, notified: true }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
