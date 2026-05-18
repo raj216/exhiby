@@ -47,9 +47,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use service role to insert the creator role (bypasses RLS)
+    // Service-role client (bypasses RLS for the eligibility check + insert)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // ── Server-side eligibility gate ──────────────────────────────────────
+    // Creator role is ONLY granted to users whose creator_applications row
+    // has been APPROVED by an admin. Without this check any authenticated
+    // user could call this endpoint and bypass the entire verification /
+    // review flow — making the application system meaningless.
+    const { data: application, error: appError } = await adminClient
+      .from("creator_applications")
+      .select("status")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (appError) {
+      console.error("Eligibility check failed:", appError);
+      return new Response(
+        JSON.stringify({ error: "Eligibility check failed" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!application || application.status !== "approved") {
+      return new Response(
+        JSON.stringify({ error: "Not eligible: your creator application has not been approved" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Eligible — grant the creator role
     const { error: insertError } = await adminClient
       .from("user_roles")
       .insert({ user_id: userId, role: "creator" });
