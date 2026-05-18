@@ -897,41 +897,53 @@ export type Database = {
         Row: {
           audience_user_id: string
           created_at: string
+          creator_engagement: string | null
           creator_id: string
           event_id: string
           id: string
           improvement_category: string | null
           left_early: boolean | null
           left_early_reason: string | null
+          pacing: string | null
           private_feedback_text: string | null
           public_tags: string[] | null
           rating: number | null
+          value_gained: string | null
+          would_return: string | null
         }
         Insert: {
           audience_user_id: string
           created_at?: string
+          creator_engagement?: string | null
           creator_id: string
           event_id: string
           id?: string
           improvement_category?: string | null
           left_early?: boolean | null
           left_early_reason?: string | null
+          pacing?: string | null
           private_feedback_text?: string | null
           public_tags?: string[] | null
           rating?: number | null
+          value_gained?: string | null
+          would_return?: string | null
         }
         Update: {
           audience_user_id?: string
           created_at?: string
+          creator_engagement?: string | null
           creator_id?: string
           event_id?: string
           id?: string
           improvement_category?: string | null
           left_early?: boolean | null
           left_early_reason?: string | null
+          pacing?: string | null
           private_feedback_text?: string | null
           public_tags?: string[] | null
           rating?: number | null
+          value_gained?: string | null
+          would_return?: string | null
         }
         Relationships: [
           {
