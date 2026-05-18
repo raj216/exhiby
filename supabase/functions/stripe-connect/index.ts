@@ -209,7 +209,6 @@ serve(async (req) => {
         }
 
         // Calculate available balance from creator_earnings
-
         const { data: earnings } = await supabaseAdmin
           .from("creator_earnings")
           .select("amount_net")
@@ -233,22 +232,55 @@ serve(async (req) => {
           );
         }
 
-        // Create transfer to connected account
-        const transfer = await stripe.transfers.create({
-          amount: available,
-          currency: "usd",
-          destination: accountId,
-          metadata: { creator_id: userId },
-        });
+        // CRITICAL: Insert pending payout row FIRST. The unique partial index
+        // (creator_id where status='pending') guarantees only one concurrent
+        // payout per creator — concurrent calls fail here with 23505.
+        const { data: pendingPayout, error: pendingErr } = await supabaseAdmin
+          .from("creator_payouts")
+          .insert({
+            creator_id: userId,
+            amount: available,
+            currency: "usd",
+            status: "pending",
+          })
+          .select("id")
+          .single();
 
-        // Record payout
-        await supabaseAdmin.from("creator_payouts").insert({
-          creator_id: userId,
-          stripe_transfer_id: transfer.id,
-          amount: available,
-          currency: "usd",
-          status: "paid",
-        });
+        if (pendingErr || !pendingPayout) {
+          const isDuplicate = (pendingErr as { code?: string } | null)?.code === "23505";
+          return new Response(
+            JSON.stringify({
+              error: isDuplicate
+                ? "A payout is already being processed. Please wait."
+                : "Failed to initiate payout",
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Use Stripe idempotency key tied to our payout row id so any retry
+        // hits the same Stripe transfer instead of creating a duplicate.
+        let transfer;
+        try {
+          transfer = await stripe.transfers.create(
+            {
+              amount: available,
+              currency: "usd",
+              destination: accountId,
+              metadata: { creator_id: userId, payout_id: pendingPayout.id },
+            },
+            { idempotencyKey: `payout_${pendingPayout.id}` }
+          );
+        } catch (transferErr) {
+          // Roll back pending row so the creator can retry
+          await supabaseAdmin.from("creator_payouts").delete().eq("id", pendingPayout.id);
+          throw transferErr;
+        }
+
+        await supabaseAdmin
+          .from("creator_payouts")
+          .update({ stripe_transfer_id: transfer.id, status: "paid" })
+          .eq("id", pendingPayout.id);
 
         return new Response(
           JSON.stringify({
