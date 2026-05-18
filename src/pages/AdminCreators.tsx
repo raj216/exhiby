@@ -305,12 +305,26 @@ export default function AdminCreators() {
   // ── Approve or reject ────────────────────────────────────────────────────
   const handleDecision = useCallback(async (id: string, status: "approved" | "rejected") => {
     try {
-      const { error } = await supabase
+      // Return user_id from the authoritative DB write — avoids any stale
+      // closure over `applications` state.
+      const { data: updated, error } = await supabase
         .from("creator_applications")
         .update({ status })
-        .eq("id", id);
+        .eq("id", id)
+        .select("user_id")
+        .single();
 
       if (error) throw error;
+
+      // On approval: notify the creator (in-app bell + email) via edge
+      // function. Fire-and-forget — a notification failure must never block
+      // or undo the approval itself. The function re-verifies admin + that
+      // the application is genuinely approved server-side.
+      if (status === "approved" && updated?.user_id) {
+        supabase.functions
+          .invoke("notify-creator-approved", { body: { user_id: updated.user_id } })
+          .catch(() => {});
+      }
 
       // Update local state so the card re-renders immediately
       setApplications(prev =>
@@ -319,7 +333,7 @@ export default function AdminCreators() {
 
       toast.success(
         status === "approved"
-          ? "Approved — creator badge and Studio access granted automatically."
+          ? "Approved — creator notified; badge & Studio access granted."
           : "Rejected — applicant can resubmit."
       );
     } catch {
