@@ -282,6 +282,13 @@ serve(async (req) => {
       await Promise.allSettled(promises);
     }
 
+    // Log campaign for rate-limit accounting (service role bypasses RLS deny)
+    await serviceClient.from("campaign_email_log").insert({
+      creator_id: user.id,
+      recipient_count: sent,
+      segment,
+    });
+
     return new Response(JSON.stringify({ sent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
