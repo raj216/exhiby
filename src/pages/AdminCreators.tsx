@@ -376,7 +376,7 @@ export default function AdminCreators() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-carbon/90 backdrop-blur-md border-b border-border/20 px-4 py-4 flex items-center gap-3">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/admin")}
           className="w-9 h-9 rounded-full bg-obsidian border border-border/40 flex items-center justify-center flex-shrink-0"
         >
           <ArrowLeft className="w-4 h-4 text-foreground" />
