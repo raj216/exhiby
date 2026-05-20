@@ -44,6 +44,10 @@ interface FeedbackItem {
   improvement_category: string | null;
   left_early: boolean;
   left_early_reason: string | null;
+  value_gained: string | null;
+  pacing: string | null;
+  creator_engagement: string | null;
+  would_return: string | null;
   created_at: string;
   event_title?: string;
   creator_name?: string;
@@ -92,7 +96,8 @@ function FeedbackCard({ item }: { item: FeedbackItem }) {
     (item.public_tags?.length > 0) ||
     item.improvement_category ||
     item.private_feedback_text ||
-    (item.left_early && item.left_early_reason);
+    (item.left_early && item.left_early_reason) ||
+    item.value_gained || item.pacing || item.creator_engagement || item.would_return;
 
   return (
     <motion.div
@@ -202,6 +207,41 @@ function FeedbackCard({ item }: { item: FeedbackItem }) {
               </div>
             </div>
           )}
+
+          {(item.value_gained || item.pacing || item.creator_engagement || item.would_return) && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Session signals</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {item.value_gained && (
+                  <div className="bg-background/60 border border-border rounded-lg px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Value gained</p>
+                    <p className="text-sm text-foreground capitalize">{item.value_gained.replace(/_/g, " ")}</p>
+                  </div>
+                )}
+                {item.pacing && (
+                  <div className="bg-background/60 border border-border rounded-lg px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Pacing</p>
+                    <p className="text-sm text-foreground capitalize">{item.pacing.replace(/_/g, " ")}</p>
+                  </div>
+                )}
+                {item.creator_engagement && (
+                  <div className="bg-background/60 border border-border rounded-lg px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Engagement</p>
+                    <p className="text-sm text-foreground capitalize">{item.creator_engagement.replace(/_/g, " ")}</p>
+                  </div>
+                )}
+                {item.would_return && (
+                  <div className="bg-background/60 border border-border rounded-lg px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Would return</p>
+                    <p className="text-sm text-foreground capitalize">{item.would_return.replace(/_/g, " ")}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </motion.div>
@@ -213,6 +253,7 @@ function exportToCSV(feedback: FeedbackItem[]) {
     "Date", "Session", "Creator", "Rating", "Rating Label",
     "Public Tags", "Improvement Area", "Private Note",
     "Left Early", "Left Early Reason",
+    "Value Gained", "Pacing", "Creator Engagement", "Would Return",
   ];
 
   const rows = feedback.map((f) => [
@@ -226,6 +267,10 @@ function exportToCSV(feedback: FeedbackItem[]) {
     f.private_feedback_text ?? "",
     f.left_early ? "Yes" : "No",
     f.left_early_reason ?? "",
+    f.value_gained ?? "",
+    f.pacing ?? "",
+    f.creator_engagement ?? "",
+    f.would_return ?? "",
   ]);
 
   const csv = [headers, ...rows]
