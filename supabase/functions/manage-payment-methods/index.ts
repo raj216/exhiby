@@ -36,10 +36,10 @@ serve(async (req) => {
     const { data: profile } = await supabase
       .from("profiles")
       .select("stripe_customer_id")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    let customerId = profile?.stripe_customer_id as string | null;
+    let customerId = (profile as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? null;
 
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -47,10 +47,11 @@ serve(async (req) => {
         metadata: { supabase_user_id: user.id },
       });
       customerId = customer.id;
-      await supabase
+      const { error: updErr } = await supabase
         .from("profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("id", user.id);
+        .update({ stripe_customer_id: customerId } as never)
+        .eq("user_id", user.id);
+      if (updErr) console.error("[manage-payment-methods] failed to persist stripe_customer_id", updErr);
     }
 
     const respond = (body: unknown, status = 200) =>
@@ -115,7 +116,7 @@ serve(async (req) => {
   } catch (err) {
     console.error("[manage-payment-methods]", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -222,6 +222,31 @@ const handler = async (req: Request): Promise<Response> => {
 </html>
     `;
 
+    // Idempotency: only send one rating notification per (event, audience_user)
+    const { error: dedupeError } = await supabase
+      .from("sent_emails")
+      .insert({
+        event_id,
+        user_id: audienceUserId,
+        email_type: "rating_notification",
+      });
+
+    if (dedupeError) {
+      // Unique-constraint violation → already sent, skip silently
+      if ((dedupeError as any).code === "23505") {
+        console.log(`Rating notification already sent for event ${event_id} by ${audienceUserId}`);
+        return new Response(JSON.stringify({ sent: false, deduped: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.error("sent_emails insert failed:", dedupeError);
+      return new Response(JSON.stringify({ error: "Failed to record notification" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: {
@@ -253,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Error in notify-creator-rating:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

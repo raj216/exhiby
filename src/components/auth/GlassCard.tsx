@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, Eye, EyeOff, Lock, Check, AtSign } from "lucide-react";
+import { X, Loader2, Eye, EyeOff, Lock, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -14,50 +14,50 @@ interface GlassCardProps {
 const emailSchema = z.string().email("Please enter a valid email");
 const nameSchema = z.string().min(1, "Please enter your name").max(100);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+
+// Matches the DB constraint exactly: letters, numbers, underscore only (no dots)
+// DB constraint: handle ~ '^[a-zA-Z0-9_]+$'
 const usernameSchema = z
   .string()
   .min(3, "Username must be at least 3 characters")
   .max(20, "Username must be at most 20 characters")
-  .regex(/^[a-z0-9_.]+$/, "Use letters, numbers, _ or . only");
+  .regex(/^[a-z0-9_]+$/, "Use letters, numbers, and _ only");
 
-function buildSuggestions(base: string): string[] {
-  const clean = base.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 15);
-  if (!clean || clean.length < 2) return [];
-
-  const yr = String(new Date().getFullYear()).slice(2);
-  const r2 = () => String(Math.floor(Math.random() * 89) + 10);
-  const r3 = () => String(Math.floor(Math.random() * 899) + 100);
+/**
+ * Generates Instagram-style handle alternatives for a taken base handle.
+ * Checks each candidate against the DB in parallel, returns only available ones.
+ */
+async function generateSuggestions(base: string): Promise<string[]> {
+  const year = new Date().getFullYear().toString().slice(-2); // e.g. "26"
+  const r = () => String(Math.floor(Math.random() * 900) + 100); // 3-digit
 
   const candidates = [
-    `${clean}${r2()}`,
-    `${clean}.${yr}`,
-    `${clean}_${r2()}`,
-    `${clean}${r3()}`,
-    `_${clean}`,
-    `${clean}.studio`,
-    `real.${clean}`,
-    `the.${clean}`,
-  ];
+    `${base}${year}`,
+    `${base}${r()}`,
+    `${base}_art`,
+    `${base}_studio`,
+    `${base}_official`,
+    `the_${base}`,
+  ]
+    .map((s) => s.slice(0, 20))
+    .filter((s) => s.length >= 3 && /^[a-z0-9_]+$/.test(s));
 
-  return candidates.filter((s) => /^[a-z0-9_.]{3,20}$/.test(s));
-}
+  const unique = [...new Set(candidates)];
 
-async function fetchAvailableSuggestions(base: string): Promise<string[]> {
-  const candidates = buildSuggestions(base);
-  if (!candidates.length) return [];
-
-  const results = await Promise.all(
-    candidates.map(async (s) => {
+  const settled = await Promise.all(
+    unique.map(async (candidate) => {
       try {
-        const { data } = await supabase.rpc("check_username_available", { p_username: s });
-        return data === true ? s : null;
+        const { data } = await supabase.rpc("get_public_profile_by_handle", {
+          target_handle: candidate,
+        });
+        return data && data.length > 0 ? null : candidate;
       } catch {
         return null;
       }
     })
   );
 
-  return results.filter((s): s is string => s !== null).slice(0, 4);
+  return settled.filter(Boolean).slice(0, 4) as string[];
 }
 
 export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
@@ -70,6 +70,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Username validation state
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameAvailable, setUsernameAvailable] = useState(false);
@@ -77,64 +78,74 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
 
   const isSignup = mode === "signup";
 
+  // Normalize username: lowercase, strip everything not in DB constraint
   const handleUsernameChange = (value: string) => {
-    const normalized = value.toLowerCase().replace(/\s/g, "").replace(/[^a-z0-9_.]/g, "");
+    const normalized = value.toLowerCase().replace(/[^a-z0-9_]/g, "");
     setUsername(normalized);
-    setSuggestions([]);
   };
 
-  const pickSuggestion = useCallback((s: string) => {
-    setUsername(s);
-    setSuggestions([]);
-  }, []);
-
-  // Debounced availability check — uses check_username_available (anon-safe)
+  // Debounced username availability check with race-condition protection
   useEffect(() => {
     if (!isSignup) return;
 
+    // Reset all derived state immediately on every keystroke
     setUsernameAvailable(false);
     setUsernameError(null);
     setSuggestions([]);
 
     if (!username || username.length < 3) {
-      if (username.length > 0) setUsernameError("Must be at least 3 characters");
+      setIsCheckingUsername(false);
+      if (username.length > 0) setUsernameError("At least 3 characters required");
       return;
     }
 
-    const schemaResult = usernameSchema.safeParse(username);
-    if (!schemaResult.success) {
-      setUsernameError(schemaResult.error.errors[0].message);
+    const result = usernameSchema.safeParse(username);
+    if (!result.success) {
+      setIsCheckingUsername(false);
+      setUsernameError(result.error.errors[0].message);
       return;
     }
+
+    // Show spinner immediately (not after debounce) so user gets instant feedback
+    setIsCheckingUsername(true);
+
+    // Cancellation flag prevents stale async results from writing state
+    // after the user has already changed the input
+    let cancelled = false;
 
     const timer = setTimeout(async () => {
-      setIsCheckingUsername(true);
+      if (cancelled) return;
+
       try {
-        const { data, error } = await supabase.rpc("check_username_available", {
-          p_username: username,
+        const { data, error } = await supabase.rpc("check_handle_available", {
+          target_handle: username,
         });
 
+        if (cancelled) return;
         if (error) throw error;
 
-        if (data === true) {
+        if (data === false) {
+          setUsernameError("Username already taken");
+          setUsernameAvailable(false);
+          // Fire-and-forget suggestion generation
+          generateSuggestions(username).then((s) => {
+            if (!cancelled) setSuggestions(s);
+          });
+        } else {
           setUsernameAvailable(true);
           setUsernameError(null);
-        } else {
-          setUsernameAvailable(false);
-          setUsernameError("Username already taken");
-          const available = await fetchAvailableSuggestions(username);
-          setSuggestions(available);
         }
       } catch {
-        // Don't block the user — show a soft warning but allow retry on submit
-        setUsernameError("Couldn't verify — try a different username");
-        setUsernameAvailable(false);
+        if (!cancelled) setUsernameError("Could not verify username. Try again.");
       } finally {
-        setIsCheckingUsername(false);
+        if (!cancelled) setIsCheckingUsername(false);
       }
-    }, 500);
+    }, 600);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [username, isSignup]);
 
   const handleSubmit = async () => {
@@ -172,6 +183,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       }
 
       setIsLoading(true);
+
       const redirectUrl = `${window.location.origin}/`;
 
       if (isSignup) {
@@ -181,7 +193,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
           options: {
             emailRedirectTo: redirectUrl,
             data: {
-              name,
+              name: name,
               full_name: name,
               handle: username,
             },
@@ -198,12 +210,13 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
           return;
         }
 
+        // Supabase returns identities: [] for duplicate email with email confirmation enabled
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
           toast.error("An account with this email already exists. Please sign in.");
           return;
         }
 
-        toast.success("Account created!");
+        toast.success("Account created! You can now sign in.");
         onSuccess(name);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -280,10 +293,12 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
         exit={{ y: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
       >
+        {/* Frosted glass effect */}
         <div className="absolute inset-0 backdrop-blur-2xl bg-card/80 border border-border/30" />
 
+        {/* Content */}
         <div className="relative z-10 p-6 md:p-8 max-h-[90vh] overflow-y-auto">
-          {/* Close */}
+          {/* Close button */}
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted/50 transition-colors"
@@ -329,8 +344,9 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
             </motion.div>
           ) : (
             <>
+              {/* Form Fields */}
               <div className="space-y-4 mb-6">
-                {/* Display Name */}
+                {/* 1. Display Name */}
                 {isSignup && (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -351,7 +367,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                   </motion.div>
                 )}
 
-                {/* Username */}
+                {/* 2. Username — signup only */}
                 {isSignup && (
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -362,28 +378,30 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                       Username
                     </label>
                     <div className="relative">
-                      {/* @ prefix */}
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground select-none pointer-events-none">
-                        <AtSign className="w-4 h-4" />
+                      {/* @ prefix — top-1/2 -translate-y-1/2 vertically centers
+                          inside the input (py-4 makes it ~52px tall) */}
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none select-none">
+                        @
                       </span>
                       <input
                         type="text"
                         value={username}
                         onChange={(e) => handleUsernameChange(e.target.value)}
                         placeholder="yourhandle"
-                        className="premium-input pl-10 pr-10"
+                        className="premium-input pl-8 pr-10"
                         maxLength={20}
-                        autoComplete="off"
-                        autoCorrect="off"
+                        autoComplete="username"
                         autoCapitalize="none"
+                        autoCorrect="off"
                         spellCheck={false}
                       />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {/* Status indicator */}
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
                         {isCheckingUsername && (
                           <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
                         )}
                         {!isCheckingUsername && usernameAvailable && (
-                          <Check className="w-4 h-4 text-green-500" />
+                          <Check className="w-4 h-4 text-electric" />
                         )}
                         {!isCheckingUsername && usernameError && username.length >= 3 && (
                           <X className="w-4 h-4 text-destructive" />
@@ -391,52 +409,53 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                       </div>
                     </div>
 
-                    {/* Status line */}
+                    {/* Feedback line */}
                     <AnimatePresence mode="wait">
-                      {usernameAvailable && !isCheckingUsername && (
-                        <motion.p
-                          key="available"
-                          className="mt-1.5 text-xs text-green-500 font-medium"
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                        >
-                          @{username} is available
-                        </motion.p>
-                      )}
-                      {usernameError && !isCheckingUsername && (
+                      {usernameError && (
                         <motion.p
                           key="error"
-                          className="mt-1.5 text-xs text-destructive"
                           initial={{ opacity: 0, y: -4 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -4 }}
+                          className="mt-1.5 text-xs text-destructive"
                         >
                           {usernameError}
                         </motion.p>
                       )}
+                      {usernameAvailable && !isCheckingUsername && (
+                        <motion.p
+                          key="available"
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          className="mt-1.5 text-xs text-electric"
+                        >
+                          @{username} is available ✓
+                        </motion.p>
+                      )}
                     </AnimatePresence>
 
-                    {/* Suggestions */}
+                    {/* Instagram-style suggestions when handle is taken */}
                     <AnimatePresence>
-                      {suggestions.length > 0 && !usernameAvailable && (
+                      {usernameError === "Username already taken" && suggestions.length > 0 && (
                         <motion.div
-                          key="suggestions"
-                          className="mt-2"
-                          initial={{ opacity: 0, y: -6 }}
+                          initial={{ opacity: 0, y: -4 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -6 }}
+                          exit={{ opacity: 0 }}
+                          className="mt-2.5"
                         >
                           <p className="text-xs text-muted-foreground mb-1.5">
                             Try one of these:
                           </p>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5">
                             {suggestions.map((s) => (
                               <button
                                 key={s}
                                 type="button"
-                                onClick={() => pickSuggestion(s)}
-                                className="text-xs px-3 py-1.5 rounded-full border border-border/60 bg-muted/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-all duration-150 font-mono"
+                                onClick={() => {
+                                  setUsername(s);
+                                }}
+                                className="px-3 py-1 rounded-full text-xs font-medium bg-muted/40 text-foreground hover:bg-electric/15 hover:text-electric border border-border/40 hover:border-electric/40 transition-all duration-150"
                               >
                                 @{s}
                               </button>
@@ -448,7 +467,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                   </motion.div>
                 )}
 
-                {/* Email */}
+                {/* 3. Email */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -465,7 +484,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                   />
                 </motion.div>
 
-                {/* Password */}
+                {/* 4. Password */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -500,7 +519,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                 </motion.div>
               </div>
 
-              {/* Submit */}
+              {/* Submit Button */}
               <motion.button
                 className="w-full py-4 rounded-2xl font-semibold text-white mb-4 flex items-center justify-center gap-2"
                 style={{
@@ -524,6 +543,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                 )}
               </motion.button>
 
+              {/* Inline form error */}
               {formError && (
                 <motion.p
                   initial={{ opacity: 0, y: -5 }}

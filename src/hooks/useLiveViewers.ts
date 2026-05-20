@@ -37,37 +37,20 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
     }
   }, [eventId]);
 
-  // Subscribe to realtime changes and fetch initial count
+  // Poll viewer count instead of subscribing to realtime row changes
+  // (live_viewers is no longer in the realtime publication to avoid leaking
+  // viewer user_ids to other subscribers in the room).
   useEffect(() => {
     if (!eventId) return;
 
-    console.log(`[LiveViewers] Setting up for event: ${eventId}`);
+    console.log(`[LiveViewers] Setting up polling for event: ${eventId}`);
     fetchViewerCount();
 
-    // Subscribe to realtime changes on live_viewers table
-    const channel = supabase
-      .channel(`live_viewers_${eventId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "live_viewers",
-          filter: `event_id=eq.${eventId}`,
-        },
-        (payload) => {
-          console.log("[LiveViewers] Realtime change detected:", payload.eventType);
-          // Refetch count on any change
-          fetchViewerCount();
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[LiveViewers] Subscription status: ${status}`);
-      });
+    const pollInterval = setInterval(fetchViewerCount, 10000); // 10s
 
     return () => {
-      console.log(`[LiveViewers] Cleaning up subscription for ${eventId}`);
-      supabase.removeChannel(channel);
+      console.log(`[LiveViewers] Cleaning up polling for ${eventId}`);
+      clearInterval(pollInterval);
     };
   }, [eventId, fetchViewerCount]);
 

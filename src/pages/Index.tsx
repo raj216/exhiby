@@ -28,6 +28,7 @@ const SearchOverlay     = lazy(() => import("@/components/SearchOverlay").then(m
 const CategoriesOverlay = lazy(() => import("@/components/CategoriesOverlay").then(m => ({ default: m.CategoriesOverlay })));
 const PassportModal     = lazy(() => import("@/components/auth").then(m => ({ default: m.PassportModal })));
 const PlanOnboarding    = lazy(() => import("@/components/auth").then(m => ({ default: m.PlanOnboarding })));
+const InstallBanner     = lazy(() => import("@/components/InstallBanner").then(m => ({ default: m.InstallBanner })));
 
 function IndexContent() {
   const navigate = useNavigate();
@@ -119,10 +120,13 @@ function IndexContent() {
           // Store userName for later use
           setUserName(profile?.name || user.user_metadata?.name || user.email?.split("@")[0] || "Guest");
           
-          // Check if passport is incomplete (no handle or avatar)
-          if (profile && (!profile.handle || !profile.avatar_url)) {
+          // Route to PassportModal if:
+          //   (a) no profile row at all — rare race before trigger fires, or
+          //   (b) profile exists but handle is missing.
+          // Avatar is optional — never block login over a missing photo.
+          if (!profile || !profile.handle) {
             setNeedsPassportSetup(true);
-          } else if (profile) {
+          } else {
             // Passport complete — check if plan selection was shown
             const planDone = user?.user_metadata?.plan_onboarding_done;
             if (!planDone) {
@@ -389,6 +393,11 @@ function IndexContent() {
         onGoLive={() => setShowWizard(true)}
         onLogout={handleLogout}
       />
+
+      {/* PWA Install Banner — iOS instructions / Android one-tap install */}
+      <Suspense fallback={null}>
+        <InstallBanner />
+      </Suspense>
 
       {/* Cinematic Logout Overlay */}
       <Suspense fallback={null}>

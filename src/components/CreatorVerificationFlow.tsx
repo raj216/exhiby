@@ -1,20 +1,21 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  X, 
-  Upload, 
-  Image, 
-  CreditCard, 
-  CheckCircle2, 
+import {
+  X,
   ArrowRight,
-  Shield,
   Palette,
-  Building2,
-  Clock
+  Clock,
+  Camera,
+  Link2,
+  Loader2,
+  Sparkles,
+  Image as ImageIcon,
+  CheckCircle2,
 } from "lucide-react";
 import { triggerClickHaptic, triggerSuccessHaptic } from "@/lib/haptics";
-import { toast } from "@/hooks/use-toast";
-import featureFlags from "@/lib/featureFlags";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CreatorVerificationFlowProps {
   isOpen: boolean;
@@ -22,49 +23,165 @@ interface CreatorVerificationFlowProps {
   onComplete: () => void;
 }
 
-type Step = "intro" | "id" | "portfolio" | "bank" | "review" | "complete";
+type Step = "intro" | "portfolio" | "questions" | "submitted";
+type PhotoKey = "creating" | "progress" | "finished";
 
-const steps: { id: Step; title: string; icon: typeof Shield }[] = [
-  { id: "id", title: "Identity", icon: Shield },
-  { id: "portfolio", title: "Portfolio", icon: Palette },
-  { id: "bank", title: "Payout", icon: Building2 },
+interface PhotoState {
+  preview: string | null; // local object URL for instant display
+  url: string | null;     // Supabase Storage public URL after upload
+  uploading: boolean;
+}
+
+const emptyPhoto = (): PhotoState => ({ preview: null, url: null, uploading: false });
+
+// ── Slot definitions ──────────────────────────────────────────────────────────
+const PHOTO_SLOTS: {
+  key: PhotoKey;
+  label: string;
+  hint: string;
+  Icon: React.ElementType;
+}[] = [
+  {
+    key: "creating",
+    label: "You Creating",
+    hint: "Hands + work visible. Mid-process — not a finished piece.",
+    Icon: Camera,
+  },
+  {
+    key: "progress",
+    label: "Work in Progress",
+    hint: "Something unfinished you're currently working on.",
+    Icon: ImageIcon,
+  },
+  {
+    key: "finished",
+    label: "Finished Piece",
+    hint: "Your best completed work.",
+    Icon: Palette,
+  },
 ];
 
-export function CreatorVerificationFlow({ 
-  isOpen, 
-  onClose, 
-  onComplete 
+// ─────────────────────────────────────────────────────────────────────────────
+export function CreatorVerificationFlow({
+  isOpen,
+  onClose,
+  onComplete,
 }: CreatorVerificationFlowProps) {
-  const [currentStep, setCurrentStep] = useState<Step>("intro");
-  const [idUploaded, setIdUploaded] = useState(false);
-  const [portfolioUploaded, setPortfolioUploaded] = useState(false);
-  const [bankConnected, setBankConnected] = useState(false);
+  const { user } = useAuth();
+  const [step, setStep]           = useState<Step>("intro");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleNext = () => {
-    triggerClickHaptic();
-    const stepOrder: Step[] = ["intro", "id", "portfolio", "bank", "review", "complete"];
-    const currentIndex = stepOrder.indexOf(currentStep);
-    if (currentIndex < stepOrder.length - 1) {
-      setCurrentStep(stepOrder[currentIndex + 1]);
+  // Portfolio step
+  const [photos, setPhotos] = useState<Record<PhotoKey, PhotoState>>({
+    creating: emptyPhoto(),
+    progress: emptyPhoto(),
+    finished: emptyPhoto(),
+  });
+  const [socialLink, setSocialLink] = useState("");
+
+  // Questions step
+  const [answerTeaching,    setAnswerTeaching]    = useState("");
+  const [answerBackground,  setAnswerBackground]  = useState("");
+
+  // One hidden file input per slot
+  const fileRefs = useRef<Record<PhotoKey, HTMLInputElement | null>>({
+    creating: null,
+    progress: null,
+    finished: null,
+  });
+
+  // ── Derived state ────────────────────────────────────────────────────────
+  const uploadedCount    = Object.values(photos).filter(p => p.url).length;
+  const allPhotosReady   = uploadedCount === 3;
+  const anyUploading     = Object.values(photos).some(p => p.uploading);
+  const questionsValid   =
+    answerTeaching.trim().length >= 30 &&
+    answerBackground.trim().length >= 30;
+
+  // ── Upload a single photo to Supabase Storage ────────────────────────────
+  const handlePhotoSelect = async (key: PhotoKey, file: File) => {
+    if (!user) return;
+
+    // Guard: reject files over 10 MB before any upload attempt
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Photo must be under 10 MB. Please choose a smaller image.");
+      return;
+    }
+
+    // Show local preview immediately — no waiting for upload
+    const preview = URL.createObjectURL(file);
+    setPhotos(prev => ({ ...prev, [key]: { preview, url: null, uploading: true } }));
+
+    try {
+      // No file extension in path — consistent key regardless of whether the
+      // user uploads a .jpg, .jpeg, .png, or .heic. upsert:true overwrites the
+      // exact same path on re-upload, preventing orphaned files in storage.
+      const path = `${user.id}/${key}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("creator-applications")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      // Store the storage PATH (not a public URL) — the bucket is private.
+      // AdminCreators generates short-lived signed URLs from this path for
+      // review. The on-screen preview uses the local object URL, so the
+      // upload UX is unaffected by this change.
+      setPhotos(prev => ({ ...prev, [key]: { preview, url: path, uploading: false } }));
+    } catch {
+      toast.error("Upload failed — please try again.");
+      setPhotos(prev => ({ ...prev, [key]: emptyPhoto() }));
     }
   };
 
-  const handleComplete = () => {
-    triggerSuccessHaptic();
-    toast({
-      title: "Verification Submitted!",
-      description: "Welcome to the creator community. Your studio is now open.",
-    });
-    onComplete();
+  // ── Submit application to database ───────────────────────────────────────
+  const handleSubmit = async () => {
+    if (!user || !allPhotosReady || !questionsValid || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("creator_applications")
+        .upsert(
+          {
+            user_id:             user.id,
+            photo_creating_url:  photos.creating.url!,
+            photo_progress_url:  photos.progress.url!,
+            photo_finished_url:  photos.finished.url!,
+            social_link:         socialLink.trim() || null,
+            answer_teaching:     answerTeaching.trim(),
+            answer_background:   answerBackground.trim(),
+            status:              "pending",
+            submitted_at:        new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+
+      if (error) throw error;
+
+      triggerSuccessHaptic();
+      setStep("submitted");
+    } catch {
+      toast.error("Something went wrong — please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Close / complete ─────────────────────────────────────────────────────
+  const handleClose = () => {
+    if (step === "submitted") onComplete();
     onClose();
   };
 
-  const getStepIndex = () => {
-    const idx = steps.findIndex(s => s.id === currentStep);
-    return idx >= 0 ? idx : 0;
-  };
-
   if (!isOpen) return null;
+
+  // ── Step progress dots (portfolio = dot 1, questions = dot 2) ────────────
+  const dotActive = (dotStep: "portfolio" | "questions") => {
+    if (dotStep === "portfolio") return step === "portfolio" || step === "questions" || step === "submitted";
+    return step === "questions" || step === "submitted";
+  };
 
   return (
     <AnimatePresence>
@@ -72,306 +189,338 @@ export function CreatorVerificationFlow({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-carbon/95 backdrop-blur-xl"
+        className="fixed inset-0 z-50 bg-carbon/95 backdrop-blur-xl overflow-y-auto"
       >
-        {/* Header */}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={onClose}
-            className="w-10 h-10 rounded-full bg-obsidian border border-border/50 flex items-center justify-center"
+        {/* ── Sticky header ────────────────────────────────────────────── */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-carbon/80 backdrop-blur-sm">
+          <div className="flex gap-2 items-center">
+            {(["portfolio", "questions"] as const).map(d => (
+              <div
+                key={d}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  dotActive(d) ? "w-8 bg-electric" : "w-4 bg-border/30"
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-9 h-9 rounded-full bg-obsidian border border-border/50 flex items-center justify-center"
+            aria-label="Close"
           >
-            <X className="w-5 h-5 text-foreground" />
-          </motion.button>
-          
-          {currentStep !== "intro" && currentStep !== "complete" && (
-            <div className="flex gap-2">
-              {steps.map((step, idx) => (
-                <div
-                  key={step.id}
-                  className={`w-16 h-1 rounded-full transition-colors ${
-                    idx <= getStepIndex() ? "bg-electric" : "bg-border/50"
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+            <X className="w-4 h-4 text-foreground" />
+          </button>
         </div>
 
-        {/* Content */}
-        <div className="h-full flex flex-col justify-center px-6 pt-20 pb-10">
+        {/* ── Content ──────────────────────────────────────────────────── */}
+        <div className="px-5 pb-12 pt-2">
           <AnimatePresence mode="wait">
-            {/* Intro */}
-            {currentStep === "intro" && (
+
+            {/* ── INTRO ─────────────────────────────────────────────────── */}
+            {step === "intro" && (
               <motion.div
                 key="intro"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="text-center"
+                exit={{ opacity: 0, y: -16 }}
+                className="text-center pt-8"
               >
                 <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-electric to-crimson flex items-center justify-center">
-                  <Palette className="w-10 h-10 text-white" />
+                  <Sparkles className="w-9 h-9 text-white" />
                 </div>
-                <h1 className="font-display text-3xl text-foreground mb-4">
-                  Open Your Studio
+                <h1 className="font-display text-3xl text-foreground mb-3">
+                  Unlock Your Studio
                 </h1>
-                <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-                  Join our verified artist community. Open your process to collectors 
-                  and share how you create.
+                <p className="text-muted-foreground mb-8 max-w-xs mx-auto leading-relaxed">
+                  We review every application personally. We're looking for creators
+                  genuinely excited to share their process — not perfection.
                 </p>
-                <div className="space-y-3 mb-8">
+
+                <div className="space-y-3 mb-8 text-left">
                   {[
-                    "Open unlimited studio sessions",
-                    "Share your process with collectors",
-                    "Earn from sessions & tips",
-                    "Access your studio analytics",
-                  ].map((benefit, idx) => (
-                    <div 
-                      key={idx}
-                      className="flex items-center gap-3 text-left bg-obsidian/50 rounded-xl px-4 py-3"
+                    "3 photos showing your creative work",
+                    "2 short questions about what you'll teach",
+                    "Personal review — we'll notify you within 24 hours",
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 bg-obsidian/50 rounded-xl px-4 py-3"
                     >
-                      <CheckCircle2 className="w-5 h-5 text-electric flex-shrink-0" />
-                      <span className="text-sm text-foreground">{benefit}</span>
+                      <div className="w-6 h-6 rounded-full bg-electric/20 border border-electric/40 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-bold text-electric">{i + 1}</span>
+                      </div>
+                      <span className="text-sm text-foreground">{item}</span>
                     </div>
                   ))}
                 </div>
+
                 <button
-                  onClick={handleNext}
+                  onClick={() => { triggerClickHaptic(); setStep("portfolio"); }}
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-electric to-crimson text-white font-semibold flex items-center justify-center gap-2"
                 >
-                  Start Verification
+                  Start Application
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </motion.div>
             )}
 
-            {/* ID Upload */}
-            {currentStep === "id" && (
+            {/* ── PORTFOLIO ─────────────────────────────────────────────── */}
+            {step === "portfolio" && (
               <motion.div
-                key="id"
-                initial={{ opacity: 0, y: 20 }}
+                key="portfolio"
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
+                exit={{ opacity: 0, y: -16 }}
               >
-                <Shield className="w-12 h-12 text-electric mb-4" />
-                <h2 className="font-display text-2xl text-foreground mb-2">
-                  Verify Your Identity
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Upload a government-issued ID for verification. 
-                  This keeps our community safe.
+                <Palette className="w-10 h-10 text-electric mb-3 mt-2" />
+                <h2 className="font-display text-2xl text-foreground mb-1">Show Your Work</h2>
+                <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+                  Each slot has a specific purpose. Read the label before choosing your photo.
                 </p>
-                
+
+                {/* Photo slots */}
+                <div className="space-y-3 mb-6">
+                  {PHOTO_SLOTS.map(({ key, label, hint, Icon }) => {
+                    const photo = photos[key];
+                    return (
+                      <div key={key}>
+                        {/* Hidden real file input */}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          ref={el => { fileRefs.current[key] = el; }}
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhotoSelect(key, file);
+                            // Reset so the same file can be re-selected after error
+                            e.target.value = "";
+                          }}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => { triggerClickHaptic(); fileRefs.current[key]?.click(); }}
+                          disabled={photo.uploading}
+                          className={`w-full rounded-2xl border-2 overflow-hidden transition-all ${
+                            photo.url
+                              ? "border-electric"
+                              : photo.uploading
+                              ? "border-electric/40"
+                              : "border-dashed border-border/50 bg-obsidian/50"
+                          }`}
+                        >
+                          {photo.preview ? (
+                            /* Thumbnail with overlay during upload */
+                            <div className="relative h-32">
+                              <img
+                                src={photo.preview}
+                                alt={label}
+                                className="w-full h-full object-cover"
+                              />
+                              {/* Upload spinner overlay */}
+                              {photo.uploading && (
+                                <div className="absolute inset-0 bg-carbon/60 flex items-center justify-center">
+                                  <Loader2 className="w-8 h-8 text-electric animate-spin" />
+                                </div>
+                              )}
+                              {/* Success badge */}
+                              {photo.url && (
+                                <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-electric flex items-center justify-center shadow-lg">
+                                  <CheckCircle2 className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                              {/* Slot label overlay */}
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-carbon/80 to-transparent px-3 py-2">
+                                <span className="text-xs font-semibold text-white">{label}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Empty slot */
+                            <div className="flex items-center gap-4 px-4 py-4">
+                              <div className="w-12 h-12 rounded-xl bg-obsidian border border-border/40 flex items-center justify-center flex-shrink-0">
+                                <Icon className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-sm font-semibold text-foreground">{label}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
+                              </div>
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Upload counter */}
+                <p className="text-xs text-muted-foreground/60 text-center mb-5">
+                  {uploadedCount}/3 photos uploaded
+                </p>
+
+                {/* Social link — optional */}
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-foreground mb-2">
+                    Social or Portfolio Link{" "}
+                    <span className="text-muted-foreground font-normal">(Optional)</span>
+                  </p>
+                  <div className="flex items-center gap-3 bg-obsidian/50 border border-border/40 rounded-xl px-4 py-3">
+                    <Link2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <input
+                      type="url"
+                      inputMode="url"
+                      placeholder="Instagram, TikTok, or portfolio URL"
+                      value={socialLink}
+                      onChange={e => setSocialLink(e.target.value)}
+                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none min-w-0"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground/50 mt-1.5 leading-relaxed">
+                    Any public post of you creating — Instagram, TikTok, YouTube, Twitter. Helps us verify faster.
+                  </p>
+                </div>
+
                 <button
-                  onClick={() => {
-                    triggerClickHaptic();
-                    setIdUploaded(true);
-                  }}
-                  className={`w-full aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all ${
-                    idUploaded 
-                      ? "border-electric bg-electric/10" 
-                      : "border-border/50 bg-obsidian/50"
+                  onClick={() => { triggerClickHaptic(); setStep("questions"); }}
+                  disabled={!allPhotosReady || anyUploading}
+                  className={`w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                    allPhotosReady && !anyUploading
+                      ? "bg-electric text-carbon"
+                      : "bg-obsidian text-muted-foreground cursor-not-allowed"
                   }`}
                 >
-                  {idUploaded ? (
+                  Continue
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </motion.div>
+            )}
+
+            {/* ── QUESTIONS ─────────────────────────────────────────────── */}
+            {step === "questions" && (
+              <motion.div
+                key="questions"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+              >
+                <div className="w-10 h-10 rounded-xl bg-electric/20 border border-electric/30 flex items-center justify-center mb-3 mt-2">
+                  <span className="font-display text-electric text-xl font-bold leading-none">?</span>
+                </div>
+                <h2 className="font-display text-2xl text-foreground mb-1">Two Quick Questions</h2>
+                <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+                  This is what we read when reviewing your application. Be real — 2-3 sentences is enough.
+                </p>
+
+                <div className="space-y-5 mb-6">
+                  {/* Q1 */}
+                  <div>
+                    <label className="text-sm font-semibold text-foreground block mb-2">
+                      What will people experience in your live sessions?
+                    </label>
+                    <textarea
+                      value={answerTeaching}
+                      onChange={e => setAnswerTeaching(e.target.value)}
+                      placeholder="e.g. I paint abstract watercolors and explain every brushstroke as I go. Viewers can ask questions in real time and I adjust based on what they want to see…"
+                      rows={4}
+                      className="w-full bg-obsidian/50 border border-border/40 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-electric/60 transition-colors resize-none leading-relaxed"
+                    />
+                    <p className={`text-xs mt-1.5 text-right transition-colors ${
+                      answerTeaching.length >= 30 ? "text-electric" : "text-muted-foreground/40"
+                    }`}>
+                      {answerTeaching.length >= 30
+                        ? "✓ Good"
+                        : `${30 - answerTeaching.length} more characters`}
+                    </p>
+                  </div>
+
+                  {/* Q2 */}
+                  <div>
+                    <label className="text-sm font-semibold text-foreground block mb-2">
+                      Describe your creative background
+                    </label>
+                    <textarea
+                      value={answerBackground}
+                      onChange={e => setAnswerBackground(e.target.value)}
+                      placeholder="e.g. I've been drawing since I was 12, mostly self-taught. I specialise in charcoal portraits and have been sharing my process on Instagram for 3 years…"
+                      rows={4}
+                      className="w-full bg-obsidian/50 border border-border/40 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-electric/60 transition-colors resize-none leading-relaxed"
+                    />
+                    <p className={`text-xs mt-1.5 text-right transition-colors ${
+                      answerBackground.length >= 30 ? "text-electric" : "text-muted-foreground/40"
+                    }`}>
+                      {answerBackground.length >= 30
+                        ? "✓ Good"
+                        : `${30 - answerBackground.length} more characters`}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={!questionsValid || isSubmitting}
+                  className={`w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                    questionsValid && !isSubmitting
+                      ? "bg-gradient-to-r from-electric to-crimson text-white"
+                      : "bg-obsidian text-muted-foreground cursor-not-allowed"
+                  }`}
+                >
+                  {isSubmitting ? (
                     <>
-                      <CheckCircle2 className="w-12 h-12 text-electric" />
-                      <span className="text-electric font-medium">ID Uploaded</span>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Submitting…
                     </>
                   ) : (
                     <>
-                      <Upload className="w-12 h-12 text-muted-foreground" />
-                      <span className="text-muted-foreground">Tap to upload ID</span>
+                      Submit Application
+                      <ArrowRight className="w-5 h-5" />
                     </>
                   )}
                 </button>
-
-                <button
-                  onClick={handleNext}
-                  disabled={!idUploaded}
-                  className={`w-full mt-6 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                    idUploaded
-                      ? "bg-electric text-carbon"
-                      : "bg-obsidian text-muted-foreground"
-                  }`}
-                >
-                  Continue
-                  <ArrowRight className="w-5 h-5" />
-                </button>
               </motion.div>
             )}
 
-            {/* Portfolio */}
-            {currentStep === "portfolio" && (
+            {/* ── SUBMITTED ─────────────────────────────────────────────── */}
+            {step === "submitted" && (
               <motion.div
-                key="portfolio"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
+                key="submitted"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center pt-12"
               >
-                <Palette className="w-12 h-12 text-electric mb-4" />
-                <h2 className="font-display text-2xl text-foreground mb-2">
-                  Show Your Work
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 280, damping: 22 }}
+                  className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-electric to-crimson flex items-center justify-center"
+                >
+                  <CheckCircle2 className="w-12 h-12 text-white" />
+                </motion.div>
+
+                <h2 className="font-display text-3xl text-foreground mb-3">
+                  Application Sent
                 </h2>
-                <p className="text-muted-foreground mb-6">
-                  Upload 3-5 samples of your best work. 
-                  This helps us verify you're a real artist.
+                <p className="text-muted-foreground mb-8 max-w-xs mx-auto leading-relaxed">
+                  We'll personally review your work and reply within 24 hours.
+                  You'll be notified the moment you're approved.
                 </p>
-                
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  {[1, 2, 3].map((i) => (
-                    <button
-                      key={i}
-                      onClick={() => {
-                        triggerClickHaptic();
-                        setPortfolioUploaded(true);
-                      }}
-                      className={`aspect-square rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${
-                        portfolioUploaded 
-                          ? "border-electric bg-electric/10" 
-                          : "border-border/50 bg-obsidian/50"
-                      }`}
-                    >
-                      {portfolioUploaded ? (
-                        <CheckCircle2 className="w-8 h-8 text-electric" />
-                      ) : (
-                        <Image className="w-8 h-8 text-muted-foreground" />
-                      )}
-                    </button>
-                  ))}
+
+                <div className="bg-obsidian/50 border border-border/30 rounded-2xl px-5 py-4 mb-8 flex items-start gap-3 text-left">
+                  <Clock className="w-5 h-5 text-electric flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-foreground/80 leading-relaxed">
+                    Your studio access activates automatically once approved —
+                    no action needed on your end.
+                  </p>
                 </div>
 
                 <button
-                  onClick={handleNext}
-                  disabled={!portfolioUploaded}
-                  className={`w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                    portfolioUploaded
-                      ? "bg-electric text-carbon"
-                      : "bg-obsidian text-muted-foreground"
-                  }`}
+                  onClick={handleClose}
+                  className="w-full py-4 rounded-2xl bg-obsidian border border-border/40 text-foreground font-semibold"
                 >
-                  Continue
-                  <ArrowRight className="w-5 h-5" />
+                  Back to Exhiby
                 </button>
               </motion.div>
             )}
 
-            {/* Bank Connection */}
-            {currentStep === "bank" && (
-              <motion.div
-                key="bank"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                <Building2 className="w-12 h-12 text-electric mb-4" />
-                <h2 className="font-display text-2xl text-foreground mb-2">
-                  Connect Payout
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Connect your bank account to receive payouts from 
-                  ticket sales and tips.
-                </p>
-                
-                {featureFlags.paymentsEnabled ? (
-                  <button
-                    onClick={() => {
-                      triggerClickHaptic();
-                      setBankConnected(true);
-                    }}
-                    className={`w-full py-6 rounded-2xl border-2 flex items-center justify-center gap-3 transition-all ${
-                      bankConnected 
-                        ? "border-electric bg-electric/10" 
-                        : "border-border/50 bg-obsidian/50"
-                    }`}
-                  >
-                    {bankConnected ? (
-                      <>
-                        <CheckCircle2 className="w-6 h-6 text-electric" />
-                        <span className="text-electric font-medium">Bank Connected</span>
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="w-6 h-6 text-muted-foreground" />
-                        <span className="text-muted-foreground">Connect via Stripe</span>
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <div className="w-full py-6 rounded-2xl border-2 border-border/50 bg-obsidian/50 flex flex-col items-center justify-center gap-2">
-                    <Clock className="w-8 h-8 text-muted-foreground" />
-                    <span className="text-muted-foreground font-medium">Payouts coming soon</span>
-                    <span className="text-xs text-muted-foreground/70">You can skip this step for now</span>
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground text-center mt-4 mb-6">
-                  {featureFlags.paymentsEnabled 
-                    ? "Powered by Stripe. Your banking details are encrypted and secure."
-                    : "Payment integration will be available soon. You can complete verification now."}
-                </p>
-
-                <button
-                  onClick={handleNext}
-                  disabled={featureFlags.paymentsEnabled && !bankConnected}
-                  className={`w-full py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all ${
-                    !featureFlags.paymentsEnabled || bankConnected
-                      ? "bg-electric text-carbon"
-                      : "bg-obsidian text-muted-foreground"
-                  }`}
-                >
-                  {featureFlags.paymentsEnabled ? "Continue" : "Skip for Now"}
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </motion.div>
-            )}
-
-            {/* Review */}
-            {currentStep === "review" && (
-              <motion.div
-                key="review"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="text-center"
-              >
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-obsidian border-2 border-electric flex items-center justify-center">
-                  <CheckCircle2 className="w-10 h-10 text-electric" />
-                </div>
-                <h2 className="font-display text-2xl text-foreground mb-2">
-                  Ready to Submit
-                </h2>
-                <p className="text-muted-foreground mb-8">
-                  We'll review your application within 24 hours. 
-                  You'll be notified once approved.
-                </p>
-
-                <div className="space-y-3 mb-8">
-                  {[
-                    { label: "Identity Verified", done: idUploaded },
-                    { label: "Portfolio Uploaded", done: portfolioUploaded },
-                    { label: "Payout Connected", done: bankConnected },
-                  ].map((item, idx) => (
-                    <div 
-                      key={idx}
-                      className="flex items-center gap-3 bg-obsidian/50 rounded-xl px-4 py-3"
-                    >
-                      <CheckCircle2 className={`w-5 h-5 ${item.done ? "text-electric" : "text-muted-foreground"}`} />
-                      <span className="text-sm text-foreground">{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleComplete}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-electric to-crimson text-white font-semibold"
-                >
-                  Submit & Open Studio
-                </button>
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </motion.div>

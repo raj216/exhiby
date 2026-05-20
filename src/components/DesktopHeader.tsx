@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Search, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,9 +8,7 @@ import { useUserMode } from "@/contexts/UserModeContext";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-const CreatorActivationModal = lazy(() => import("./CreatorActivationModal").then(m => ({ default: m.CreatorActivationModal })));
-import { WelcomeBanner } from "./WelcomeBanner";
-import { ConfettiEffect } from "./ConfettiEffect";
+const CreatorVerificationFlow = lazy(() => import("./CreatorVerificationFlow").then(m => ({ default: m.CreatorVerificationFlow })));
 import { NotificationsDrawer } from "./NotificationsDrawer";
 import { ProfileDrawer } from "./ProfileDrawer";
 
@@ -40,20 +38,8 @@ export function DesktopHeader({
   const { unreadCount } = useNotifications();
   const { hasUnread: hasUnreadMessages } = useUnreadMessages();
   const [showActivationModal, setShowActivationModal] = useState(false);
-  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDrawer, setShowProfileDrawer] = useState(false);
-
-  // Check for welcome banner on mount
-  useEffect(() => {
-    const shouldShowWelcome = localStorage.getItem("showCreatorWelcome");
-    if (shouldShowWelcome === "true") {
-      setShowWelcomeBanner(true);
-      setShowConfetti(true);
-      localStorage.removeItem("showCreatorWelcome");
-    }
-  }, []);
 
   const getInitials = (name: string) => {
     return name
@@ -65,10 +51,11 @@ export function DesktopHeader({
   };
 
   const handleActivationSuccess = () => {
+    // Submitting an application does NOT make the user a creator — access is
+    // granted only after admin approval. CreatorVerificationFlow shows its own
+    // "Application Sent" confirmation, so here we just close. No welcome
+    // banner / reload (those belong to the post-approval experience).
     setShowActivationModal(false);
-    // Set flag to show welcome banner after page refresh
-    localStorage.setItem("showCreatorWelcome", "true");
-    window.location.reload();
   };
 
   return (
@@ -213,26 +200,15 @@ export function DesktopHeader({
         onClose={() => setShowNotifications(false)}
       />
 
-      {/* Creator Activation Modal */}
+      {/* Creator Verification Flow — real application submitted for admin review */}
       <Suspense fallback={null}>
-        <CreatorActivationModal
+        <CreatorVerificationFlow
           isOpen={showActivationModal}
           onClose={() => setShowActivationModal(false)}
-          onSuccess={handleActivationSuccess}
+          onComplete={handleActivationSuccess}
         />
       </Suspense>
 
-      {/* Welcome Banner */}
-      <WelcomeBanner
-        isVisible={showWelcomeBanner}
-        onComplete={() => setShowWelcomeBanner(false)}
-      />
-
-      {/* Confetti Effect */}
-      <ConfettiEffect
-        isActive={showConfetti}
-        onComplete={() => setShowConfetti(false)}
-      />
     </>
   );
 }

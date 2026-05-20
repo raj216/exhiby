@@ -118,6 +118,57 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_applications: {
+        Row: {
+          answer_background: string
+          answer_teaching: string
+          created_at: string
+          id: string
+          photo_creating_url: string
+          photo_finished_url: string
+          photo_progress_url: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          social_link: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer_background: string
+          answer_teaching: string
+          created_at?: string
+          id?: string
+          photo_creating_url: string
+          photo_finished_url: string
+          photo_progress_url: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_link?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer_background?: string
+          answer_teaching?: string
+          created_at?: string
+          id?: string
+          photo_creating_url?: string
+          photo_finished_url?: string
+          photo_progress_url?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_link?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       creator_earnings: {
         Row: {
           amount_gross: number
@@ -673,6 +724,7 @@ export type Database = {
           name: string
           plan: string
           profile_links: Json
+          stripe_customer_id: string | null
           updated_at: string
           user_id: string
           verified_at: string | null
@@ -692,6 +744,7 @@ export type Database = {
           name: string
           plan?: string
           profile_links?: Json
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id: string
           verified_at?: string | null
@@ -711,6 +764,7 @@ export type Database = {
           name?: string
           plan?: string
           profile_links?: Json
+          stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string
           verified_at?: string | null
@@ -843,41 +897,53 @@ export type Database = {
         Row: {
           audience_user_id: string
           created_at: string
+          creator_engagement: string | null
           creator_id: string
           event_id: string
           id: string
           improvement_category: string | null
           left_early: boolean | null
           left_early_reason: string | null
+          pacing: string | null
           private_feedback_text: string | null
           public_tags: string[] | null
           rating: number | null
+          value_gained: string | null
+          would_return: string | null
         }
         Insert: {
           audience_user_id: string
           created_at?: string
+          creator_engagement?: string | null
           creator_id: string
           event_id: string
           id?: string
           improvement_category?: string | null
           left_early?: boolean | null
           left_early_reason?: string | null
+          pacing?: string | null
           private_feedback_text?: string | null
           public_tags?: string[] | null
           rating?: number | null
+          value_gained?: string | null
+          would_return?: string | null
         }
         Update: {
           audience_user_id?: string
           created_at?: string
+          creator_engagement?: string | null
           creator_id?: string
           event_id?: string
           id?: string
           improvement_category?: string | null
           left_early?: boolean | null
           left_early_reason?: string | null
+          pacing?: string | null
           private_feedback_text?: string | null
           public_tags?: string[] | null
           rating?: number | null
+          value_gained?: string | null
+          would_return?: string | null
         }
         Relationships: [
           {
@@ -1016,6 +1082,10 @@ export type Database = {
       assign_admin_role: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      check_handle_available: {
+        Args: { target_handle: string }
+        Returns: boolean
       }
       create_notification: {
         Args: {
@@ -1259,6 +1329,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      tickets_only_attended_at_changed: { Args: never; Returns: boolean }
       upsert_live_viewer: {
         Args: { p_event_id: string; p_user_id: string }
         Returns: undefined

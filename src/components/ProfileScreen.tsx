@@ -17,7 +17,10 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey }: ProfileScreenProps) {
-  const { mode, isVerifiedCreator, activateCreatorRole, toggleMode, setMode } = useUserMode();
+  // activateCreatorRole intentionally NOT destructured — creator access is now
+  // granted server-side via the creator_applications approval trigger, not
+  // client-side on verification submit.
+  const { mode, isVerifiedCreator, toggleMode, setMode } = useUserMode();
   const [showVerification, setShowVerification] = useState(false);
   const [isFlipping, setIsFlipping] = useState(false);
   const { profile, isLoading: profileLoading } = useProfile();
@@ -46,8 +49,11 @@ export function ProfileScreen({ onBack, onGoLive, onSchedule, refreshScheduleKey
     setShowVerification(true);
   };
 
-  const handleVerificationComplete = async () => {
-    await activateCreatorRole();
+  const handleVerificationComplete = () => {
+    // Application submitted for manual review — creator role is NOT activated
+    // here. It activates only after admin approval via the creator_applications
+    // table. Nothing to do on the client side; the submitted screen already
+    // informed the user about the 24-hour review window.
   };
 
   // Show skeleton while profile is loading

@@ -77,6 +77,9 @@ export function useLiveEvents() {
 
   // Realtime subscription for live updates
   useEffect(() => {
+    // Public events-discovery channel — broadcasts only the public `events` table.
+    // The previous `live_viewers_changes` broadcast was removed for privacy
+    // (it leaked viewer user_ids to all authenticated subscribers).
     const eventsChannel = supabase
       .channel("live_events_changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => {
@@ -84,16 +87,8 @@ export function useLiveEvents() {
       })
       .subscribe();
 
-    const viewersChannel = supabase
-      .channel("live_viewers_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "live_viewers" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["live-events"] });
-      })
-      .subscribe();
-
     return () => {
       supabase.removeChannel(eventsChannel);
-      supabase.removeChannel(viewersChannel);
     };
   }, [queryClient]);
 

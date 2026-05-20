@@ -8,7 +8,6 @@ export interface EarningRecord {
   id: string;
   event_id: string;
   event_title: string;
-  user_id: string;
   amount_gross: number; // cents
   platform_fee: number; // cents
   amount_net: number; // cents
@@ -44,7 +43,7 @@ export function useCreatorEarnings(userId: string | undefined) {
       const [earningsRes, payoutsRes] = await Promise.all([
         supabase
           .from("creator_earnings")
-          .select("id, event_id, user_id, amount_gross, platform_fee, amount_net, currency, created_at, status, ticket_id")
+          .select("id, event_id, amount_gross, platform_fee, amount_net, currency, created_at, status, ticket_id")
           .eq("creator_id", userId)
           .eq("status", "succeeded")
           .order("created_at", { ascending: false }),
@@ -119,7 +118,6 @@ export function useCreatorEarnings(userId: string | undefined) {
             id: e.id,
             event_id: e.event_id,
             event_title: evt?.title || "Untitled Session",
-            user_id: e.user_id,
             amount_gross: gross,
             platform_fee: correctedFee,
             amount_net: correctedNet,

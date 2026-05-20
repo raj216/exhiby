@@ -56,7 +56,8 @@ serve(async (req) => {
     // Parse body
     const body = await req.json().catch(() => ({}));
     const event_id = body?.event_id;
-    const origin = body?.origin || req.headers.get("origin") || "https://exhiby.lovable.app";
+    // SECURITY: Never trust client-supplied origin (open redirect risk).
+    const origin = Deno.env.get("PUBLIC_SITE_URL") ?? "https://exhiby.lovable.app";
 
     if (typeof event_id !== "string" || !uuidRegex.test(event_id)) {
       return new Response(JSON.stringify({ error: "Invalid event_id" }), {
@@ -244,7 +245,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[create-checkout-session] Unexpected error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

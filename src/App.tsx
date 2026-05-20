@@ -21,6 +21,7 @@ const PublicProfile    = lazy(() => import("./pages/PublicProfile"));
 const LiveRoomEntry    = lazy(() => import("./pages/LiveRoomEntry"));
 const ExploreStudios   = lazy(() => import("./pages/ExploreStudios"));
 const AdminFeedback    = lazy(() => import("./pages/AdminFeedback"));
+const AdminCreators    = lazy(() => import("./pages/AdminCreators"));
 const EarningsHistory  = lazy(() => import("./pages/EarningsHistory"));
 const TicketsHistory   = lazy(() => import("./pages/TicketsHistory"));
 const SessionResolver  = lazy(() => import("./pages/SessionResolver"));
@@ -91,6 +92,7 @@ const App = () => {
                   {/* Public Routes */}
                   <Route path="/explore"          element={<ExploreStudios />} />
                   <Route path="/admin/feedback"   element={<AdminFeedback />} />
+                  <Route path="/admin/creators"  element={<AdminCreators />} />
                   <Route path="/earnings-history" element={<EarningsHistory />} />
                   <Route path="/tickets-history"  element={<TicketsHistory />} />
                   <Route path="/settings"         element={<Settings />} />

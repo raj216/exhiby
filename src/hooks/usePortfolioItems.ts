@@ -45,6 +45,30 @@ export function usePortfolioItems(userId: string | undefined) {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      description,
+    }: {
+      id: string;
+      title: string;
+      description: string;
+    }) => {
+      const { error } = await supabase
+        .from("portfolio_items")
+        .update({
+          title: title.trim() || null,
+          description: description.trim() || null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["portfolio-items", userId] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (itemId: string) => {
       const itemToDelete = items.find((item) => item.id === itemId);
@@ -130,6 +154,12 @@ export function usePortfolioItems(userId: string | undefined) {
     [deleteMutation]
   );
 
+  const updateItem = useCallback(
+    (id: string, title: string, description: string) =>
+      updateMutation.mutateAsync({ id, title, description }),
+    [updateMutation]
+  );
+
   const allItems = useMemo(() => {
     if (uploadingItem) return [uploadingItem, ...items];
     return items;
@@ -141,7 +171,9 @@ export function usePortfolioItems(userId: string | undefined) {
     isOwner,
     addItem,
     deleteItem,
+    updateItem,
     refetch,
     isDeleting: deleteMutation.isPending,
+    isUpdating: updateMutation.isPending,
   };
 }
