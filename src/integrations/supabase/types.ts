@@ -68,6 +68,30 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_email_log: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          recipient_count: number
+          segment: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          recipient_count?: number
+          segment?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          recipient_count?: number
+          segment?: string | null
+        }
+        Relationships: []
+      }
       conversation_participants: {
         Row: {
           conversation_id: string

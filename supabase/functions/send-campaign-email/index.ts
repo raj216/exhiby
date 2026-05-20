@@ -145,6 +145,32 @@ serve(async (req) => {
     // SECURITY: derive sender name from server-side profile, never from client input
     const creator_name = (profile?.name && profile.name.trim()) || "A creator";
 
+    // Rate limit: max 3 campaigns per 24h, min 6h between sends
+    const { data: recentLogs } = await serviceClient
+      .from("campaign_email_log")
+      .select("created_at")
+      .eq("creator_id", user.id)
+      .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order("created_at", { ascending: false });
+
+    if (recentLogs && recentLogs.length >= 3) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit: maximum 3 campaigns per 24 hours." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (recentLogs && recentLogs.length > 0) {
+      const lastSent = new Date(recentLogs[0].created_at).getTime();
+      const sixHoursMs = 6 * 60 * 60 * 1000;
+      if (Date.now() - lastSent < sixHoursMs) {
+        const waitMin = Math.ceil((sixHoursMs - (Date.now() - lastSent)) / 60000);
+        return new Response(
+          JSON.stringify({ error: `Please wait ${waitMin} minutes before sending another campaign.` }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { segment, subject, body }: CampaignRequest = await req.json();
 
     if (!subject?.trim() || !body?.trim()) {
@@ -255,6 +281,13 @@ serve(async (req) => {
       });
       await Promise.allSettled(promises);
     }
+
+    // Log campaign for rate-limit accounting (service role bypasses RLS deny)
+    await serviceClient.from("campaign_email_log").insert({
+      creator_id: user.id,
+      recipient_count: sent,
+      segment,
+    });
 
     return new Response(JSON.stringify({ sent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
