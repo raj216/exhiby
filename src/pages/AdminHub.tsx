@@ -55,6 +55,9 @@ export default function AdminHub() {
         supabase.rpc("get_all_feedback_admin"),
       ]);
 
+      if (appsRes.error) console.error("[AdminHub] applications count error:", appsRes.error);
+      if (feedbackRes.error) console.error("[AdminHub] feedback load error:", feedbackRes.error);
+
       const feedbackRows = feedbackRes.data ?? [];
       const rated = feedbackRows.filter((f: any) => f.rating != null);
       const avgRating =

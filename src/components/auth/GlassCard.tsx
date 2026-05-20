@@ -28,8 +28,8 @@ const usernameSchema = z
  * Checks each candidate against the DB in parallel, returns only available ones.
  */
 async function generateSuggestions(base: string): Promise<string[]> {
-  const year = new Date().getFullYear().toString().slice(-2); // e.g. "26"
-  const r = () => String(Math.floor(Math.random() * 900) + 100); // 3-digit
+  const year = new Date().getFullYear().toString().slice(-2);
+  const r = () => String(Math.floor(Math.random() * 900) + 100);
 
   const candidates = [
     `${base}${year}`,
@@ -47,10 +47,11 @@ async function generateSuggestions(base: string): Promise<string[]> {
   const settled = await Promise.all(
     unique.map(async (candidate) => {
       try {
-        const { data } = await supabase.rpc("get_public_profile_by_handle", {
+        // check_handle_available is granted to anon — safe for signup flow
+        const { data } = await supabase.rpc("check_handle_available", {
           target_handle: candidate,
         });
-        return data && data.length > 0 ? null : candidate;
+        return data === true ? candidate : null;
       } catch {
         return null;
       }
