@@ -289,7 +289,8 @@ export default function AdminFeedback() {
           creator_name: profiles?.find((p: any) => p.user_id === f.creator_id)?.name ?? "Unknown Creator",
         }))
       );
-    } catch {
+    } catch (err) {
+      console.error("[AdminFeedback] fetchFeedback error:", err);
       toast.error("Failed to load feedback");
     } finally {
       setIsLoading(false);
