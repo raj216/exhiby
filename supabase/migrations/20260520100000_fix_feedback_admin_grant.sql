@@ -6,6 +6,8 @@
 -- 20260517100000_session_feedback_new_columns.sql which the original
 -- function predates.
 
+DROP FUNCTION IF EXISTS public.get_all_feedback_admin();
+
 CREATE OR REPLACE FUNCTION public.get_all_feedback_admin()
 RETURNS TABLE(
   id                  uuid,
