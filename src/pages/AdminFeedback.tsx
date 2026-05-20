@@ -237,7 +237,9 @@ function exportToCSV(feedback: FeedbackItem[]) {
   const a = document.createElement("a");
   a.href = url;
   a.download = `exhiby-feedback-${format(new Date(), "yyyy-MM-dd")}.csv`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
@@ -254,9 +256,14 @@ export default function AdminFeedback() {
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) { setIsLoading(false); return; }
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      setIsAdmin(data === true);
-      if (!data) setIsLoading(false);
+      try {
+        const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        setIsAdmin(data === true);
+        if (!data) setIsLoading(false);
+      } catch (err) {
+        console.error("[AdminFeedback] checkAdmin error:", err);
+        setIsLoading(false);
+      }
     };
     checkAdmin();
   }, [user]);
