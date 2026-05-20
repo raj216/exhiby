@@ -1127,15 +1127,19 @@ export type Database = {
         Returns: {
           audience_user_id: string
           created_at: string
+          creator_engagement: string
           creator_id: string
           event_id: string
           id: string
           improvement_category: string
           left_early: boolean
           left_early_reason: string
+          pacing: string
           private_feedback_text: string
           public_tags: string[]
           rating: number
+          value_gained: string
+          would_return: string
         }[]
       }
       get_all_public_profiles: {

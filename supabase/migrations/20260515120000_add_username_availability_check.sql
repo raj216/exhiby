@@ -1,5 +1,7 @@
 -- check_username_available: callable by anon (signup form, pre-auth)
 -- Returns true = available, false = taken. Exposes NO profile data.
+-- Note: GlassCard uses the pre-existing check_handle_available RPC.
+-- This function is an explicit alias with a clearer name for future use.
 CREATE OR REPLACE FUNCTION public.check_username_available(p_username text)
 RETURNS boolean
 LANGUAGE sql

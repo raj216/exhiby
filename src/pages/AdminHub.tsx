@@ -38,41 +38,44 @@ export default function AdminHub() {
     const init = async () => {
       if (!user) { setIsLoading(false); return; }
 
-      const { data } = await supabase.rpc("has_role", {
-        _user_id: user.id,
-        _role: "admin",
-      });
+      try {
+        const { data } = await supabase.rpc("has_role", {
+          _user_id: user.id,
+          _role: "admin",
+        });
 
-      if (!data) { setIsLoading(false); return; }
-      setIsAdmin(true);
+        if (!data) return;
+        setIsAdmin(true);
 
-      // Load quick stats in parallel
-      const [appsRes, feedbackRes] = await Promise.all([
-        supabase
-          .from("creator_applications")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pending"),
-        supabase.rpc("get_all_feedback_admin"),
-      ]);
+        const [appsRes, feedbackRes] = await Promise.all([
+          supabase
+            .from("creator_applications")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "pending"),
+          supabase.rpc("get_all_feedback_admin"),
+        ]);
 
-      if (appsRes.error) console.error("[AdminHub] applications count error:", appsRes.error);
-      if (feedbackRes.error) console.error("[AdminHub] feedback load error:", feedbackRes.error);
+        if (appsRes.error) console.error("[AdminHub] applications count error:", appsRes.error);
+        if (feedbackRes.error) console.error("[AdminHub] feedback load error:", feedbackRes.error);
 
-      const feedbackRows = feedbackRes.data ?? [];
-      const rated = feedbackRows.filter((f: any) => f.rating != null);
-      const avgRating =
-        rated.length > 0
-          ? rated.reduce((acc: number, f: any) => acc + f.rating, 0) / rated.length
-          : null;
+        const feedbackRows = feedbackRes.data ?? [];
+        const rated = feedbackRows.filter((f: any) => f.rating != null);
+        const avgRating =
+          rated.length > 0
+            ? rated.reduce((acc: number, f: any) => acc + f.rating, 0) / rated.length
+            : null;
 
-      setStats({
-        pendingApplications: appsRes.count ?? 0,
-        totalFeedback: feedbackRows.length,
-        avgRating,
-        feedbackWithNotes: feedbackRows.filter((f: any) => f.private_feedback_text).length,
-      });
-
-      setIsLoading(false);
+        setStats({
+          pendingApplications: appsRes.count ?? 0,
+          totalFeedback: feedbackRows.length,
+          avgRating,
+          feedbackWithNotes: feedbackRows.filter((f: any) => f.private_feedback_text).length,
+        });
+      } catch (err) {
+        console.error("[AdminHub] init error:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     init();
