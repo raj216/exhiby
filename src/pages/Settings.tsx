@@ -583,6 +583,16 @@ const BRAND_STYLE: Record<string, string> = {
 function PaymentsContent() {
   const [subView, setSubView] = useState<PaymentSubView>("menu");
 
+  // Returning from Stripe Checkout setup lands on /settings?tab=payments&setup=success.
+  // Jump straight to the Payment Methods view so the user sees their new card and the
+  // success toast (the toast + refresh live in PaymentMethodsView).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("setup") === "success") {
+      setSubView("methods");
+    }
+  }, []);
+
   return (
     <AnimatePresence mode="wait">
       {subView === "menu" && (

@@ -50,8 +50,22 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const customerId =
+    let customerId =
       (profile as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? null;
+
+    // Reconcile legacy users: if no canonical ID yet but an email-based customer
+    // already exists (created by an older tip/ticket flow), adopt and persist it so
+    // every payment function converges on the same customer going forward.
+    if (!customerId && user.email) {
+      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existing.data.length > 0) {
+        customerId = existing.data[0].id;
+        await serviceClient
+          .from("profiles")
+          .update({ stripe_customer_id: customerId } as never)
+          .eq("user_id", user.id);
+      }
+    }
 
     if (!customerId) {
       return new Response(
