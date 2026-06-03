@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Palette, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { X, Palette, Plus, Pencil, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,7 @@ interface LiveRoomMaterialsProps {
   onAddMaterial?: (name: string, brand?: string, spec?: string) => Promise<Material | null>;
   onUpdateMaterial?: (id: string, name: string, brand?: string, spec?: string) => Promise<boolean>;
   onDeleteMaterial?: (id: string) => Promise<boolean>;
+  onRefresh?: () => void;
 }
 
 export function LiveRoomMaterials({
@@ -39,6 +40,7 @@ export function LiveRoomMaterials({
   onAddMaterial,
   onUpdateMaterial,
   onDeleteMaterial,
+  onRefresh,
 }: LiveRoomMaterialsProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -124,12 +126,23 @@ export function LiveRoomMaterials({
               <Palette className="w-5 h-5 text-gold" />
               <h3 className="text-white font-semibold">Materials</h3>
             </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
+            <div className="flex items-center gap-2">
+              {!isHost && onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                  title="Refresh materials"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-white/70" />
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
           </div>
 
           {/* Add Material Form (Host Only) */}
