@@ -165,6 +165,32 @@ serve(async (req) => {
                 }
               } else {
                 console.log(`[create-tip-payment] ✅ Recorded tip earning: $${(tipCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net`);
+
+                // Persistent in-app notification for the creator (bell + drawer).
+                // Best-effort: a notification failure must not fail the tip.
+                try {
+                  const { data: tipper } = await serviceClient
+                    .from("profiles")
+                    .select("name, handle")
+                    .eq("user_id", user.id)
+                    .maybeSingle();
+                  const tipperName = tipper?.name || tipper?.handle || "Someone";
+                  const amountStr = `$${(tipCents / 100).toFixed(2)}`;
+                  const { error: notifyError } = await serviceClient.from("notifications").insert({
+                    user_id: eventData.creator_id,
+                    type: "tip_received",
+                    title: `💝 ${amountStr} tip received`,
+                    message: `${tipperName} sent you a ${amountStr} tip`,
+                    link: "/settings?tab=payments",
+                  });
+                  if (notifyError) {
+                    console.error("[create-tip-payment] Failed to insert tip notification:", notifyError);
+                  } else {
+                    console.log(`[create-tip-payment] ✅ Tip notification created for creator ${eventData.creator_id}`);
+                  }
+                } catch (notifyErr) {
+                  console.error("[create-tip-payment] Tip notification exception:", notifyErr);
+                }
               }
             }
           }

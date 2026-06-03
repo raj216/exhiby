@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, User, Bell, Shield, CreditCard, HelpCircle, BookOpen, ChevronRight, Loader2, Mail, Smartphone, Trash2, BellRing, Bug, MessageSquare, Plus, CheckCircle, AlertCircle, ExternalLink, DollarSign, Ticket, Coins, TrendingUp, History, Landmark, Clock, Zap, Check, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
@@ -74,6 +74,7 @@ const supportItems = menuItems.filter(item => item.group === "support");
 export default function Settings() {
   console.log("[Settings] Component mounted at", Date.now());
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     isVerifiedCreator
   } = useUserMode();
@@ -91,16 +92,22 @@ export default function Settings() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Set default category on desktop - run only once after initial render
+  // Set default category on desktop - run only once after initial render.
+  // A ?tab= deep-link (e.g. from a tip notification → ?tab=payments) takes
+  // precedence and applies on BOTH mobile and desktop.
   useEffect(() => {
     if (!isInitialized) {
-      if (!isMobile) {
+      const validTabs: SettingsCategory[] = ["account", "notifications", "privacy", "payments", "help", "guidelines"];
+      const requestedTab = searchParams.get("tab") as SettingsCategory | null;
+      if (requestedTab && validTabs.includes(requestedTab)) {
+        setActiveCategory(requestedTab);
+      } else if (!isMobile) {
         setActiveCategory("account");
       }
       setIsInitialized(true);
       console.log("[Settings] Initialized, isMobile:", isMobile);
     }
-  }, [isMobile, isInitialized]);
+  }, [isMobile, isInitialized, searchParams]);
   const handleBack = useCallback(() => {
     if (isMobile && activeCategory) {
       setActiveCategory(null);
