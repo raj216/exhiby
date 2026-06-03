@@ -16,6 +16,16 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
   const [viewerCount, setViewerCount] = useState(0);
   const [isJoined, setIsJoined] = useState(false);
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+  // Mirror isJoined in a ref so joinAsViewer/leaveAsViewer can read the current
+  // value WITHOUT listing isJoined as a dependency. Listing it caused the
+  // callbacks to change identity on every join, which re-ran the LiveRoom
+  // join effect → cleanup leaveAsViewer() → re-join, an infinite oscillation.
+  // On desktop the RPCs are fast enough that it settles instantly, but on
+  // mobile (slow RPC round-trips) it left chat stuck on "CONNECTING…".
+  const isJoinedRef = useRef(false);
+  useEffect(() => {
+    isJoinedRef.current = isJoined;
+  }, [isJoined]);
 
   // Fetch active viewer count using the secure RPC function (30 second threshold)
   const fetchViewerCount = useCallback(async () => {
@@ -88,7 +98,7 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
   }, []);
 
   const joinAsViewer = useCallback(async () => {
-    if (!eventId || !user || isJoined) return;
+    if (!eventId || !user || isJoinedRef.current) return;
 
     try {
       console.log("[LiveViewers] Checking session capacity...");
@@ -129,7 +139,7 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
     } catch (err) {
       console.error("[LiveViewers] Exception joining as viewer:", err);
     }
-  }, [eventId, user, isJoined, startHeartbeat]);
+  }, [eventId, user, startHeartbeat]);
 
   const leaveAsViewer = useCallback(async () => {
     if (!eventId || !user) return;

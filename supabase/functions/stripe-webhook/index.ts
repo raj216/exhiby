@@ -578,6 +578,51 @@ async function recordTipEarning(
     }
   } else {
     console.log(`[stripe-webhook] ✅ TIP earning recorded: $${(params.amountCents / 100).toFixed(2)} gross, $${(amountNet / 100).toFixed(2)} net (${commissionPct}% fee) for creator ${event.creator_id}`);
+    // Persistent in-app notification for the creator (bell + NotificationsDrawer).
+    // Only on a fresh insert (not the idempotent 23505 path) to avoid duplicates.
+    await notifyCreatorOfTip(supabase, {
+      creatorId: event.creator_id,
+      tipperUserId: params.tipperUserId,
+      amountCents: params.amountCents,
+      eventId: params.eventId,
+    });
+  }
+}
+
+/**
+ * Insert a persistent in-app notification telling the creator they received a tip.
+ * Uses the service client (bypasses RLS). Best-effort: never throws into the
+ * caller, so a notification failure can't roll back the earning record.
+ */
+async function notifyCreatorOfTip(
+  supabase: ReturnType<typeof createClient>,
+  params: { creatorId: string; tipperUserId: string; amountCents: number; eventId: string }
+) {
+  try {
+    const { data: tipper } = await supabase
+      .from("profiles")
+      .select("name, handle")
+      .eq("user_id", params.tipperUserId)
+      .maybeSingle();
+
+    const tipperName = tipper?.name || tipper?.handle || "Someone";
+    const amountStr = `$${(params.amountCents / 100).toFixed(2)}`;
+
+    const { error } = await supabase.from("notifications").insert({
+      user_id: params.creatorId,
+      type: "tip_received",
+      title: `💝 ${amountStr} tip received`,
+      message: `${tipperName} sent you a ${amountStr} tip`,
+      link: "/settings?tab=payments",
+    });
+
+    if (error) {
+      console.error("[stripe-webhook] Failed to insert tip notification:", error);
+    } else {
+      console.log(`[stripe-webhook] ✅ Tip notification created for creator ${params.creatorId}`);
+    }
+  } catch (err) {
+    console.error("[stripe-webhook] notifyCreatorOfTip exception:", err);
   }
 }
 
