@@ -181,6 +181,41 @@ export default function SessionResolver() {
     setMeta('meta[name="twitter:title"]', "content", title);
     setMeta('meta[name="twitter:description"]', "content", desc);
     setMeta('meta[name="twitter:image"]', "content", image);
+
+    // Event JSON-LD structured data
+    const ldId = "session-jsonld";
+    document.getElementById(ldId)?.remove();
+    const ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = ldId;
+    ld.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Event",
+      name: session.title,
+      startDate: session.scheduled_at || undefined,
+      image: session.cover_url || undefined,
+      url,
+      eventStatus: status === "ended"
+        ? "https://schema.org/EventCompleted"
+        : "https://schema.org/EventScheduled",
+      eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+      location: {
+        "@type": "VirtualLocation",
+        url,
+      },
+      performer: session.creator_name
+        ? { "@type": "Person", name: session.creator_name, image: session.creator_avatar || undefined }
+        : undefined,
+      offers: {
+        "@type": "Offer",
+        price: session.is_free ? 0 : session.price,
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        url,
+      },
+    });
+    document.head.appendChild(ld);
+    return () => { document.getElementById(ldId)?.remove(); };
   }, [session, status]);
 
   // Loading state
