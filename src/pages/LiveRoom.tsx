@@ -175,7 +175,6 @@ export default function LiveRoom() {
       toast.info("Tip canceled", { description: "No charge was made." });
       setSearchParams({}, { replace: true });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, setSearchParams]);
 
   // Clear awaiting flag once ticket is confirmed
@@ -569,7 +568,9 @@ export default function LiveRoom() {
           filter: `event_id=eq.${eventId}`,
         },
         (payload) => {
-          const earning = payload.new as { amount_gross?: number };
+          const earning = payload.new as { amount_gross?: number; ticket_id?: string | null };
+          // ticket_id is set for session ticket purchases — only fire for actual tips
+          if (earning.ticket_id != null) return;
           const amountStr =
             earning.amount_gross != null
               ? `$${earning.amount_gross.toFixed(2)}`
