@@ -67,6 +67,7 @@ export function ClosedDoor({
         ease: "easeInOut"
       }}>
           <span className="text-gradient-electric">Exhiby</span>
+          <span className="sr-only"> — Support your favorite artists live</span>
         </motion.h1>
       </motion.div>
 
