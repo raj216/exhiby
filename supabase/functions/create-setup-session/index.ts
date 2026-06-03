@@ -24,6 +24,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
 
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -40,59 +41,62 @@ serve(async (req) => {
     }
     const user = claimsData.user;
 
+    if (!user.email) {
+      return new Response(JSON.stringify({ error: "User email required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });
 
-    // Resolve the canonical customer from profiles (same ID used by all payment functions)
-    const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {});
+    // Resolve or create the canonical Stripe customer, persisting the ID so all
+    // payment functions share the same customer going forward.
     const { data: profile } = await serviceClient
       .from("profiles")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const customerId =
-      (profile as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? null;
+    let customerId: string =
+      (profile as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? "";
 
     if (!customerId) {
-      return new Response(
-        JSON.stringify({ has_payment_method: false, customer_id: null }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Check by email first to avoid creating duplicates
+      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existing.data.length > 0) {
+        customerId = existing.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { supabase_user_id: user.id },
+        });
+        customerId = customer.id;
+      }
+      await serviceClient
+        .from("profiles")
+        .update({ stripe_customer_id: customerId } as never)
+        .eq("user_id", user.id);
+      console.log(`[create-setup-session] Persisted stripe_customer_id ${customerId} for user ${user.id}`);
     }
 
-    const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+    const origin = Deno.env.get("PUBLIC_SITE_URL") ?? "https://exhiby.lovable.app";
 
-    // Check for saved payment methods
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customer.id,
-      type: "card",
-      limit: 1,
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: "setup",
+      payment_method_types: ["card"],
+      success_url: `${origin}/settings?tab=payments&setup=success`,
+      cancel_url: `${origin}/settings?tab=payments`,
     });
 
-    if (paymentMethods.data.length === 0) {
-      return new Response(
-        JSON.stringify({ has_payment_method: false, customer_id: customer.id }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const pm = paymentMethods.data[0];
     return new Response(
-      JSON.stringify({
-        has_payment_method: true,
-        customer_id: customer.id,
-        payment_method: {
-          id: pm.id,
-          brand: pm.card?.brand || "card",
-          last4: pm.card?.last4 || "****",
-          exp_month: pm.card?.exp_month,
-          exp_year: pm.card?.exp_year,
-        },
-      }),
+      JSON.stringify({ url: session.url }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("[check-payment-method] Error:", error);
+    console.error("[create-setup-session] Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

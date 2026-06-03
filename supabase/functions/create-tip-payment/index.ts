@@ -91,21 +91,40 @@ serve(async (req) => {
     const processingFeeCents = Math.ceil((tipCents * 29) / 1000 + 30);
     const amountCents = tipCents + processingFeeCents;
 
-    // Find or create customer
+    // Resolve the canonical Stripe customer from profiles
+    const tipServiceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     let customerId: string;
-    if (user.email) {
-      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
+
+    const { data: tipperProfile } = await tipServiceClient
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    customerId =
+      (tipperProfile as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? "";
+
+    if (!customerId) {
+      if (!user.email) {
+        return new Response(JSON.stringify({ error: "User email required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existing.data.length > 0) {
+        customerId = existing.data[0].id;
       } else {
-        const customer = await stripe.customers.create({ email: user.email });
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { supabase_user_id: user.id },
+        });
         customerId = customer.id;
       }
-    } else {
-      return new Response(JSON.stringify({ error: "User email required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      await tipServiceClient
+        .from("profiles")
+        .update({ stripe_customer_id: customerId } as never)
+        .eq("user_id", user.id);
     }
 
     if (payment_method_id) {
@@ -130,7 +149,7 @@ serve(async (req) => {
         if (paymentIntent.status === "succeeded") {
           // Record tip earnings directly (webhooks may not fire for off-session charges)
           if (event_id) {
-            const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+            const serviceClient = tipServiceClient;
             const { data: eventData } = await serviceClient
               .from("events")
               .select("creator_id")

@@ -163,21 +163,39 @@ serve(async (req) => {
     const processingFeeCents = calcProcessingFeeCents(ticketPriceCents);
     const totalChargeCents = ticketPriceCents + processingFeeCents;
 
-    // Find or create Stripe customer
+    // Resolve the canonical Stripe customer from profiles
     let customerId: string;
-    if (user.email) {
-      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
+    const { data: buyerProfile } = await supabase
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    customerId =
+      (buyerProfile as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? "";
+
+    if (!customerId) {
+      if (!user.email) {
+        return new Response(JSON.stringify({ error: "User email required for payment" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Fallback: look up by email then persist the canonical ID
+      const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (existing.data.length > 0) {
+        customerId = existing.data[0].id;
       } else {
-        const customer = await stripe.customers.create({ email: user.email });
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { supabase_user_id: user.id },
+        });
         customerId = customer.id;
       }
-    } else {
-      return new Response(JSON.stringify({ error: "User email required for payment" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      await supabase
+        .from("profiles")
+        .update({ stripe_customer_id: customerId } as never)
+        .eq("user_id", user.id);
     }
 
     // Create pending ticket (amount = original ticket price, NOT total)
