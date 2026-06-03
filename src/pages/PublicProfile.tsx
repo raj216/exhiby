@@ -21,6 +21,7 @@ import { UpcomingSessionsPreview } from "@/components/UpcomingSessionsPreview";
 import { TipCreatorModal } from "@/components/TipCreatorModal";
 import { ShareProfileModal } from "@/components/ShareProfileModal";
 import { ProfileLinks } from "@/components/ProfileLinks";
+import { Seo } from "@/components/Seo";
 
 
 interface LiveEventData {
@@ -359,6 +360,25 @@ export default function PublicProfile() {
 
   return (
     <div className="min-h-screen bg-carbon">
+      <Seo
+        title={`${profile.name} on Exhiby`}
+        description={profile.bio?.slice(0, 160) || `${profile.name}'s profile on Exhiby — live studio sessions and creative work.`}
+        path={`/profile/${profile.user_id}`}
+        ogType="profile"
+        image={profile.avatar_url || undefined}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          mainEntity: {
+            "@type": "Person",
+            name: profile.name,
+            image: profile.avatar_url || undefined,
+            url: `https://joinexhiby.com/profile/${profile.user_id}`,
+            description: profile.bio || undefined,
+            sameAs: profile.website ? [profile.website] : undefined,
+          },
+        }}
+      />
       {/* Main Container */}
       <div className="max-w-screen-xl mx-auto lg:px-8">
         {/* Cover Image */}

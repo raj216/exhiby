@@ -275,6 +275,7 @@ export function BottomNavigation({
                       triggerClickHaptic();
                       onGoLive?.();
                     }}
+                    aria-label="Go Live"
                     className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg mb-1"
                     style={{
                       background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
@@ -283,7 +284,7 @@ export function BottomNavigation({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Video className="w-5 h-5 text-primary-foreground" />
+                    <Video className="w-5 h-5 text-primary-foreground" aria-hidden="true" />
                   </motion.button>
                 </div>
 
