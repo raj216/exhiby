@@ -50,3 +50,12 @@ verify_jwt = false
 
 [functions.post-session-thankyou]
 verify_jwt = false
+
+[functions.manage-payment-methods]
+verify_jwt = false
+
+[functions.create-setup-session]
+verify_jwt = false
+
+[functions.notify-creator-rating]
+verify_jwt = false

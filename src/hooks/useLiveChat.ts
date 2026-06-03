@@ -519,6 +519,17 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
       setIsSending(true);
 
       try {
+        // Viewers must have a live_viewers heartbeat within the access window for
+        // the INSERT RLS policy to accept the message. Mobile timer throttling can
+        // let the periodic heartbeat drift, so refresh it right before sending —
+        // this makes the send succeed even if the interval tick was delayed.
+        if (!isCreator) {
+          await supabase.rpc("upsert_live_viewer", {
+            p_event_id: eventId,
+            p_user_id: user.id,
+          });
+        }
+
         const { data, error } = await supabase
           .from("live_messages")
           .insert({

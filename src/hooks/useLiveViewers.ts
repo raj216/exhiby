@@ -203,13 +203,15 @@ export function useLiveViewers(eventId: string | null): UseLiveViewersResult {
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        // Update last_seen when tab becomes hidden
-        supabase.rpc("upsert_live_viewer", {
-          p_event_id: eventId,
-          p_user_id: user.id,
-        });
-      }
+      // Refresh last_seen on BOTH transitions. The visible→ beat matters most on
+      // mobile: background timers are throttled/paused, so the heartbeat interval
+      // can drift past the access window while the app is backgrounded. Beating
+      // immediately on resume restores chat/materials access without waiting for
+      // the next interval tick.
+      supabase.rpc("upsert_live_viewer", {
+        p_event_id: eventId,
+        p_user_id: user.id,
+      });
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
