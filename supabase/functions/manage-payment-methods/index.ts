@@ -42,11 +42,21 @@ serve(async (req) => {
     let customerId = (profile as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? null;
 
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { supabase_user_id: user.id },
-      });
-      customerId = customer.id;
+      // Adopt an existing email-based customer (legacy tip/ticket flow) before
+      // creating a new one, so we never orphan a previously-saved card.
+      let resolved: string | null = null;
+      if (user.email) {
+        const existing = await stripe.customers.list({ email: user.email, limit: 1 });
+        if (existing.data.length > 0) resolved = existing.data[0].id;
+      }
+      if (!resolved) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { supabase_user_id: user.id },
+        });
+        resolved = customer.id;
+      }
+      customerId = resolved;
       const { error: updErr } = await supabase
         .from("profiles")
         .update({ stripe_customer_id: customerId } as never)

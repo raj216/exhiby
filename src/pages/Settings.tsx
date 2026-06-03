@@ -583,6 +583,16 @@ const BRAND_STYLE: Record<string, string> = {
 function PaymentsContent() {
   const [subView, setSubView] = useState<PaymentSubView>("menu");
 
+  // Returning from Stripe Checkout setup lands on /settings?tab=payments&setup=success.
+  // Jump straight to the Payment Methods view so the user sees their new card and the
+  // success toast (the toast + refresh live in PaymentMethodsView).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("setup") === "success") {
+      setSubView("methods");
+    }
+  }, []);
+
   return (
     <AnimatePresence mode="wait">
       {subView === "menu" && (
@@ -871,14 +881,25 @@ function PaymentMethodsView({ onBack }: { onBack: () => void }) {
   const handleAddCard = async () => {
     setPortalLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("manage-payment-methods", { body: { action: "create_portal_session" } });
-      if (error || !data?.url) throw new Error("Could not open portal");
+      const { data, error } = await supabase.functions.invoke("create-setup-session");
+      if (error || !data?.url) throw new Error("Could not start setup");
       window.location.href = data.url;
     } catch {
-      toast({ title: "Error", description: "Could not open payment portal", variant: "destructive" });
+      toast({ title: "Error", description: "Could not open payment setup", variant: "destructive" });
       setPortalLoading(false);
     }
   };
+
+  // Show success toast and refresh when returning from Stripe Checkout setup
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("setup") === "success") {
+      toast({ title: "Card saved", description: "Your payment method has been added." });
+      window.history.replaceState({}, "", `${window.location.pathname}?tab=payments`);
+      fetchCards();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -951,7 +972,7 @@ function PaymentMethodsView({ onBack }: { onBack: () => void }) {
         className="w-full flex items-center justify-center gap-2 p-4 bg-electric/10 text-electric border border-electric/30 rounded-xl hover:bg-electric/20 transition-colors disabled:opacity-50"
       >
         {portalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-        {portalLoading ? "Opening portal…" : "Add Payment Method"}
+        {portalLoading ? "Opening setup…" : "Add Payment Method"}
       </button>
       <p className="text-xs text-muted-foreground text-center">Payment methods are stored securely by Stripe</p>
     </div>
