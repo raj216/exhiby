@@ -151,6 +151,13 @@ serve(async (req) => {
       body: JSON.stringify({
         name: roomName,
         properties: {
+          // Force SFU from the first participant so the creator sends one stream
+          // regardless of viewer count. P2P saturates the creator's uplink and
+          // adds 50-200ms of extra latency per viewer. Daily's documented value
+          // for "start in SFU mode immediately" is 0.5 — using 1 would keep the
+          // lone creator in P2P and trigger a topology-switch glitch the moment
+          // the first viewer joins.
+          sfu_switchover: 0.5,
           enable_screenshare: true,
           enable_chat: true,
           start_video_off: false,
