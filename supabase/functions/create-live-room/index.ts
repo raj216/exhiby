@@ -151,6 +151,10 @@ serve(async (req) => {
       body: JSON.stringify({
         name: roomName,
         properties: {
+          // Force SFU from the first participant so the creator sends one stream
+          // regardless of viewer count. P2P saturates the creator's uplink and
+          // adds 50-200ms of extra latency per viewer.
+          sfu_switchover: 1,
           enable_screenshare: true,
           enable_chat: true,
           start_video_off: false,

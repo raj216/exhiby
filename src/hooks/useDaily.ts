@@ -54,51 +54,26 @@ const ART_STUDIO_AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   sampleRate: { ideal: 48000, min: 44100 },
   // Mono is sufficient and more stable for voice
   channelCount: { ideal: 1 },
-  // Latency - prefer low latency for real-time interaction
-  // @ts-ignore - advanced constraint
-  latency: { ideal: 0.01, max: 0.05 },
 };
 
-// Simulcast encodings for adaptive quality with art-first priorities
-// Higher bitrates than typical for preserving fine details during motion
-const ART_STUDIO_SIMULCAST_ENCODINGS = [
-  // High layer: Full 1080p for maximum detail clarity
-  { 
-    maxBitrate: 4000000,      // 4 Mbps - higher for fine art details
-    maxFramerate: 30, 
-    scaleResolutionDownBy: 1,
-  },
-  // Medium layer: 720p fallback - still good for art visibility
-  { 
-    maxBitrate: 1500000,      // 1.5 Mbps
-    maxFramerate: 30, 
-    scaleResolutionDownBy: 1.5,
-  },
-  // Low layer: 480p emergency fallback - avoid going lower
-  { 
-    maxBitrate: 600000,       // 600 Kbps
-    maxFramerate: 30, 
-    scaleResolutionDownBy: 2,
-  },
-];
-
 // Host send settings for art studio quality - audio prioritized
+// 2.5 Mbps cap on the high layer: 4 Mbps caused GCC to over-fill the
+// send buffer before throttling, adding 2-5 s of perceived lag. 2.5 Mbps
+// delivers 1080p30 with fine detail while staying below the buffer-bloat
+// threshold on typical consumer uplinks.
 const ART_STUDIO_SEND_SETTINGS = {
   video: {
     maxQuality: 'high' as const,
-    // Allow adaptive layers so video can degrade before audio
     allowAdaptiveLayers: true,
     encodings: {
       low: { maxBitrate: 600000, maxFramerate: 30 },
-      medium: { maxBitrate: 1500000, maxFramerate: 30 },
-      high: { maxBitrate: 4000000, maxFramerate: 30 },
+      medium: { maxBitrate: 1200000, maxFramerate: 30 },
+      high: { maxBitrate: 2500000, maxFramerate: 30 },
     },
   },
   audio: {
-    // Prioritize audio quality - voice should always be clear
     maxQuality: 'high' as const,
-    // Higher bitrate for voice clarity (Opus typically uses 32-128kbps)
-    maxBitrate: 128000,  // 128 kbps for studio-quality voice
+    maxBitrate: 128000,
   },
 };
 
@@ -401,7 +376,7 @@ export function useDaily({
   const [participants, setParticipants] = useState<DailyParticipantInfo[]>([]);
   const [isJoined, setIsJoined] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [isCameraOn, setIsCameraOn] = useState(isHost);
+  const [isCameraOn, setIsCameraOn] = useState(false); // Set to true after HD camera ready
   const [isMicOn, setIsMicOn] = useState(isHost);
   const [error, setError] = useState<string | null>(null);
   const [errorStack, setErrorStack] = useState<string | null>(null);
@@ -807,14 +782,18 @@ export function useDaily({
             await call.join({
               url: roomUrl,
               userName,
-              startVideoOff: !isHost,
+              // Host: start with video OFF so we can apply HD camera constraints
+              // before the first frame is sent. Joining with video ON and then
+              // calling setInputDevicesAsync triggers a mid-stream SDP
+              // renegotiation that causes a visible freeze for viewers.
+              // Viewers: always start with video/audio off.
+              startVideoOff: true,
               startAudioOff: !isHost,
-              // Request highest quality layer for art detail visibility
-              receiveSettings: ART_STUDIO_RECEIVE_SETTINGS,
-              // Inject a custom flag so other devices can identify this as a
-              // creator/host device without needing Daily.co owner tokens.
-              // This is how the companion-device safety net detects a second
-              // creator opening the same room on another device.
+              // receiveSettings deliberately omitted at join — viewers request
+              // layer 1 (720p) after joining and the quality monitor steps up
+              // to layer 2 (1080p) once the host's simulcast layers are
+              // established. Requesting layer 2 at join while the host is still
+              // setting up causes viewers to stall waiting for an unavailable layer.
               userData: isHost ? { isCreatorHost: true } : undefined,
             });
 
@@ -903,7 +882,7 @@ export function useDaily({
               // Apply art-studio send settings for maximum visual clarity + audio priority
               try {
                 call.updateSendSettings(ART_STUDIO_SEND_SETTINGS);
-                console.log("[useDaily] Host: Art Studio send settings applied (video 4Mbps, audio 128kbps)");
+                console.log("[useDaily] Host: Art Studio send settings applied (video 2.5Mbps, audio 128kbps)");
               } catch (e) {
                 console.warn("[useDaily] Could not apply Art Studio send settings:", e);
               }
@@ -911,10 +890,14 @@ export function useDaily({
               setIsCameraOn(true);
               setIsMicOn(true);
             } else if (mountedRef.current) {
-              console.log("[useDaily] Viewer: requesting highest quality for art detail");
-              
-              // Viewers request to receive highest quality for fine art details
-              call.updateReceiveSettings(ART_STUDIO_RECEIVE_SETTINGS);
+              // Start at layer 1 (720p) — the host's highest simulcast layer
+              // (layer 2 / 1080p) may not be established yet. The quality
+              // monitor will step up to layer 2 once bitrate is confirmed good.
+              try {
+                call.updateReceiveSettings(MEDIUM_QUALITY_RECEIVE_SETTINGS);
+              } catch (e) {
+                console.warn("[useDaily] Could not set initial receive quality:", e);
+              }
               
               // Ensure viewer video/audio is disabled to prioritize host stream
               await call.setLocalVideo(false);
