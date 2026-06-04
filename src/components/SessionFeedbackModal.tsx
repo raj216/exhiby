@@ -143,11 +143,16 @@ export function SessionFeedbackModal({
       });
 
       if (error) {
+        console.error("[SessionFeedback] insert error:", error, {
+          eventId, creatorId, rating, valueGained, pacing, creatorEngagement, wouldReturn, leftEarly, leftEarlyReason, appIssue,
+        });
         if (error.code === "23505") {
           toast.info("You've already submitted feedback for this session");
           onClose();
+        } else if (error.code === "42501" || /row-level security/i.test(error.message || "")) {
+          toast.error("Couldn't verify your ticket for this session");
         } else {
-          toast.error("Failed to submit feedback");
+          toast.error(error.message || "Failed to submit feedback");
         }
         return;
       }
@@ -160,7 +165,8 @@ export function SessionFeedbackModal({
         .catch(() => {});
 
       setSubmitted(true);
-    } catch {
+    } catch (err) {
+      console.error("[SessionFeedback] unexpected error:", err);
       toast.error("Failed to submit feedback");
     } finally {
       setIsSubmitting(false);
