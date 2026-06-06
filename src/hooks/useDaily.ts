@@ -890,11 +890,11 @@ export function useDaily({
               setIsCameraOn(true);
               setIsMicOn(true);
             } else if (mountedRef.current) {
-              // Start at layer 1 (720p) — the host's highest simulcast layer
-              // (layer 2 / 1080p) may not be established yet. The quality
-              // monitor will step up to layer 2 once bitrate is confirmed good.
+              // Start directly at layer 2 (1080p) for best perceived quality on join.
+              // The quality monitor will step down adaptively if bandwidth can't sustain it.
               try {
-                call.updateReceiveSettings(MEDIUM_QUALITY_RECEIVE_SETTINGS);
+                call.updateReceiveSettings(ART_STUDIO_RECEIVE_SETTINGS);
+                console.log("[useDaily] Viewer: requesting layer 2 (1080p) on join");
               } catch (e) {
                 console.warn("[useDaily] Could not set initial receive quality:", e);
               }

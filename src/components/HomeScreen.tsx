@@ -321,6 +321,7 @@ export function HomeScreen({
           <div className="flex">
             {/* Main Content Area */}
             <main className="flex-1 min-w-0 pb-24 lg:pb-8">
+              <h1 className="sr-only">Exhiby — Live Studio Access for Artists &amp; Collectors</h1>
               {/* Show skeleton during initial load */}
               {(loadingLiveEvents || loadingEvents) && !hasAnyLiveContent && !hasUpcomingEvents ? (
                 <HomeScreenSkeleton />
