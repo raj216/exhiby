@@ -567,7 +567,14 @@ async function recordTipEarning(
     amount_net: amountNet,
     currency: params.currency,
     status: "succeeded",
-    stripe_event_id: params.stripeEventId,
+    // Deterministic idempotency key on the payment intent so that the THREE
+    // possible recording paths for one tip — create-tip-payment's direct insert
+    // (saved card), checkout.session.completed, and payment_intent.succeeded —
+    // all produce the SAME stripe_event_id and collapse into one earning row via
+    // the UNIQUE constraint. Falls back to the raw event id only if no PI exists.
+    stripe_event_id: params.stripePaymentIntentId
+      ? `tip_${params.stripePaymentIntentId}`
+      : params.stripeEventId,
   });
 
   if (error) {

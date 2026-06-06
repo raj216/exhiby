@@ -73,6 +73,10 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const subscriptionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
+  // True once the channel has been SUBSCRIBED at least once for this room. Used
+  // to distinguish the FIRST subscribe (initial load already covers it) from a
+  // RE-subscribe after a dropped socket (which must backfill missed messages).
+  const hasConnectedRef = useRef(false);
 
   const isCreator = user?.id === creatorId;
   
@@ -129,6 +133,66 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
       setIsLoading(false);
     }
   }, [eventId]);
+
+  // Additively backfill any messages we missed while the realtime socket was
+  // down. postgres_changes does NOT replay events that fired during a gap, so
+  // when a dropped channel re-subscribes (common on mobile: backgrounding the
+  // app, or switching wifi↔cellular), every message inserted during the gap is
+  // gone until a full page refresh. This fetches the recent window and merges in
+  // ONLY the rows we don't already have — it never removes or reorders existing
+  // messages, and never disturbs in-flight optimistic sends.
+  const backfillMissedMessages = useCallback(async () => {
+    if (!eventId) return;
+    try {
+      const { data, error } = await supabase
+        .from("live_messages")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error || !data) return;
+
+      const fetched = (data as LiveMessage[]).slice().reverse(); // chronological
+      const missing = fetched.filter((m) => !processedServerIds.current.has(m.id));
+      if (missing.length === 0) return;
+
+      devLog(`Backfill: recovered ${missing.length} message(s) missed during disconnect`);
+      missing.forEach((m) => processedServerIds.current.add(m.id));
+
+      setMessages((prev) => {
+        const merged = [...prev];
+        for (const m of missing) {
+          if (merged.some((x) => x.id === m.id)) continue;
+          merged.push({ ...m, _status: "sent" as const });
+        }
+        merged.sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        return merged;
+      });
+
+      // Surface unread/toast for messages that arrived while we were disconnected
+      // (not our own, and only when chat is closed).
+      if (!isChatOpenRef.current) {
+        const incoming = missing.filter((m) => m.user_id !== user?.id);
+        if (incoming.length > 0) {
+          setUnreadCount((prev) => prev + incoming.length);
+          const newest = incoming[incoming.length - 1];
+          if (lastToastMessageId.current !== newest.id) {
+            lastToastMessageId.current = newest.id;
+            setLatestUnreadMessage({
+              id: newest.id,
+              display_name: newest.display_name,
+              message: newest.message,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      devLog("Backfill error:", err);
+    }
+  }, [eventId, user?.id]);
 
   // Fetch initial pinned message id
   useEffect(() => {
@@ -335,12 +399,20 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
           setStatus("connected");
           reconnectAttempts.current = 0;
           retryCountRef.current = 0;
-          
+
           // Clear any pending timeout since we connected
           if (subscriptionTimeoutRef.current) {
             clearTimeout(subscriptionTimeoutRef.current);
             subscriptionTimeoutRef.current = null;
           }
+
+          // If we were connected before, this is a RECONNECT — backfill any
+          // messages that were inserted while the socket was down. The first
+          // subscribe is already covered by loadMessages() in the effect.
+          if (hasConnectedRef.current) {
+            backfillMissedMessages();
+          }
+          hasConnectedRef.current = true;
         } else if (subscriptionStatus === "CLOSED" || subscriptionStatus === "CHANNEL_ERROR") {
           devLog("❌ Channel error/closed:", subscriptionStatus, err);
           setStatus("disconnected");
@@ -385,7 +457,7 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
         setupSubscription();
       }
     }, 6000);
-  }, [eventId, user?.id, canSubscribe, isCreator, isViewerReady]);
+  }, [eventId, user?.id, canSubscribe, isCreator, isViewerReady, backfillMissedMessages]);
 
   // Subscribe to realtime updates - waits for canSubscribe to be true
   useEffect(() => {
@@ -411,6 +483,9 @@ export function useLiveChat({ eventId, creatorId, isViewerReady = false }: UseLi
       return () => {
         clearTimeout(subscribeTimer);
         devLog("Cleaning up channel and timeouts");
+        // New room / unmount: forget the "was connected" state so the next
+        // room's first subscribe doesn't trigger a spurious backfill.
+        hasConnectedRef.current = false;
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;

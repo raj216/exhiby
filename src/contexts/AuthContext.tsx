@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -94,9 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
-    console.log("[AuthContext] signOut called - session before:", { hasSession: !!session, userId: user?.id });
-    
+  const signOut = useCallback(async () => {
+    console.log("[AuthContext] signOut called");
+
     try {
       // Clear local state immediately to prevent UI flicker
       setUser(null);
@@ -118,10 +118,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Double-check session is cleared
     const { data } = await supabase.auth.getSession();
     console.log("[AuthContext] signOut complete - session after:", { hasSession: !!data.session });
-  };
+  }, []);
+
+  // Memoize the context value so consumers only re-render when auth state
+  // actually changes — not on every render of AuthProvider's parent. This
+  // provider wraps the entire app, so a new value object each render would
+  // cascade re-renders through every useAuth() consumer.
+  const value = useMemo(
+    () => ({ user, session, isLoading, signOut }),
+    [user, session, isLoading, signOut]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
