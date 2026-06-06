@@ -16,7 +16,7 @@ interface UserModeContextType {
 const UserModeContext = createContext<UserModeContextType | undefined>(undefined);
 
 export function UserModeProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const readStoredMode = (): UserRole => {
     try {
       const raw = localStorage.getItem("exhiby_app_mode");
@@ -51,6 +51,12 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
   // Load creator status from database on mount and when user changes
   useEffect(() => {
     const loadCreatorStatus = async () => {
+      // Auth is still initialising — user transitions through null on every hard
+      // refresh before the session is restored. Bail early so we never overwrite
+      // localStorage with "audience" during that transient window; the effect will
+      // re-run once isAuthLoading flips to false.
+      if (isAuthLoading) return;
+
       if (!user) {
         setVerifiedCreator(false);
         _setMode("audience");
@@ -93,7 +99,7 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
     };
 
     loadCreatorStatus();
-  }, [user]);
+  }, [user, isAuthLoading]);
 
   // Function to activate creator role (via secure server-side function)
   const activateCreatorRole = useCallback(async (): Promise<boolean> => {
