@@ -173,7 +173,12 @@ serve(async (req) => {
                 amount_net: amountNet,
                 currency: "usd",
                 status: "succeeded",
-                stripe_event_id: `tip_saved_${paymentIntent.id}`,
+                // Deterministic idempotency key on the payment intent. The
+                // stripe-webhook ALSO receives payment_intent.succeeded for this
+                // off-session charge and records the same tip — using the same
+                // `tip_${pi}` key on both paths lets the stripe_event_id UNIQUE
+                // constraint collapse them into ONE earning (no double-count).
+                stripe_event_id: `tip_${paymentIntent.id}`,
               });
 
               if (earningsError) {

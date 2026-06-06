@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -96,7 +96,7 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   // Function to activate creator role (via secure server-side function)
-  const activateCreatorRole = async (): Promise<boolean> => {
+  const activateCreatorRole = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
 
     try {
@@ -119,9 +119,9 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
       console.error("Error activating creator role:", err);
       return false;
     }
-  };
+  }, [user]);
 
-  const toggleMode = () => {
+  const toggleMode = useCallback(() => {
     // Allow creators to always return to audience mode.
     // Only allow entering creator mode once the user is verified.
     _setMode((prev) => {
@@ -129,19 +129,24 @@ export function UserModeProvider({ children }: { children: ReactNode }) {
       writeStoredMode(next);
       return next;
     });
-  };
+  }, [isVerifiedCreator]);
+
+  // Memoize so consumers don't re-render on every parent render — this provider
+  // wraps the whole authenticated app.
+  const value = useMemo(
+    () => ({
+      mode,
+      isVerifiedCreator,
+      isLoadingCreatorStatus,
+      setMode,
+      activateCreatorRole,
+      toggleMode,
+    }),
+    [mode, isVerifiedCreator, isLoadingCreatorStatus, setMode, activateCreatorRole, toggleMode]
+  );
 
   return (
-    <UserModeContext.Provider
-      value={{
-        mode,
-        isVerifiedCreator,
-        isLoadingCreatorStatus,
-        setMode,
-        activateCreatorRole,
-        toggleMode,
-      }}
-    >
+    <UserModeContext.Provider value={value}>
       {children}
     </UserModeContext.Provider>
   );
