@@ -148,32 +148,18 @@ export function useCreatorEarnings(userId: string | undefined) {
   useEffect(() => {
     if (!userId) return;
 
+    // Listen on the per-creator private Broadcast topic. A DB trigger
+    // (broadcast_creator_earning) emits a sanitized 'earning' event on every
+    // creator_earnings INSERT/UPDATE. We don't use postgres_changes on the base
+    // table because its sensitive columns (buyer id, stripe ids) are REVOKEd and
+    // must never hit the wire — the broadcast payload carries only safe fields.
+    // Topic access is gated by the realtime.messages RLS policy
+    // (creator-earnings-<auth.uid()>), so only this creator receives it.
     const channel = supabase
-      .channel(`creator-earnings-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "creator_earnings",
-          filter: `creator_id=eq.${userId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["creator-earnings", userId] });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "creator_earnings",
-          filter: `creator_id=eq.${userId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["creator-earnings", userId] });
-        }
-      )
+      .channel(`creator-earnings-${userId}`, { config: { private: true } })
+      .on("broadcast", { event: "earning" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["creator-earnings", userId] });
+      })
       .subscribe();
 
     return () => {

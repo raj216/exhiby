@@ -553,34 +553,36 @@ export default function LiveRoom() {
     };
   }, [eventId, isCreator, streamEndedByHost]);
 
-  // Notify the creator when a tip lands (realtime INSERT on creator_earnings)
+  // Notify the creator when a tip lands. Listens on the per-creator private
+  // Broadcast topic emitted by the broadcast_creator_earning DB trigger (the
+  // creator viewing their own room has auth.uid() === creator_id, which the
+  // realtime.messages topic policy authorises). The payload is sanitized — it
+  // carries amount_gross (cents) and ticket_id only, no buyer/stripe data.
   useEffect(() => {
     if (!isCreator || !event?.creator_id || !eventId) return;
 
     const channel = supabase
-      .channel(`tip-notify-${eventId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "creator_earnings",
-          filter: `event_id=eq.${eventId}`,
-        },
-        (payload) => {
-          const earning = payload.new as { amount_gross?: number; ticket_id?: string | null };
-          // ticket_id is set for session ticket purchases — only fire for actual tips
-          if (earning.ticket_id != null) return;
-          const amountStr =
-            earning.amount_gross != null
-              ? `$${earning.amount_gross.toFixed(2)}`
-              : null;
-          toast.success(amountStr ? `${amountStr} tip received!` : "New tip received!", {
-            description: "A fan just showed their appreciation ♡",
-            duration: 8000,
-          });
-        }
-      )
+      .channel(`creator-earnings-${event.creator_id}`, { config: { private: true } })
+      .on("broadcast", { event: "earning" }, (payload) => {
+        const earning = (payload.payload ?? {}) as {
+          amount_gross?: number;
+          ticket_id?: string | null;
+          event_id?: string;
+        };
+        // ticket_id is set for session ticket purchases — only fire for actual tips
+        if (earning.ticket_id != null) return;
+        // The creator topic spans all their sessions; only toast for THIS room.
+        if (earning.event_id && earning.event_id !== eventId) return;
+        // amount_gross is in cents — convert to dollars for display.
+        const amountStr =
+          earning.amount_gross != null
+            ? `$${(earning.amount_gross / 100).toFixed(2)}`
+            : null;
+        toast.success(amountStr ? `${amountStr} tip received!` : "New tip received!", {
+          description: "A fan just showed their appreciation ♡",
+          duration: 8000,
+        });
+      })
       .subscribe();
 
     return () => {
