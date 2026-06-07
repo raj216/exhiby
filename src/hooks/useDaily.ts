@@ -30,14 +30,14 @@ let initializationPromise: Promise<DailyCall> | null = null;
 let destroyPromise: Promise<void> | null = null;
 
 // A DailyCall whose underlying client was destroyed throws "undefined
-// callClientId..." on any method call. meetingState() is the cheapest liveness
-// probe: a healthy instance returns a state string, a dead one returns
-// "destroyed"/undefined or throws.
+// callClientId..." on ANY method call. We probe with meetingState(): if the
+// instance still responds it's reusable; if it throws (or returns nothing) it
+// was torn down and must be discarded. NOTE: daily-js has no "destroyed"
+// meeting state — a dead instance is detected purely by the thrown error.
 function isCallUsable(call: DailyCall | null | undefined): call is DailyCall {
   if (!call) return false;
   try {
-    const state = call.meetingState();
-    return state != null && state !== "destroyed";
+    return call.meetingState() != null;
   } catch {
     return false;
   }
@@ -330,7 +330,7 @@ function destroyCallObject(): Promise<void> {
 
   console.log("[Daily] Destroying call object");
 
-  destroyPromise = (async () => {
+  const teardown = (async () => {
     try {
       const meetingState = call.meetingState();
       if (meetingState === "joined-meeting" || meetingState === "joining-meeting") {
@@ -342,12 +342,24 @@ function destroyCallObject(): Promise<void> {
     }
 
     try {
-      call.destroy();
+      // destroy() is async in daily-js. AWAIT it so the instance is fully
+      // unregistered before any subsequent createCallObject() — otherwise a
+      // fast re-mount creates a second instance while this one is still alive
+      // and Daily throws "Duplicate DailyIframe instances are not allowed".
+      await call.destroy();
       console.log("[Daily] Destroyed");
     } catch (e) {
       console.warn("[Daily] Destroy error (ignored):", e);
     }
   })();
+
+  // Cap the teardown so a stuck leave()/destroy() can never block the next
+  // join indefinitely (the join timeout isn't armed until after the call
+  // object is ready, so a hang here would otherwise be unrecoverable).
+  destroyPromise = Promise.race([
+    teardown,
+    new Promise<void>((resolve) => setTimeout(resolve, 4000)),
+  ]);
 
   destroyPromise.finally(() => {
     destroyPromise = null;
@@ -424,6 +436,10 @@ export function useDaily({
   const qualityMonitorRef = useRef<ReturnType<typeof createQualityMonitor> | null>(null);
 
   // State
+  // Bumped by reset() to force the init effect to re-run. A plain re-render
+  // does NOT re-run a useEffect with unchanged deps, so the Retry button
+  // needs an actual dependency change to re-establish the connection.
+  const [retryNonce, setRetryNonce] = useState(0);
   const [participants, setParticipants] = useState<DailyParticipantInfo[]>([]);
   const [isJoined, setIsJoined] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
@@ -1004,7 +1020,7 @@ export function useDaily({
       isJoiningRef.current = false;
       hasJoinedRef.current = false;
     };
-  }, [roomUrl, isHost, userName, joinTimeoutMs, updateStatus, clearJoinTimeout, updateParticipants]);
+  }, [roomUrl, isHost, userName, joinTimeoutMs, retryNonce, updateStatus, clearJoinTimeout, updateParticipants]);
 
   // Leave the room
   const leave = useCallback(async () => {
@@ -1040,15 +1056,16 @@ export function useDaily({
     
     // Force re-init by incrementing instance ID
     instanceIdRef.current++;
-    
+
     // Small delay then re-trigger init
     await new Promise(r => setTimeout(r, 100));
-    
+
     if (roomUrl) {
-      // Will re-run the effect since hasInitializedRef is now false
+      // Allow the effect's init guard to pass again, then bump retryNonce so
+      // the effect actually RE-RUNS (a dependency genuinely changed). A plain
+      // re-render would not re-run an effect whose other deps are unchanged.
       hasInitializedRef.current = false;
-      // Trigger re-render to re-run effect
-      updateStatus("idle");
+      setRetryNonce((n) => n + 1);
     }
   }, [roomUrl, clearJoinTimeout, updateStatus]);
 
