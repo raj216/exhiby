@@ -24,6 +24,24 @@ export type DailyJoinStatus =
 let globalCallObject: DailyCall | null = null;
 let globalInstanceId = 0;
 let initializationPromise: Promise<DailyCall> | null = null;
+// Tracks an in-flight teardown so a new join never grabs the instance that is
+// being destroyed — the root cause of "undefined callClientId. Are you trying
+// to use a DailyCall instance previously destroyed?"
+let destroyPromise: Promise<void> | null = null;
+
+// A DailyCall whose underlying client was destroyed throws "undefined
+// callClientId..." on any method call. meetingState() is the cheapest liveness
+// probe: a healthy instance returns a state string, a dead one returns
+// "destroyed"/undefined or throws.
+function isCallUsable(call: DailyCall | null | undefined): call is DailyCall {
+  if (!call) return false;
+  try {
+    const state = call.meetingState();
+    return state != null && state !== "destroyed";
+  } catch {
+    return false;
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Art Studio Video & Audio Quality Configuration
@@ -227,21 +245,39 @@ function releasePreAcquiredAudio(): void {
   }
 }
 
-function getOrCreateCallObject(): Promise<DailyCall> {
-  // Check for existing Daily instance first
-  const existing = Daily.getCallInstance();
-  if (existing) {
-    console.log("[Daily] Reusing existing Daily.getCallInstance()");
+async function getOrCreateCallObject(): Promise<DailyCall> {
+  // Never race a teardown. If a destroy is in flight, wait for it to finish so
+  // we don't hand back the instance that is being destroyed.
+  if (destroyPromise) {
+    console.log("[Daily] Waiting for in-flight teardown before (re)creating");
+    try {
+      await destroyPromise;
+    } catch {
+      /* ignore — we recreate below regardless */
+    }
+  }
+
+  // Reuse ONLY a healthy existing instance (not one that was destroyed but is
+  // still lingering in Daily's registry or our singleton).
+  const existing = globalCallObject ?? Daily.getCallInstance();
+  if (isCallUsable(existing)) {
+    console.log("[Daily] Reusing healthy existing call instance");
     globalCallObject = existing;
-    return Promise.resolve(existing);
+    return existing;
   }
 
-  if (globalCallObject) {
-    console.log("[Daily] Reusing globalCallObject");
-    return Promise.resolve(globalCallObject);
+  // A dead/destroyed instance is lingering — clear it so a fresh one is made.
+  if (existing) {
+    console.log("[Daily] Discarding unusable (destroyed) call instance");
+    try {
+      existing.destroy();
+    } catch {
+      /* ignore */
+    }
   }
+  globalCallObject = null;
 
-  // If already initializing, wait for that
+  // If a creation is already running, wait for that
   if (initializationPromise) {
     console.log("[Daily] Waiting for in-flight initialization");
     return initializationPromise;
@@ -276,33 +312,48 @@ function getOrCreateCallObject(): Promise<DailyCall> {
   return initializationPromise;
 }
 
-async function destroyCallObject(): Promise<void> {
-  const call = globalCallObject || Daily.getCallInstance();
+function destroyCallObject(): Promise<void> {
+  // Idempotent: if a teardown is already running, reuse it.
+  if (destroyPromise) {
+    return destroyPromise;
+  }
+
+  const call = globalCallObject ?? Daily.getCallInstance();
+  // Drop the singleton reference SYNCHRONOUSLY (before any await) so a
+  // concurrent getOrCreateCallObject() can't grab the dying instance.
+  globalCallObject = null;
+
   if (!call) {
     console.log("[Daily] No call object to destroy");
-    return;
+    return Promise.resolve();
   }
 
   console.log("[Daily] Destroying call object");
-  
-  try {
-    const meetingState = call.meetingState();
-    if (meetingState === "joined-meeting" || meetingState === "joining-meeting") {
-      await call.leave();
-      console.log("[Daily] Left meeting");
+
+  destroyPromise = (async () => {
+    try {
+      const meetingState = call.meetingState();
+      if (meetingState === "joined-meeting" || meetingState === "joining-meeting") {
+        await call.leave();
+        console.log("[Daily] Left meeting");
+      }
+    } catch (e) {
+      console.warn("[Daily] Leave error (ignored):", e);
     }
-  } catch (e) {
-    console.warn("[Daily] Leave error (ignored):", e);
-  }
 
-  try {
-    call.destroy();
-    console.log("[Daily] Destroyed");
-  } catch (e) {
-    console.warn("[Daily] Destroy error (ignored):", e);
-  }
+    try {
+      call.destroy();
+      console.log("[Daily] Destroyed");
+    } catch (e) {
+      console.warn("[Daily] Destroy error (ignored):", e);
+    }
+  })();
 
-  globalCallObject = null;
+  destroyPromise.finally(() => {
+    destroyPromise = null;
+  });
+
+  return destroyPromise;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
