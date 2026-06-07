@@ -101,7 +101,23 @@ export function TipCreatorModal({
       if (error) throw new Error(error.message || "Tip failed");
       if (data?.success) {
         triggerSuccessHaptic();
-        toast.success(`$${resolvedAmount} tip sent to ${creatorName}!`);
+        const amt = resolvedAmount;
+        const name = creatorName;
+        toast.custom(() => (
+          <div className="flex items-center gap-3 bg-card border border-primary/25 rounded-2xl px-4 py-3.5 shadow-xl shadow-black/50 min-w-[260px] max-w-[340px]">
+            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 text-base">
+              ♡
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground leading-snug">
+                Thank you for your support
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                ${amt.toFixed(2)} sent to {name}
+              </p>
+            </div>
+          </div>
+        ), { duration: 6000 });
         onClose();
         return;
       }
