@@ -578,9 +578,15 @@ export default function LiveRoom() {
           earning.amount_gross != null
             ? `$${(earning.amount_gross / 100).toFixed(2)}`
             : null;
-        toast.custom(() => (
-          <div className="flex items-center gap-3 bg-card border border-accent/25 rounded-2xl px-4 py-3.5 shadow-xl shadow-black/50 min-w-[260px] max-w-[340px]">
-            <div className="w-9 h-9 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0 text-base">
+        toast.custom((t) => (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            onClick={() => toast.dismiss(t)}
+            className="flex items-center gap-3 bg-obsidian/95 backdrop-blur-xl border border-accent/30 rounded-2xl px-4 py-3.5 shadow-2xl cursor-pointer min-w-[260px] max-w-[340px]"
+          >
+            <div className="w-9 h-9 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0 text-base text-accent">
               ✦
             </div>
             <div className="min-w-0">
@@ -591,7 +597,7 @@ export default function LiveRoom() {
                 A fan is showing their love
               </p>
             </div>
-          </div>
+          </motion.div>
         ), { duration: 8000 });
       })
       .subscribe();

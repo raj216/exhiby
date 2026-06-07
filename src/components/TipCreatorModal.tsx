@@ -103,9 +103,15 @@ export function TipCreatorModal({
         triggerSuccessHaptic();
         const amt = resolvedAmount;
         const name = creatorName;
-        toast.custom(() => (
-          <div className="flex items-center gap-3 bg-card border border-primary/25 rounded-2xl px-4 py-3.5 shadow-xl shadow-black/50 min-w-[260px] max-w-[340px]">
-            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 text-base">
+        toast.custom((t) => (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            onClick={() => toast.dismiss(t)}
+            className="flex items-center gap-3 bg-obsidian/95 backdrop-blur-xl border border-primary/30 rounded-2xl px-4 py-3.5 shadow-2xl cursor-pointer min-w-[260px] max-w-[340px]"
+          >
+            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 text-base text-primary">
               ♡
             </div>
             <div className="min-w-0">
@@ -116,7 +122,7 @@ export function TipCreatorModal({
                 ${amt.toFixed(2)} sent to {name}
               </p>
             </div>
-          </div>
+          </motion.div>
         ), { duration: 6000 });
         onClose();
         return;
