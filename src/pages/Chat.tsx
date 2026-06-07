@@ -627,8 +627,8 @@ export default function Chat() {
   const showLoading = isLoading && !isNewChat;
 
   return (
-    <div className="min-h-screen bg-carbon flex flex-col">
-     <div className="w-full max-w-[1200px] mx-auto lg:px-8 flex flex-col flex-1">
+    <div className="h-dvh bg-carbon flex flex-col">
+     <div className="w-full max-w-[1200px] mx-auto lg:px-8 flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-carbon/95 backdrop-blur-sm border-b border-border/30">
         <div
@@ -705,7 +705,7 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 min-h-0">
         {showLoading ? (
           <ChatSkeleton />
         ) : messages.length === 0 ? (
