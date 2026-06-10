@@ -1107,6 +1107,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      can_submit_session_feedback: {
+        Args: { p_event_id: string }
+        Returns: boolean
+      }
       check_handle_available: {
         Args: { target_handle: string }
         Returns: boolean
