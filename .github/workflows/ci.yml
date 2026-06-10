@@ -70,3 +70,4 @@ jobs:
       - name: Deno lint (edge functions, advisory)
         continue-on-error: true
         run: deno lint supabase/functions
+# Trigger Lovable sync
