@@ -50,8 +50,9 @@ GRANT EXECUTE ON FUNCTION public.touch_live_heartbeat(uuid) TO authenticated;
 -- ── 3. The reaper ────────────────────────────────────────────────────────────
 -- Ends only sessions with POSITIVE evidence of abandonment, so it can never end
 -- an active session:
---   • Arm 1 — the host heartbeat went stale (>3 min since last beat). At a 45s
---     beat interval that is 4 missed beats, well past any transient blip.
+--   • Arm 1 — the host heartbeat went stale (>5 min since last beat). At a 45s
+--     beat interval that is ~6 missed beats, forgiving of a transient host
+--     network blip so we never end a session the creator is still running.
 --   • Arm 2 — a legacy / pre-heartbeat session left live absurdly long (>12h).
 --     12h is far beyond any real session, so no active session is at risk; this
 --     just cleans up rows stranded before the heartbeat existed.
@@ -76,7 +77,7 @@ BEGIN
       AND e.live_ended_at IS NULL
       AND (
         (e.live_heartbeat_at IS NOT NULL
-           AND e.live_heartbeat_at < now() - interval '3 minutes')
+           AND e.live_heartbeat_at < now() - interval '5 minutes')
         OR
         (e.live_heartbeat_at IS NULL
            AND e.live_started_at IS NOT NULL

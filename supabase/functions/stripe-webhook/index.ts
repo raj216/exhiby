@@ -497,7 +497,11 @@ async function recordCreatorEarning(
     amount_net: amountNet,
     currency: params.currency,
     status: "succeeded",
-    stripe_event_id: params.stripeEventId,
+    // Deterministic per-ticket key shared with verify-checkout-session and
+    // charge-saved-method so the stripe_event_id UNIQUE constraint collapses a
+    // ticket's earning to ONE row no matter which path records it first. Falls
+    // back to the raw event id only if (defensively) no ticket id is present.
+    stripe_event_id: params.ticketId ? `ticket_${params.ticketId}` : params.stripeEventId,
   });
 
   if (error) {

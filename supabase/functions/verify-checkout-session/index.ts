@@ -189,7 +189,10 @@ serve(async (req) => {
         amount_net: amountNet,
         currency: ticket.currency || session.currency || "usd",
         status: "succeeded",
-        stripe_event_id: `verify_${ticket.stripe_checkout_session_id}`,
+        // Deterministic per-ticket key shared with the webhook + charge-saved
+        // paths so the stripe_event_id UNIQUE constraint dedupes this ticket's
+        // earning regardless of which path (webhook vs this fallback) wins.
+        stripe_event_id: `ticket_${ticket.id}`,
       });
 
       if (earningsError) {

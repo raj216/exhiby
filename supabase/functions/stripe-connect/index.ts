@@ -208,10 +208,10 @@ serve(async (req) => {
           );
         }
 
-        // Calculate available balance from creator_earnings
+        // Calculate available balance from creator_earnings.
         const { data: earnings } = await supabaseAdmin
           .from("creator_earnings")
-          .select("amount_net")
+          .select("amount_gross, platform_fee")
           .eq("creator_id", userId)
           .eq("status", "succeeded");
 
@@ -221,7 +221,16 @@ serve(async (req) => {
           .eq("creator_id", userId)
           .in("status", ["pending", "paid"]);
 
-        const totalEarned = (earnings || []).reduce((sum, e) => sum + (e.amount_net || 0), 0);
+        // Mirror the UI's net calculation EXACTLY (see useCreatorEarnings.ts):
+        // cap each row's platform fee at 8% (the free-plan max) so legacy rows
+        // recorded at 10% pay out the same amount the creator sees as available.
+        // Previously this summed the raw amount_net column, so the payout
+        // transferred LESS than the balance shown and stranded the difference.
+        const totalEarned = (earnings || []).reduce((sum, e) => {
+          const gross = e.amount_gross || 0;
+          const cappedFee = Math.min(e.platform_fee || 0, Math.round(gross * 0.08));
+          return sum + (gross - cappedFee);
+        }, 0);
         const totalPaidOut = (previousPayouts || []).reduce((sum, p) => sum + (p.amount || 0), 0);
         const available = totalEarned - totalPaidOut;
 

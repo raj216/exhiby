@@ -272,7 +272,10 @@ serve(async (req) => {
             amount_net: amountNet,
             currency: "usd",
             status: "succeeded",
-            stripe_event_id: `charge_saved_${paymentIntent.id}`,
+            // Deterministic per-ticket key shared with the webhook + verify
+            // paths so the stripe_event_id UNIQUE constraint dedupes this
+            // ticket's earning no matter which path records it.
+            stripe_event_id: `ticket_${pendingTicket.id}`,
           });
 
           if (earningsError) {
