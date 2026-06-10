@@ -399,6 +399,10 @@ export function ScheduleEventModal({
               <Input id="time" type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} className="bg-surface border-border/30" />
             </div>
           </div>
+          <p className="text-xs text-muted-foreground/60 -mt-2">
+            Your local time &mdash;{" "}
+            {new Date().toLocaleTimeString("en-US", { timeZoneName: "short" }).split(" ").at(-1)}
+          </p>
 
           {/* Studio Capacity */}
           <div>

@@ -95,6 +95,10 @@ export default function LiveRoom() {
   // Payment state for paid events
   const [showPaymentDrawer, setShowPaymentDrawer] = useState(false);
   const [isAwaitingPaymentConfirmation, setIsAwaitingPaymentConfirmation] = useState(false);
+
+  // Capacity gate state — set when the session is full
+  const [isSessionFull, setIsSessionFull] = useState(false);
+  const [sessionFullMax, setSessionFullMax] = useState<number | null>(null);
   
   // Debug state
   const [dailyStatus, setDailyStatus] = useState<DailyJoinStatus>("idle");
@@ -200,6 +204,17 @@ export default function LiveRoom() {
       setIsAwaitingPaymentConfirmation(false);
     }
   }, [hasValidTicket, isAwaitingPaymentConfirmation]);
+
+  // Listen for capacity-gate event from useLiveViewers
+  useEffect(() => {
+    const handleSessionFull = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { maxViewers: number };
+      setIsSessionFull(true);
+      setSessionFullMax(detail.maxViewers ?? null);
+    };
+    window.addEventListener("exhiby:session-full", handleSessionFull);
+    return () => window.removeEventListener("exhiby:session-full", handleSessionFull);
+  }, []);
 
   // Live chat from database with realtime
   // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
@@ -497,8 +512,10 @@ export default function LiveRoom() {
   // Join as viewer EARLY (for non-creators) — don't wait for full event load.
   // fastCreatorId is set as soon as the events query returns (before room_url/profile RPCs),
   // saving 200-600 ms on mobile and unblocking the chat RLS record sooner.
+  // Guard: skip join while paywall is showing so unpaid users don't consume a seat.
+  // When requiresPayment flips to false (payment confirmed), this effect re-runs and joins.
   useEffect(() => {
-    if (eventId && user && fastCreatorId && user.id !== fastCreatorId) {
+    if (eventId && user && fastCreatorId && user.id !== fastCreatorId && !requiresPayment) {
       console.log("[LiveRoom] Joining as viewer early (for chat RLS)...");
       joinAsViewer();
     }
@@ -509,7 +526,7 @@ export default function LiveRoom() {
         leaveAsViewer();
       }
     };
-  }, [eventId, user, fastCreatorId, joinAsViewer, leaveAsViewer]);
+  }, [eventId, user, fastCreatorId, joinAsViewer, leaveAsViewer, requiresPayment]);
   
   // Re-fetch room_url when ticket becomes valid (after payment)
   useEffect(() => {
@@ -1074,16 +1091,58 @@ export default function LiveRoom() {
     );
   }
 
+  // Show "studio is full" when capacity gate blocks entry
+  if (isSessionFull && event) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="text-center max-w-md px-6">
+          {event.cover_url && (
+            <div className="w-28 h-28 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg opacity-80">
+              <img src={event.cover_url} alt={event.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div className="w-14 h-14 rounded-full bg-muted/40 border border-border/40 flex items-center justify-center mx-auto mb-4">
+            <Users className="w-7 h-7 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-display text-foreground mb-2">Studio Is Full</h2>
+          <p className="text-muted-foreground mb-2">{event.title}</p>
+          {sessionFullMax && (
+            <p className="text-sm text-muted-foreground/70 mb-6">
+              This studio has reached its {sessionFullMax}-seat limit.
+              <br />A spot may open up soon — check back shortly.
+            </p>
+          )}
+          {!sessionFullMax && (
+            <p className="text-sm text-muted-foreground/70 mb-6">
+              All seats are taken. A spot may open up soon — check back shortly.
+            </p>
+          )}
+          <button
+            onClick={() => { setIsSessionFull(false); navigate("/"); }}
+            className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Helper to check if event has truly ended
   const isEventEnded = event?.live_ended_at != null;
   
   // Helper to check if event is scheduled but not started
   const isScheduledNotStarted = event && !event.is_live && !event.live_ended_at && !event.room_url;
   
-  // Helper to format scheduled time
+  // Helper to format scheduled time with short timezone abbreviation
   const formatScheduledTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    return format(date, "EEEE, MMMM d 'at' h:mm a");
+    const base = format(date, "EEEE, MMMM d 'at' h:mm a");
+    const tzAbbr = date
+      .toLocaleTimeString("en-US", { timeZoneName: "short" })
+      .split(" ")
+      .at(-1);
+    return tzAbbr ? `${base} ${tzAbbr}` : base;
   };
 
   // Show "Stream Unavailable" only for ended events or truly not found
