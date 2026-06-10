@@ -109,7 +109,12 @@ export default function LiveRoom() {
   const [isReconnecting, setIsReconnecting] = useState(false);
   
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
+  // Tracks whether we already hold the room_url. The realtime go-live handler
+  // uses this to fetch the room_url exactly once when a studio opens — host
+  // heartbeat updates also land in that handler every ~45s and must be ignored.
+  const roomUrlReadyRef = useRef(false);
+
   const { viewerCount, isJoined: isViewerJoined, joinAsViewer, leaveAsViewer } = useLiveViewers(eventId || null);
   
   // Saved sessions for "Notify Me" button
@@ -307,7 +312,7 @@ export default function LiveRoom() {
     joinTimeoutMs: 12000,
     onJoined: () => {
       console.log("[LiveRoom] Successfully joined Daily room");
-      toast.success("Connected to stream");
+      toast.success("Connected to session");
     },
     onLeft: () => {
       console.log("[LiveRoom] Left Daily room");
@@ -500,6 +505,7 @@ export default function LiveRoom() {
             ? { name: creatorProfile.name, avatar_url: creatorProfile.avatar_url }
             : { name: "Unknown Artist", avatar_url: null },
         });
+        roomUrlReadyRef.current = !!roomUrl;
       } catch (err) {
         console.error("[LiveRoom] Unexpected error:", err);
         setError("Failed to load event");
@@ -541,6 +547,7 @@ export default function LiveRoom() {
       });
       if (roomUrl) {
         console.log("[LiveRoom] Got room_url after payment:", roomUrl);
+        roomUrlReadyRef.current = true;
         setEvent((prev) => prev ? { ...prev, room_url: roomUrl } : null);
       }
     };
@@ -572,13 +579,36 @@ export default function LiveRoom() {
         (payload) => {
           console.log("[LiveRoom] Realtime event update:", payload);
           const newData = payload.new as any;
-          
+
           // If stream just ended (is_live changed to false or live_ended_at was set)
           if (newData.is_live === false || newData.live_ended_at) {
             console.log("[LiveRoom] Stream ended detected via realtime");
+            roomUrlReadyRef.current = false;
             if (!streamEndedByHost && !feedbackShownRef.current) {
               setStreamEndedByHost(true);
             }
+            return;
+          }
+
+          // If the studio just went LIVE while the audience was on the waiting
+          // screen, the room_url (stored in a protected table) is now available.
+          // Re-fetch it and transition into the live view automatically. Without
+          // this, viewers stay stuck on "Studio Opens Soon" until a manual
+          // refresh. The ref guard ensures we fetch only once — host heartbeat
+          // updates also fire this handler every ~45s and must be ignored.
+          if (newData.is_live === true && !newData.live_ended_at && !roomUrlReadyRef.current) {
+            (async () => {
+              const { data: roomUrl } = await supabase.rpc("get_event_room_url", {
+                event_id: eventId,
+              });
+              if (roomUrl) {
+                console.log("[LiveRoom] Studio went live — transitioning audience into the room");
+                roomUrlReadyRef.current = true;
+                setEvent((prev) =>
+                  prev ? { ...prev, is_live: true, live_ended_at: null, room_url: roomUrl } : prev
+                );
+              }
+            })();
           }
         }
       )
@@ -588,6 +618,33 @@ export default function LiveRoom() {
       supabase.removeChannel(channel);
     };
   }, [eventId, isCreator, streamEndedByHost]);
+
+  // Host-liveness heartbeat. While the creator is broadcasting, beat every 45s
+  // so the server-side reaper (end_abandoned_sessions) can tell an active
+  // session apart from one the host abandoned (tab close / crash / lost power)
+  // without pressing End — preventing studios that show as LIVE forever. The
+  // RPC is a no-op unless the caller is the creator and the event is live.
+  useEffect(() => {
+    if (!isCreator || !eventId || !event?.is_live || event?.live_ended_at || streamEndedByHost) {
+      return;
+    }
+    let cancelled = false;
+    const beat = () => {
+      (supabase.rpc as any)("touch_live_heartbeat", { p_event_id: eventId }).then(
+        ({ error }: { error: { message: string } | null }) => {
+          if (error && !cancelled) {
+            console.warn("[LiveRoom] heartbeat failed (non-fatal):", error.message);
+          }
+        }
+      );
+    };
+    beat();
+    const interval = setInterval(beat, 45_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isCreator, eventId, event?.is_live, event?.live_ended_at, streamEndedByHost]);
 
   // Notify the creator when a tip lands. Listens on the per-creator private
   // Broadcast topic emitted by the broadcast_creator_earning DB trigger (the
@@ -738,9 +795,9 @@ export default function LiveRoom() {
 
         if (updateRes?.error) {
           console.error("[LiveRoom] Error ending stream:", updateRes.error);
-          toast.error("Failed to end stream");
+          toast.error("Failed to end session");
         } else {
-          toast.success("Stream ended");
+          toast.success("Session ended");
         }
         
         // Creator goes home without feedback modal
@@ -1020,7 +1077,7 @@ export default function LiveRoom() {
     // For free events, the ticket was created by create-checkout-session
     // Refetch to pick it up
     await refetchTicket();
-    toast.success("Access granted! Joining stream...");
+    toast.success("Access granted! Joining session...");
   };
 
   // Show "confirming payment" UI when awaiting webhook/verify confirmation
@@ -1172,8 +1229,8 @@ export default function LiveRoom() {
         />
         <div className="text-center max-w-md px-6">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-display text-foreground mb-2">Stream Unavailable</h2>
-          <p className="text-muted-foreground mb-6">{error || "This live stream is not available."}</p>
+          <h2 className="text-xl font-display text-foreground mb-2">Session Unavailable</h2>
+          <p className="text-muted-foreground mb-6">{error || "This live session is not available."}</p>
           <button
             onClick={() => navigate("/")}
             className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors"
@@ -1322,7 +1379,7 @@ export default function LiveRoom() {
               </p>
               <p className="text-sm text-muted-foreground/70 mb-6">
                 {scheduledPast 
-                  ? "Your audience is waiting! Click below to start the stream."
+                  ? "Your audience is waiting! Click below to start the session."
                   : "Click below when you're ready to go live."
                 }
               </p>
@@ -1622,7 +1679,7 @@ export default function LiveRoom() {
           >
             {isSlowConnection 
               ? "Still connecting… hang tight"
-              : "Setting up your stream"
+              : "Setting up your session"
             }
           </motion.p>
           

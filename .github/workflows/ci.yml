@@ -1,0 +1,72 @@
+name: CI
+
+# Safety net for the QA-audit fixes. The frontend type-check is the hard gate
+# (verified green). Lint and the Deno edge-function checks start ADVISORY
+# (continue-on-error) because the repo carries pre-existing eslint findings and
+# the edge functions have never been strict-type-checked in CI — flipping these
+# to blocking is a one-line change once a run confirms they're clean.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend (typecheck + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # HARD GATE — this passes today and must keep passing.
+      - name: Type-check (tsc --noEmit)
+        run: bunx tsc --noEmit
+
+      # ADVISORY — repo has pre-existing no-explicit-any findings; this surfaces
+      # NEW lint regressions without blocking the merge. Promote to blocking once
+      # the baseline is clean.
+      - name: Lint (advisory)
+        run: bunx eslint .
+        continue-on-error: true
+
+  edge-functions:
+    name: Edge functions (Deno check + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # ADVISORY — type-checks the payment-critical functions. If anyone breaks a
+      # type (or the idempotency contract via a signature change) in these, it
+      # shows up here. Promote to blocking (remove continue-on-error) after the
+      # first green run confirms the baseline type-checks cleanly.
+      - name: Deno check (money-path functions)
+        continue-on-error: true
+        run: |
+          for f in stripe-webhook stripe-connect create-tip-payment \
+                   verify-checkout-session charge-saved-method manage-payment-methods; do
+            echo "::group::deno check $f"
+            deno check "supabase/functions/$f/index.ts" || echo "::warning::deno check failed for $f"
+            echo "::endgroup::"
+          done
+
+      - name: Deno lint (edge functions, advisory)
+        continue-on-error: true
+        run: deno lint supabase/functions

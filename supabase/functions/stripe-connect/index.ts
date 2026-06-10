@@ -208,10 +208,10 @@ serve(async (req) => {
           );
         }
 
-        // Calculate available balance from creator_earnings
+        // Calculate available balance from creator_earnings.
         const { data: earnings } = await supabaseAdmin
           .from("creator_earnings")
-          .select("amount_net")
+          .select("amount_gross, platform_fee")
           .eq("creator_id", userId)
           .eq("status", "succeeded");
 
@@ -221,7 +221,16 @@ serve(async (req) => {
           .eq("creator_id", userId)
           .in("status", ["pending", "paid"]);
 
-        const totalEarned = (earnings || []).reduce((sum, e) => sum + (e.amount_net || 0), 0);
+        // Mirror the UI's net calculation EXACTLY (see useCreatorEarnings.ts):
+        // cap each row's platform fee at 8% (the free-plan max) so legacy rows
+        // recorded at 10% pay out the same amount the creator sees as available.
+        // Previously this summed the raw amount_net column, so the payout
+        // transferred LESS than the balance shown and stranded the difference.
+        const totalEarned = (earnings || []).reduce((sum, e) => {
+          const gross = e.amount_gross || 0;
+          const cappedFee = Math.min(e.platform_fee || 0, Math.round(gross * 0.08));
+          return sum + (gross - cappedFee);
+        }, 0);
         const totalPaidOut = (previousPayouts || []).reduce((sum, p) => sum + (p.amount || 0), 0);
         const available = totalEarned - totalPaidOut;
 
@@ -272,9 +281,36 @@ serve(async (req) => {
             { idempotencyKey: `payout_${pendingPayout.id}` }
           );
         } catch (transferErr) {
-          // Roll back pending row so the creator can retry
+          // Roll back the pending row so the creator can retry later.
           await supabaseAdmin.from("creator_payouts").delete().eq("id", pendingPayout.id);
-          throw transferErr;
+
+          const code = (transferErr as { code?: string })?.code;
+          const stripeMsg = (transferErr as { message?: string })?.message;
+          console.error(`[stripe-connect] Transfer failed (code=${code ?? "none"}):`, stripeMsg);
+
+          // Platform balance hasn't settled yet — the most common, fully
+          // recoverable failure. Give the creator an actionable message and a
+          // retryable status instead of a generic 500.
+          if (code === "balance_insufficient") {
+            return new Response(
+              JSON.stringify({
+                error: "balance_insufficient",
+                message:
+                  "Your funds are still settling with our payment processor and aren't available to withdraw yet. This usually clears within a few business days of the purchase — please try again soon.",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          // Any other transfer failure: surface Stripe's message when present.
+          return new Response(
+            JSON.stringify({
+              error: "transfer_failed",
+              message:
+                stripeMsg || "We couldn't process your payout right now. Please try again later.",
+            }),
+            { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
 
         await supabaseAdmin

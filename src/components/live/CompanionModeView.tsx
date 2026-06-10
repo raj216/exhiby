@@ -83,7 +83,7 @@ export function CompanionModeView({
         (payload) => {
           const updated = payload.new as any;
           if (!updated.is_live || updated.live_ended_at) {
-            toast.info("Stream ended from primary device");
+            toast.info("Session ended from primary device");
             navigate("/");
           }
         }
@@ -119,11 +119,11 @@ export function CompanionModeView({
       // Remove all live viewers
       await supabase.from("live_viewers").delete().eq("event_id", eventId);
 
-      toast.success("Stream ended");
+      toast.success("Session ended");
       navigate("/");
     } catch (err) {
       console.error("[CompanionMode] Failed to end stream:", err);
-      toast.error("Failed to end stream");
+      toast.error("Failed to end session");
       setIsEnding(false);
       setConfirmEnd(false);
     }
@@ -285,10 +285,10 @@ export function CompanionModeView({
           ) : confirmEnd ? (
             <>
               <AlertTriangle className="w-4 h-4" />
-              Tap again to end stream
+              Tap again to end session
             </>
           ) : (
-            "End Stream"
+            "End Session"
           )}
         </button>
       </div>

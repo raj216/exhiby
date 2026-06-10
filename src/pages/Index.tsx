@@ -214,7 +214,7 @@ function IndexContent() {
     setShowLiveSession(false);
     setEventData(null);
     toast("Session ended", {
-      description: "Thanks for streaming!",
+      description: "Thanks for hosting!",
     });
   };
 

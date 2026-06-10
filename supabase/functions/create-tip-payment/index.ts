@@ -78,11 +78,23 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { amount, payment_method_id, event_id } = body;
 
-    if (!amount || typeof amount !== "number" || amount < 1) {
-      return new Response(JSON.stringify({ error: "Invalid tip amount (minimum $1)" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Guard the full numeric range: rejects 0/negative, NaN, and Infinity (which
+    // passed the old `amount < 1` check and blew up Math.round(amount * 100)),
+    // plus an upper bound so a crafted request can't charge an arbitrary amount.
+    const MAX_TIP_USD = 10000;
+    if (
+      typeof amount !== "number" ||
+      !Number.isFinite(amount) ||
+      amount < 1 ||
+      amount > MAX_TIP_USD
+    ) {
+      return new Response(
+        JSON.stringify({ error: `Invalid tip amount (must be between $1 and $${MAX_TIP_USD})` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });

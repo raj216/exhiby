@@ -66,7 +66,7 @@ export function LiveAccessCard({
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
-              alt={`Live stream thumbnail for ${title}`}
+              alt={`Live session thumbnail for ${title}`}
               className="w-full h-full object-cover"
               loading="lazy"
             />

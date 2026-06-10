@@ -121,7 +121,7 @@ export function LiveRoomControls({
                   onClick={handleEndStream}
                   className="px-6 py-3 rounded-full bg-destructive text-white font-semibold hover:bg-destructive/90 transition-colors shadow-lg"
                 >
-                  Tap again to end stream
+                  Tap again to end session
                 </button>
               </motion.div>
             )}
@@ -361,11 +361,11 @@ export function LiveRoomControls({
                                 : "bg-destructive/80 text-white hover:bg-destructive"
                           }`}
                         >
-                          <span className="text-sm">{isEnding ? "Ending..." : "End Stream"}</span>
+                          <span className="text-sm">{isEnding ? "Ending..." : "End Session"}</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        <p>End Stream</p>
+                        <p>End Session</p>
                       </TooltipContent>
                     </Tooltip>
                   </>

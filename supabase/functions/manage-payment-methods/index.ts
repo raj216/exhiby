@@ -1,16 +1,18 @@
 // supabase/functions/manage-payment-methods/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@13.11.0?target=deno";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "npm:stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Aligned with the other edge functions: npm:stripe@18.5.0 on the pinned
+// 2025-08-27.basil API version. The npm: import uses Stripe's default fetch
+// transport under Deno, so no explicit httpClient is needed.
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  apiVersion: "2023-10-16",
-  httpClient: Stripe.createFetchHttpClient(),
+  apiVersion: "2025-08-27.basil",
 });
 
 serve(async (req) => {
