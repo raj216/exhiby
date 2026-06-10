@@ -1144,7 +1144,10 @@ export default function LiveRoom() {
     const base = format(date, "EEEE, MMMM d 'at' h:mm a");
     let tzAbbr = "";
     try {
+      // hour is included so the timeZoneName part is reliably emitted across
+      // engines; we still only read the zone, so the visible output is unchanged.
       const parts = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
         timeZoneName: "short",
       }).formatToParts(date);
       tzAbbr = parts.find((p) => p.type === "timeZoneName")?.value ?? "";

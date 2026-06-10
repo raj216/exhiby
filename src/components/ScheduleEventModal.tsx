@@ -277,7 +277,7 @@ export function ScheduleEventModal({
   // formatToParts so we never mistake the AM/PM token for the zone name.
   const localTzAbbr = (() => {
     try {
-      const parts = new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(new Date());
+      const parts = new Intl.DateTimeFormat("en-US", { hour: "numeric", timeZoneName: "short" }).formatToParts(new Date());
       return parts.find((p) => p.type === "timeZoneName")?.value ?? "";
     } catch {
       return "";

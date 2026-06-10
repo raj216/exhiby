@@ -74,11 +74,14 @@ BEGIN
   -- 4. Count active AUDIENCE viewers (heartbeat within 30 seconds). The creator's
   -- own devices are excluded so "N seats" always means N audience members, not
   -- N-minus-the-host's-companion.
+  -- IS DISTINCT FROM (not <>) so the creator filter stays NULL-safe even if
+  -- live_viewers.user_id is ever made nullable for anonymous viewers — those
+  -- rows would then still be counted as audience rather than silently dropped.
   SELECT COUNT(*)
     INTO v_current
   FROM public.live_viewers
   WHERE event_id = p_event_id
-    AND user_id <> v_creator_id
+    AND user_id IS DISTINCT FROM v_creator_id
     AND last_seen > (now() - interval '30 seconds');
 
   IF v_current >= v_max THEN
