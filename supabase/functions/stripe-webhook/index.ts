@@ -67,31 +67,44 @@ serve(async (req) => {
 
     console.log(`[stripe-webhook] Received event: ${event.type} (${event.id})`);
 
-    // Idempotency: check if we already processed this event
+    // Idempotency: skip only if we already processed this event SUCCESSFULLY.
+    // A prior "error" status means the last attempt failed partway through, so
+    // we allow Stripe's redelivery to reprocess it (every handler is idempotent,
+    // so re-running is safe). Without this, a transient failure would be both
+    // un-retried (we returned 200) and skipped forever (logged as seen).
     const { data: existing } = await supabase
       .from("stripe_webhook_events")
-      .select("id")
+      .select("id, status")
       .eq("event_id", event.id)
       .maybeSingle();
 
-    if (existing) {
-      console.log(`[stripe-webhook] Event ${event.id} already processed, skipping`);
+    if (existing && existing.status !== "error") {
+      console.log(`[stripe-webhook] Event ${event.id} already processed (${existing.status}), skipping`);
       return new Response(JSON.stringify({ received: true, duplicate: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Log the event
-    const { error: insertError } = await supabase.from("stripe_webhook_events").insert({
-      event_id: event.id,
-      event_type: event.type,
-      status: "processing",
-      payload_json: event,
-    });
+    const isRetry = !!existing; // existing row with status === "error"
 
-    if (insertError) {
-      console.error("[stripe-webhook] Failed to log event:", insertError);
+    // Log a fresh event, or reset a retried one back to "processing" (the unique
+    // event_id index forbids a second insert).
+    if (isRetry) {
+      await supabase
+        .from("stripe_webhook_events")
+        .update({ status: "processing" })
+        .eq("event_id", event.id);
+    } else {
+      const { error: insertError } = await supabase.from("stripe_webhook_events").insert({
+        event_id: event.id,
+        event_type: event.type,
+        status: "processing",
+        payload_json: event,
+      });
+      if (insertError) {
+        console.error("[stripe-webhook] Failed to log event:", insertError);
+      }
     }
 
     let processingStatus = "processed";
@@ -162,6 +175,19 @@ serve(async (req) => {
       .eq("event_id", event.id);
 
     console.log(`[stripe-webhook] ✅ Event ${event.id} completed with status: ${processingStatus}`);
+
+    // Money-critical handlers must be RETRIED by Stripe when they fail, so
+    // return a non-2xx. The row was left as "error" above, so the redelivery
+    // reprocesses instead of being skipped. Other event types keep returning
+    // 200 — a failure there is logged but not retried, as before.
+    const RETRY_ON_ERROR = new Set(["transfer.reversed"]);
+    if (processingStatus === "error" && RETRY_ON_ERROR.has(event.type)) {
+      console.warn(`[stripe-webhook] Requesting Stripe redelivery for ${event.type} (${event.id})`);
+      return new Response(JSON.stringify({ error: "handler_failed", retry: true }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
@@ -726,8 +752,10 @@ async function handleTransferReversed(
     .maybeSingle();
 
   if (error) {
+    // Transient DB error — throw so the webhook returns non-2xx and Stripe
+    // redelivers; the balance restore must not be silently dropped.
     console.error("[stripe-webhook] Error finding payout for reversed transfer:", error);
-    return;
+    throw error;
   }
   if (!payout) {
     console.warn(`[stripe-webhook] ⚠️ No payout row for reversed transfer: ${transfer.id}`);
@@ -761,8 +789,9 @@ async function handleTransferReversed(
     .eq("id", payout.id);
 
   if (updErr) {
+    // Transient DB error — throw so Stripe redelivers and the restore retries.
     console.error("[stripe-webhook] Error marking payout failed:", updErr);
-    return;
+    throw updErr;
   }
 
   console.log(`[stripe-webhook] ✅ Payout ${payout.id} marked failed; balance restored for creator ${payout.creator_id}`);
