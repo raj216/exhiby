@@ -90,8 +90,24 @@ export function useStripeConnect(userId: string | undefined) {
       });
 
       setLoading(false);
-      if (error) return { success: false, error: error.message };
-      if (data?.error) return { success: false, error: data.error };
+      if (error) {
+        // supabase-js surfaces a non-2xx edge response as FunctionsHttpError
+        // with the body on error.context. Pull the human-readable `message`
+        // we send (balance still settling, transfer failed, etc.) so the
+        // creator sees something actionable instead of a generic status error.
+        let friendly = error.message;
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx && typeof ctx.json === "function") {
+            const errBody = await ctx.json();
+            friendly = errBody?.message || errBody?.error || friendly;
+          }
+        } catch {
+          /* keep error.message */
+        }
+        return { success: false, error: friendly };
+      }
+      if (data?.error) return { success: false, error: data.message || data.error };
       return { success: true, amount: data.amount };
     } catch (err: any) {
       setLoading(false);

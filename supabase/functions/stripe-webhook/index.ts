@@ -128,6 +128,24 @@ serve(async (req) => {
           await handleChargeRefunded(supabase, charge);
           break;
         }
+        case "transfer.reversed": {
+          // A platform→creator payout transfer was clawed back (e.g. dispute,
+          // manual reversal). Restore the creator's withdrawable balance.
+          const transfer = event.data.object as Stripe.Transfer;
+          console.log(`[stripe-webhook] Processing transfer.reversed: ${transfer.id}`);
+          await handleTransferReversed(supabase, transfer);
+          break;
+        }
+        case "payout.failed": {
+          // Connect event: the creator's connected account could not pay out to
+          // their bank. Funds already reached their Stripe balance, so this does
+          // NOT touch our ledger — we only notify the creator to fix their bank
+          // details. Only delivered if Connect events are routed here.
+          const payout = event.data.object as Stripe.Payout;
+          console.log(`[stripe-webhook] Processing payout.failed: ${payout.id} (account: ${event.account ?? "platform"})`);
+          await handlePayoutFailed(supabase, payout, event.account ?? null);
+          break;
+        }
         default:
           console.log(`[stripe-webhook] Unhandled event type: ${event.type}`);
           processingStatus = "ignored";
@@ -688,5 +706,118 @@ async function handleChargeRefunded(
     }
   } else {
     console.warn(`[stripe-webhook] ⚠️ No earning found for PI: ${paymentIntentId}`);
+  }
+}
+
+/**
+ * Handle transfer.reversed — a platform→creator payout transfer was clawed
+ * back. Mark the matching creator_payouts row 'failed' so request_payout's
+ * balance query (which counts only pending+paid) makes the amount available to
+ * withdraw again. Idempotent: a redelivered event finds the row already failed.
+ */
+async function handleTransferReversed(
+  supabase: ReturnType<typeof createClient>,
+  transfer: Stripe.Transfer
+) {
+  const { data: payout, error } = await supabase
+    .from("creator_payouts")
+    .select("id, creator_id, status")
+    .eq("stripe_transfer_id", transfer.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[stripe-webhook] Error finding payout for reversed transfer:", error);
+    return;
+  }
+  if (!payout) {
+    console.warn(`[stripe-webhook] ⚠️ No payout row for reversed transfer: ${transfer.id}`);
+    return;
+  }
+  if (payout.status === "failed") {
+    console.log(`[stripe-webhook] Payout ${payout.id} already failed (idempotent), skipping`);
+    return;
+  }
+
+  const { error: updErr } = await supabase
+    .from("creator_payouts")
+    .update({ status: "failed" })
+    .eq("id", payout.id);
+
+  if (updErr) {
+    console.error("[stripe-webhook] Error marking payout failed:", updErr);
+    return;
+  }
+
+  console.log(`[stripe-webhook] ✅ Payout ${payout.id} marked failed; balance restored for creator ${payout.creator_id}`);
+  await notifyCreatorOfPayoutIssue(supabase, {
+    creatorId: payout.creator_id,
+    title: "Payout reversed",
+    message: "A payout to your account was reversed. The amount is available to withdraw again.",
+  });
+}
+
+/**
+ * Handle payout.failed (Connect event) — the creator's connected account could
+ * not pay out to their bank. The platform→creator transfer already succeeded,
+ * so our ledger is correct and unchanged; we only alert the creator to review
+ * their payout/bank details in their Stripe dashboard.
+ */
+async function handlePayoutFailed(
+  supabase: ReturnType<typeof createClient>,
+  payout: Stripe.Payout,
+  connectedAccountId: string | null
+) {
+  if (!connectedAccountId) {
+    // payout.failed on the platform account itself — no creator to map. Log only.
+    console.warn(`[stripe-webhook] payout.failed on platform account: ${payout.id} — no creator mapping`);
+    return;
+  }
+
+  const { data: acct, error } = await supabase
+    .from("stripe_connect_accounts")
+    .select("user_id")
+    .eq("stripe_connected_account_id", connectedAccountId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[stripe-webhook] Error mapping connected account for payout.failed:", error);
+    return;
+  }
+  if (!acct?.user_id) {
+    console.warn(`[stripe-webhook] ⚠️ payout.failed: no creator mapped to account ${connectedAccountId}`);
+    return;
+  }
+
+  const reason = payout.failure_message || payout.failure_code || "unknown reason";
+  await notifyCreatorOfPayoutIssue(supabase, {
+    creatorId: acct.user_id,
+    title: "Bank payout failed",
+    message: `Your bank payout could not be completed (${reason}). Please review your payout details in your Stripe dashboard.`,
+  });
+  console.log(`[stripe-webhook] ✅ Notified creator ${acct.user_id} of failed bank payout ${payout.id}`);
+}
+
+/**
+ * Insert a persistent in-app notification about a payout problem. Best-effort:
+ * mirrors notifyCreatorOfTip — never throws into the caller so a notification
+ * failure can't break webhook processing.
+ */
+async function notifyCreatorOfPayoutIssue(
+  supabase: ReturnType<typeof createClient>,
+  params: { creatorId: string; title: string; message: string }
+) {
+  try {
+    const { error } = await supabase.from("notifications").insert({
+      user_id: params.creatorId,
+      type: "payout_issue",
+      title: params.title,
+      message: params.message,
+      link: "/settings?tab=payments",
+    });
+    if (error) {
+      console.error("[stripe-webhook] Failed to insert payout notification:", error);
+    }
+  } catch (err) {
+    console.error("[stripe-webhook] notifyCreatorOfPayoutIssue exception:", err);
   }
 }

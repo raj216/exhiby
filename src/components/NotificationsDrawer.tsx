@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, X, UserPlus, MessageCircle, Radio, Calendar, Clock, Heart } from "lucide-react";
+import { Bell, X, UserPlus, MessageCircle, Radio, Calendar, Clock, Heart, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
@@ -32,6 +32,7 @@ const NOTIF_ICON_CFG: Record<string, { bg: string; color: string; El: React.Elem
   studio_scheduled: { bg: "bg-gold/10",      color: "text-gold",       El: Calendar },
   starting_soon:    { bg: "bg-gold/10",      color: "text-gold",       El: Clock },
   tip_received:     { bg: "bg-crimson/10",   color: "text-crimson",    El: Heart },
+  payout_issue:     { bg: "bg-gold/10",      color: "text-gold",       El: Wallet },
 };
 const NOTIF_ICON_DEFAULT = { bg: "bg-muted/30", color: "text-muted-foreground", El: Bell };
 
