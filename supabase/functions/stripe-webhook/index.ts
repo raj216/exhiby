@@ -738,6 +738,23 @@ async function handleTransferReversed(
     return;
   }
 
+  // Only restore the balance on a FULL reversal. A partial reversal
+  // (amount_reversed < amount) can't be represented by our single-amount payout
+  // row, and flipping status to 'failed' would over-credit the creator the full
+  // amount. For partials we notify but leave the ledger untouched.
+  const reversed = transfer.amount_reversed ?? 0;
+  if (reversed < transfer.amount) {
+    console.warn(
+      `[stripe-webhook] Transfer ${transfer.id} only PARTIALLY reversed (${reversed}/${transfer.amount}); leaving payout ${payout.id} intact, notifying only`
+    );
+    await notifyCreatorOfPayoutIssue(supabase, {
+      creatorId: payout.creator_id,
+      title: "Payout partially reversed",
+      message: "Part of a payout to your account was reversed. Please review the details in your Stripe dashboard.",
+    });
+    return;
+  }
+
   const { error: updErr } = await supabase
     .from("creator_payouts")
     .update({ status: "failed" })
