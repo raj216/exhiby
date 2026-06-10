@@ -270,7 +270,7 @@ async function getOrCreateCallObject(): Promise<DailyCall> {
   if (existing) {
     console.log("[Daily] Discarding unusable (destroyed) call instance");
     try {
-      existing.destroy();
+      (existing as { destroy: () => void }).destroy();
     } catch {
       /* ignore */
     }
