@@ -312,7 +312,7 @@ export default function LiveRoom() {
     joinTimeoutMs: 12000,
     onJoined: () => {
       console.log("[LiveRoom] Successfully joined Daily room");
-      toast.success("Connected to stream");
+      toast.success("Connected to session");
     },
     onLeft: () => {
       console.log("[LiveRoom] Left Daily room");
@@ -795,9 +795,9 @@ export default function LiveRoom() {
 
         if (updateRes?.error) {
           console.error("[LiveRoom] Error ending stream:", updateRes.error);
-          toast.error("Failed to end stream");
+          toast.error("Failed to end session");
         } else {
-          toast.success("Stream ended");
+          toast.success("Session ended");
         }
         
         // Creator goes home without feedback modal
@@ -1077,7 +1077,7 @@ export default function LiveRoom() {
     // For free events, the ticket was created by create-checkout-session
     // Refetch to pick it up
     await refetchTicket();
-    toast.success("Access granted! Joining stream...");
+    toast.success("Access granted! Joining session...");
   };
 
   // Show "confirming payment" UI when awaiting webhook/verify confirmation
@@ -1229,8 +1229,8 @@ export default function LiveRoom() {
         />
         <div className="text-center max-w-md px-6">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-display text-foreground mb-2">Stream Unavailable</h2>
-          <p className="text-muted-foreground mb-6">{error || "This live stream is not available."}</p>
+          <h2 className="text-xl font-display text-foreground mb-2">Session Unavailable</h2>
+          <p className="text-muted-foreground mb-6">{error || "This live session is not available."}</p>
           <button
             onClick={() => navigate("/")}
             className="px-6 py-3 rounded-xl bg-electric text-white font-medium hover:bg-electric/90 transition-colors"
@@ -1379,7 +1379,7 @@ export default function LiveRoom() {
               </p>
               <p className="text-sm text-muted-foreground/70 mb-6">
                 {scheduledPast 
-                  ? "Your audience is waiting! Click below to start the stream."
+                  ? "Your audience is waiting! Click below to start the session."
                   : "Click below when you're ready to go live."
                 }
               </p>
@@ -1679,7 +1679,7 @@ export default function LiveRoom() {
           >
             {isSlowConnection 
               ? "Still connecting… hang tight"
-              : "Setting up your stream"
+              : "Setting up your session"
             }
           </motion.p>
           

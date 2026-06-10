@@ -306,7 +306,7 @@ export default function PublicProfile() {
     const baseTitle = profile.handle ? `${profile.name} (${profile.handle})` : profile.name;
     const title = `${baseTitle}${isLive ? " is Live 🔴" : ""} | Exhiby`;
     const shortTitle = title.slice(0, 60);
-    const desc = `View ${profile.name}'s profile${isLive ? " and join their live stream" : ""} on Exhiby. Explore their portfolio and follow for future live sessions.`.slice(0, 160);
+    const desc = `View ${profile.name}'s profile${isLive ? " and join their live session" : ""} on Exhiby. Explore their portfolio and follow for future live sessions.`.slice(0, 160);
     const canonicalHref = `${window.location.origin}/profile/${profile.user_id}`;
     const image = profile.cover_url || profile.avatar_url || `${window.location.origin}/og-default.png`;
 
