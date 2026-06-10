@@ -34,6 +34,14 @@ BEGIN
     RETURN jsonb_build_object('can_join', true, 'reason', 'event_not_found');
   END IF;
 
+  -- 1b. The creator's OWN devices never consume an audience seat and are never
+  -- gated. This matters for companion mode (phone-as-camera + laptop-control):
+  -- the second device joins as a "viewer" purely for chat RLS, and must not be
+  -- blocked when the audience is full — otherwise the host loses their own chat.
+  IF auth.uid() = v_creator_id THEN
+    RETURN jsonb_build_object('can_join', true, 'reason', 'creator_bypass');
+  END IF;
+
   -- 2. Get the creator's plan
   SELECT COALESCE(plan, 'free')
     INTO v_plan
@@ -57,11 +65,20 @@ BEGIN
     END IF;
   END IF;
 
-  -- 4. Count active viewers (heartbeat within 30 seconds)
+  -- Guard against a non-positive cap locking everyone out (bad/legacy data).
+  -- The UI validates capacity >= 1, but the column has no CHECK constraint.
+  IF v_max IS NOT NULL AND v_max < 1 THEN
+    v_max := 1;
+  END IF;
+
+  -- 4. Count active AUDIENCE viewers (heartbeat within 30 seconds). The creator's
+  -- own devices are excluded so "N seats" always means N audience members, not
+  -- N-minus-the-host's-companion.
   SELECT COUNT(*)
     INTO v_current
   FROM public.live_viewers
   WHERE event_id = p_event_id
+    AND user_id <> v_creator_id
     AND last_seen > (now() - interval '30 seconds');
 
   IF v_current >= v_max THEN

@@ -273,6 +273,17 @@ export function ScheduleEventModal({
   // Get today's date for min attribute
   const today = new Date().toISOString().split('T')[0];
 
+  // The viewer's local timezone abbreviation (e.g. "EST"), read explicitly via
+  // formatToParts so we never mistake the AM/PM token for the zone name.
+  const localTzAbbr = (() => {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZoneName: "short" }).formatToParts(new Date());
+      return parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+    } catch {
+      return "";
+    }
+  })();
+
   // Premium spring physics for modal - matching GoLiveWizard
   const modalSpring = {
     type: "spring" as const,
@@ -399,10 +410,11 @@ export function ScheduleEventModal({
               <Input id="time" type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} className="bg-surface border-border/30" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground/60 -mt-2">
-            Your local time &mdash;{" "}
-            {new Date().toLocaleTimeString("en-US", { timeZoneName: "short" }).split(" ").at(-1)}
-          </p>
+          {localTzAbbr && (
+            <p className="text-xs text-muted-foreground/60 -mt-2">
+              Your local time &mdash; {localTzAbbr}
+            </p>
+          )}
 
           {/* Studio Capacity */}
           <div>

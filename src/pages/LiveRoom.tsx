@@ -205,16 +205,18 @@ export default function LiveRoom() {
     }
   }, [hasValidTicket, isAwaitingPaymentConfirmation]);
 
-  // Listen for capacity-gate event from useLiveViewers
+  // Listen for capacity-gate event from useLiveViewers.
+  // Filter on eventId so a dispatch for some other room can never flip this view.
   useEffect(() => {
     const handleSessionFull = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { maxViewers: number };
+      const detail = (e as CustomEvent).detail as { eventId?: string; maxViewers?: number };
+      if (detail.eventId && detail.eventId !== eventId) return;
       setIsSessionFull(true);
       setSessionFullMax(detail.maxViewers ?? null);
     };
     window.addEventListener("exhiby:session-full", handleSessionFull);
     return () => window.removeEventListener("exhiby:session-full", handleSessionFull);
-  }, []);
+  }, [eventId]);
 
   // Live chat from database with realtime
   // CRITICAL: Pass isViewerReady so chat waits for the live_viewers record (needed for RLS)
@@ -1134,14 +1136,21 @@ export default function LiveRoom() {
   // Helper to check if event is scheduled but not started
   const isScheduledNotStarted = event && !event.is_live && !event.live_ended_at && !event.room_url;
   
-  // Helper to format scheduled time with short timezone abbreviation
+  // Helper to format scheduled time with short timezone abbreviation.
+  // formatToParts is used so we read the timeZoneName part explicitly rather than
+  // string-splitting (which could mistake "PM" for the zone if it were omitted).
   const formatScheduledTime = (dateStr: string) => {
     const date = new Date(dateStr);
     const base = format(date, "EEEE, MMMM d 'at' h:mm a");
-    const tzAbbr = date
-      .toLocaleTimeString("en-US", { timeZoneName: "short" })
-      .split(" ")
-      .at(-1);
+    let tzAbbr = "";
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZoneName: "short",
+      }).formatToParts(date);
+      tzAbbr = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+    } catch {
+      tzAbbr = "";
+    }
     return tzAbbr ? `${base} ${tzAbbr}` : base;
   };
 
