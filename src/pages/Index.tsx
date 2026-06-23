@@ -35,7 +35,7 @@ function IndexContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading } = useAuth();
-  const { mode, setMode } = useUserMode();
+  const { mode, setMode, isVerifiedCreator } = useUserMode();
   
   // Restore internal screen from URL on mount (survives page refresh)
   const getInitialScreen = (): Screen => {
@@ -196,7 +196,8 @@ function IndexContent() {
     setShowWelcomeStamp(false);
     // First-run only: show the "Open your Studio" walkthrough once. Tracked in
     // auth metadata (same mechanism as plan_onboarding_done) so it never repeats.
-    if (!user?.user_metadata?.studio_demo_seen) {
+    // Skipped for verified creators — they've already opened their studio.
+    if (!user?.user_metadata?.studio_demo_seen && !isVerifiedCreator) {
       setNeedsStudioDemo(true);
     }
   };
@@ -310,8 +311,10 @@ function IndexContent() {
     );
   }
 
-  // First-run Studio walkthrough — shown once, right after the welcome stamp
-  if (needsStudioDemo) {
+  // First-run Studio walkthrough — shown once, right after the welcome stamp.
+  // The extra isVerifiedCreator guard closes the demo if creator status
+  // resolves late (e.g. slow network) for an already-verified creator.
+  if (needsStudioDemo && !isVerifiedCreator) {
     return (
       <Suspense fallback={null}>
         <StudioDemo onComplete={handleStudioDemoComplete} />
