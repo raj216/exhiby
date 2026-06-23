@@ -258,6 +258,12 @@ function IndexContent() {
     setShowLogoutOverlay(false);
   };
 
+  // Owner / QA preview: ?walkthrough=1 force-plays the Studio walkthrough on
+  // any account (even verified creators) without marking it seen. Powers the
+  // "Replay walkthrough" button in Settings and manual testing.
+  const isWalkthroughPreview =
+    new URLSearchParams(location.search).get("walkthrough") === "1";
+
   // Show loading state
   if (isLoading || isCheckingProfile) {
     return (
@@ -270,6 +276,16 @@ function IndexContent() {
   // Redirect handled by useEffect
   if (!user) {
     return null;
+  }
+
+  // Manual preview of the walkthrough (?walkthrough=1) — takes precedence over
+  // the normal first-run gates and never writes the studio_demo_seen flag.
+  if (isWalkthroughPreview) {
+    return (
+      <Suspense fallback={null}>
+        <StudioDemo onComplete={() => navigate("/", { replace: true })} />
+      </Suspense>
+    );
   }
 
   // Passport setup for first-time users (mandatory, non-skippable)
