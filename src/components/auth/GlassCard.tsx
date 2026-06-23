@@ -186,7 +186,11 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
 
       setIsLoading(true);
 
-      const redirectUrl = `${window.location.origin}/`;
+      // VITE_APP_URL must be set to the production domain in Lovable's
+      // environment settings so Supabase sends the confirmation link to the
+      // real app, not to whatever origin the preview is running on.
+      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const redirectUrl = `${appUrl}/`;
 
       if (isSignup) {
         const { data, error } = await supabase.auth.signUp({
@@ -262,7 +266,8 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       }
 
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/auth`;
+      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const redirectUrl = `${appUrl}/auth`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
