@@ -28,6 +28,7 @@ const SearchOverlay     = lazy(() => import("@/components/SearchOverlay").then(m
 const CategoriesOverlay = lazy(() => import("@/components/CategoriesOverlay").then(m => ({ default: m.CategoriesOverlay })));
 const PassportModal     = lazy(() => import("@/components/auth").then(m => ({ default: m.PassportModal })));
 const PlanOnboarding    = lazy(() => import("@/components/auth").then(m => ({ default: m.PlanOnboarding })));
+const StudioDemo        = lazy(() => import("@/components/StudioDemo").then(m => ({ default: m.StudioDemo })));
 const InstallBanner     = lazy(() => import("@/components/InstallBanner").then(m => ({ default: m.InstallBanner })));
 
 function IndexContent() {
@@ -64,6 +65,7 @@ function IndexContent() {
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
   const [needsPassportSetup, setNeedsPassportSetup] = useState(false);
   const [needsPlanSelection, setNeedsPlanSelection] = useState(false);
+  const [needsStudioDemo, setNeedsStudioDemo] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [refreshScheduleKey, setRefreshScheduleKey] = useState(0);
 
@@ -192,7 +194,22 @@ function IndexContent() {
 
   const handleStampComplete = () => {
     setShowWelcomeStamp(false);
+    // First-run only: show the "Open your Studio" walkthrough once. Tracked in
+    // auth metadata (same mechanism as plan_onboarding_done) so it never repeats.
+    if (!user?.user_metadata?.studio_demo_seen) {
+      setNeedsStudioDemo(true);
+    }
   };
+
+  const handleStudioDemoComplete = useCallback(async () => {
+    setNeedsStudioDemo(false);
+    // Best-effort persist — never block dismissing the demo on a network call.
+    try {
+      await supabase.auth.updateUser({ data: { studio_demo_seen: true } });
+    } catch (error) {
+      console.error("[Index] Failed to persist studio_demo_seen:", error);
+    }
+  }, []);
 
   const handleGoLive = (data: EventData) => {
     setEventData(data);
@@ -289,6 +306,15 @@ function IndexContent() {
     return (
       <Suspense fallback={null}>
         <PassportStamp userName={userName} onComplete={handleStampComplete} />
+      </Suspense>
+    );
+  }
+
+  // First-run Studio walkthrough — shown once, right after the welcome stamp
+  if (needsStudioDemo) {
+    return (
+      <Suspense fallback={null}>
+        <StudioDemo onComplete={handleStudioDemoComplete} />
       </Suspense>
     );
   }
