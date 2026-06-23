@@ -16,9 +16,9 @@ const HANDLE_REGEX = /^[a-z0-9_]+$/;
 /**
  * Generates Instagram-style handle alternatives for a taken base handle.
  * Runs all candidate checks in parallel, returns only available ones.
- * userId is used to exclude the current user's own existing handle.
+ * Uses check_handle_available which is granted to anon + authenticated.
  */
-async function generateSuggestions(base: string, userId?: string): Promise<string[]> {
+async function generateSuggestions(base: string): Promise<string[]> {
   const year = new Date().getFullYear().toString().slice(-2);
   const r = () => String(Math.floor(Math.random() * 900) + 100);
 
@@ -38,13 +38,10 @@ async function generateSuggestions(base: string, userId?: string): Promise<strin
   const settled = await Promise.all(
     unique.map(async (candidate) => {
       try {
-        const { data } = await supabase.rpc("get_public_profile_by_handle", {
+        const { data } = await supabase.rpc("check_handle_available", {
           target_handle: candidate,
         });
-        // Available if no row returned, or the only row belongs to the current user
-        if (!data || data.length === 0) return candidate;
-        if (userId && data[0].user_id === userId) return candidate;
-        return null;
+        return data === true ? candidate : null;
       } catch {
         return null;
       }
@@ -122,26 +119,36 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
       if (cancelled) return;
 
       try {
-        const { data, error } = await supabase.rpc("get_public_profile_by_handle", {
-          target_handle: handle,
-        });
+        // check_handle_available is granted to anon + authenticated, so it works
+        // even before the Supabase session is fully established after signup.
+        const { data: available, error: checkError } = await supabase.rpc(
+          "check_handle_available",
+          { target_handle: handle }
+        );
 
         if (cancelled) return;
-        if (error) throw error;
+        if (checkError) throw checkError;
 
-        const takenByOther =
-          data && data.length > 0 && data[0].user_id !== user?.id;
-
-        if (takenByOther) {
-          setHandleError("Handle not available");
-          setHandleAvailable(false);
-          // Generate suggestions in the background
-          generateSuggestions(handle, user?.id).then((s) => {
-            if (!cancelled) setSuggestions(s);
-          });
-        } else {
+        if (available) {
           setHandleAvailable(true);
           setHandleError(null);
+        } else {
+          // Handle is taken — but it might be the current user's own handle,
+          // which the signup trigger already wrote to their profile row.
+          const ownHandle = String(user?.user_metadata?.handle ?? "")
+            .toLowerCase()
+            .replace(/[^a-z0-9_]/g, "")
+            .slice(0, 20);
+          if (ownHandle && handle === ownHandle) {
+            setHandleAvailable(true);
+            setHandleError(null);
+          } else {
+            setHandleError("Handle not available");
+            setHandleAvailable(false);
+            generateSuggestions(handle).then((s) => {
+              if (!cancelled) setSuggestions(s);
+            });
+          }
         }
       } catch (err) {
         if (!cancelled) {
