@@ -6,7 +6,6 @@ import {
   Camera,
   Image as ImageIcon,
   Palette,
-  CheckCircle2,
   Clock,
   Pointer,
   Search,
@@ -503,7 +502,7 @@ function MenuMock({ reduceMotion }: MockProps) {
         ))}
       </div>
 
-      <TapFinger anchor="top-[38%] left-[42%]" reduceMotion={reduceMotion} />
+      <TapFinger anchor="top-[27%] left-[40%]" reduceMotion={reduceMotion} />
     </div>
   );
 }
