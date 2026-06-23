@@ -129,26 +129,18 @@ export function PassportModal({ userName, onComplete }: PassportModalProps) {
         if (cancelled) return;
         if (checkError) throw checkError;
 
+        // This screen only ever renders as the fallback for a user whose own
+        // profile.handle is still null, so check_handle_available is the single
+        // source of truth — the typed handle can never be "taken by self" here.
         if (available) {
           setHandleAvailable(true);
           setHandleError(null);
         } else {
-          // Handle is taken — but it might be the current user's own handle,
-          // which the signup trigger already wrote to their profile row.
-          const ownHandle = String(user?.user_metadata?.handle ?? "")
-            .toLowerCase()
-            .replace(/[^a-z0-9_]/g, "")
-            .slice(0, 20);
-          if (ownHandle && handle === ownHandle) {
-            setHandleAvailable(true);
-            setHandleError(null);
-          } else {
-            setHandleError("Handle not available");
-            setHandleAvailable(false);
-            generateSuggestions(handle).then((s) => {
-              if (!cancelled) setSuggestions(s);
-            });
-          }
+          setHandleError("Handle not available");
+          setHandleAvailable(false);
+          generateSuggestions(handle).then((s) => {
+            if (!cancelled) setSuggestions(s);
+          });
         }
       } catch (err) {
         if (!cancelled) {

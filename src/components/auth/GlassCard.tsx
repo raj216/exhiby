@@ -221,7 +221,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
         // The handle the user picked here is stored in auth metadata and written
         // to their profile by the handle_new_user trigger — so it's claimed once,
         // at signup. No second "claim your handle" prompt afterwards.
-        if (data.session) {
+        if (data?.session) {
           // Email confirmation is off → signup returns a live session, so the
           // user is logged in immediately. Proceed straight into the app.
           toast.success("Welcome to Exhiby!");
