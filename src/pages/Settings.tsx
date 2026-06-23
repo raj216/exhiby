@@ -1374,6 +1374,7 @@ const FAQ_ITEMS = [
 ];
 
 function HelpContent() {
+  const navigate = useNavigate();
   const [showBugModal, setShowBugModal] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -1386,6 +1387,12 @@ function HelpContent() {
       <div className="space-y-6">
         {/* Quick actions */}
         <div className="space-y-3">
+          <SettingsCard
+            title="Replay the Studio walkthrough"
+            description="Watch the quick guide on how to open your Studio"
+            action={<ChevronRight className="w-5 h-5 text-muted-foreground" />}
+            onClick={() => { triggerClickHaptic(); navigate("/?walkthrough=1"); }}
+          />
           <SettingsCard
             title="Contact Support"
             description="Get help from our team — we reply within 24 hours"

@@ -69,6 +69,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
+  const [signupEmailSent, setSignupEmailSent] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Username validation state
@@ -185,7 +186,11 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
 
       setIsLoading(true);
 
-      const redirectUrl = `${window.location.origin}/`;
+      // VITE_APP_URL must be set to the production domain in Lovable's
+      // environment settings so Supabase sends the confirmation link to the
+      // real app, not to whatever origin the preview is running on.
+      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const redirectUrl = `${appUrl}/`;
 
       if (isSignup) {
         const { data, error } = await supabase.auth.signUp({
@@ -217,8 +222,19 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
           return;
         }
 
-        toast.success("Account created! You can now sign in.");
-        onSuccess(name);
+        // The handle the user picked here is stored in auth metadata and written
+        // to their profile by the handle_new_user trigger — so it's claimed once,
+        // at signup. No second "claim your handle" prompt afterwards.
+        if (data?.session) {
+          // Email confirmation is off → signup returns a live session, so the
+          // user is logged in immediately. Proceed straight into the app.
+          toast.success("Welcome to Exhiby!");
+          onSuccess(name);
+        } else {
+          // Email confirmation is on → no session yet. Show a clean "check your
+          // email" state instead of dead-ending on a step that needs a session.
+          setSignupEmailSent(true);
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -250,7 +266,8 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       }
 
       setIsLoading(true);
-      const redirectUrl = `${window.location.origin}/auth`;
+      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const redirectUrl = `${appUrl}/auth`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -322,7 +339,29 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
             </p>
           </motion.div>
 
-          {forgotPasswordSent ? (
+          {signupEmailSent ? (
+            <motion.div
+              className="text-center py-8"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                <Check className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Confirm Your Email</h3>
+              <p className="text-muted-foreground text-sm">
+                We sent a confirmation link to{" "}
+                <span className="text-foreground">{email}</span>. Tap it to
+                finish setting up your studio pass.
+              </p>
+              <button
+                onClick={onClose}
+                className="mt-6 text-sm text-primary hover:underline"
+              >
+                Back to Sign In
+              </button>
+            </motion.div>
+          ) : forgotPasswordSent ? (
             <motion.div
               className="text-center py-8"
               initial={{ opacity: 0, scale: 0.9 }}

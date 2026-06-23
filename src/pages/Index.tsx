@@ -28,13 +28,14 @@ const SearchOverlay     = lazy(() => import("@/components/SearchOverlay").then(m
 const CategoriesOverlay = lazy(() => import("@/components/CategoriesOverlay").then(m => ({ default: m.CategoriesOverlay })));
 const PassportModal     = lazy(() => import("@/components/auth").then(m => ({ default: m.PassportModal })));
 const PlanOnboarding    = lazy(() => import("@/components/auth").then(m => ({ default: m.PlanOnboarding })));
+const StudioDemo        = lazy(() => import("@/components/StudioDemo").then(m => ({ default: m.StudioDemo })));
 const InstallBanner     = lazy(() => import("@/components/InstallBanner").then(m => ({ default: m.InstallBanner })));
 
 function IndexContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoading } = useAuth();
-  const { mode, setMode } = useUserMode();
+  const { mode, setMode, isVerifiedCreator } = useUserMode();
   
   // Restore internal screen from URL on mount (survives page refresh)
   const getInitialScreen = (): Screen => {
@@ -64,6 +65,7 @@ function IndexContent() {
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
   const [needsPassportSetup, setNeedsPassportSetup] = useState(false);
   const [needsPlanSelection, setNeedsPlanSelection] = useState(false);
+  const [needsStudioDemo, setNeedsStudioDemo] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [refreshScheduleKey, setRefreshScheduleKey] = useState(0);
 
@@ -192,7 +194,23 @@ function IndexContent() {
 
   const handleStampComplete = () => {
     setShowWelcomeStamp(false);
+    // First-run only: show the "Open your Studio" walkthrough once. Tracked in
+    // auth metadata (same mechanism as plan_onboarding_done) so it never repeats.
+    // Skipped for verified creators — they've already opened their studio.
+    if (!user?.user_metadata?.studio_demo_seen && !isVerifiedCreator) {
+      setNeedsStudioDemo(true);
+    }
   };
+
+  const handleStudioDemoComplete = useCallback(async () => {
+    setNeedsStudioDemo(false);
+    // Best-effort persist — never block dismissing the demo on a network call.
+    try {
+      await supabase.auth.updateUser({ data: { studio_demo_seen: true } });
+    } catch (error) {
+      console.error("[Index] Failed to persist studio_demo_seen:", error);
+    }
+  }, []);
 
   const handleGoLive = (data: EventData) => {
     setEventData(data);
@@ -240,6 +258,12 @@ function IndexContent() {
     setShowLogoutOverlay(false);
   };
 
+  // Owner / QA preview: ?walkthrough=1 force-plays the Studio walkthrough on
+  // any account (even verified creators) without marking it seen. Powers the
+  // "Replay walkthrough" button in Settings and manual testing.
+  const isWalkthroughPreview =
+    new URLSearchParams(location.search).get("walkthrough") === "1";
+
   // Show loading state
   if (isLoading || isCheckingProfile) {
     return (
@@ -252,6 +276,16 @@ function IndexContent() {
   // Redirect handled by useEffect
   if (!user) {
     return null;
+  }
+
+  // Manual preview of the walkthrough (?walkthrough=1) — takes precedence over
+  // the normal first-run gates and never writes the studio_demo_seen flag.
+  if (isWalkthroughPreview) {
+    return (
+      <Suspense fallback={null}>
+        <StudioDemo onComplete={() => navigate("/", { replace: true })} />
+      </Suspense>
+    );
   }
 
   // Passport setup for first-time users (mandatory, non-skippable)
@@ -289,6 +323,17 @@ function IndexContent() {
     return (
       <Suspense fallback={null}>
         <PassportStamp userName={userName} onComplete={handleStampComplete} />
+      </Suspense>
+    );
+  }
+
+  // First-run Studio walkthrough — shown once, right after the welcome stamp.
+  // The extra isVerifiedCreator guard closes the demo if creator status
+  // resolves late (e.g. slow network) for an already-verified creator.
+  if (needsStudioDemo && !isVerifiedCreator) {
+    return (
+      <Suspense fallback={null}>
+        <StudioDemo onComplete={handleStudioDemoComplete} />
       </Suspense>
     );
   }

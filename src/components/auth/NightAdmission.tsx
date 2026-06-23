@@ -2,10 +2,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClosedDoor } from "./ClosedDoor";
 import { GlassCard } from "./GlassCard";
-import { PassportModal } from "./PassportModal";
 import { PassportStamp } from "./PassportStamp";
 
-export type AuthStep = "door" | "signup" | "login" | "passport" | "stamping";
+export type AuthStep = "door" | "signup" | "login" | "stamping";
 
 interface NightAdmissionProps {
   onComplete: () => void;
@@ -24,18 +23,11 @@ export function NightAdmission({ onComplete }: NightAdmissionProps) {
     setStep("login");
   };
 
+  // Both signup and login land here once a session exists. The handle is
+  // captured during signup (GlassCard) and written to the profile by the
+  // handle_new_user trigger — no separate "claim your handle" step needed.
   const handleAuthSuccess = (name: string) => {
     setUserName(name);
-    if (name) {
-      // Signup flow: show passport modal to claim handle (photo optional)
-      setStep("passport");
-    } else {
-      // Login flow: show stamp animation then enter
-      setStep("stamping");
-    }
-  };
-
-  const handlePassportComplete = () => {
     setStep("stamping");
   };
 
@@ -78,14 +70,6 @@ export function NightAdmission({ onComplete }: NightAdmissionProps) {
             mode={step}
             onSuccess={handleAuthSuccess}
             onClose={handleCloseCard}
-          />
-        )}
-
-        {step === "passport" && (
-          <PassportModal
-            key="passport-modal"
-            userName={userName}
-            onComplete={handlePassportComplete}
           />
         )}
 
