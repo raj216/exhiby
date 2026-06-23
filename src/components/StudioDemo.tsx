@@ -9,6 +9,16 @@ import {
   CheckCircle2,
   Clock,
   Pointer,
+  Search,
+  MessageCircle,
+  Bell,
+  Home,
+  Compass,
+  User,
+  CreditCard,
+  Settings,
+  Check,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { triggerClickHaptic } from "@/lib/haptics";
@@ -21,21 +31,34 @@ interface StudioDemoProps {
 // Brand splash duration, then per-step durations (ms). The last step's bar
 // fills and then holds — it never auto-advances, it waits for the CTA.
 const INTRO_MS = 1300;
-const STEP_MS = [4600, 5000, 4400, 4200] as const;
+const STEP_MS = [4600, 4400, 4800, 5400, 5200, 4400] as const;
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Each step renders a realistic *mock* of the real screen — copy mirrors the
-// live CreatorVerificationFlow ("Unlock Your Studio") so the demo matches the
-// actual product the user is about to use.
+// Each step renders a realistic *mock* of the real screen. Copy, layout, colors
+// and the orange application progress bar mirror the live product (Home →
+// profile menu → CreatorVerificationFlow) so the demo matches exactly what the
+// user is about to tap through.
 // ─────────────────────────────────────────────────────────────────────────────
 const STEPS = [
   {
-    key: "open",
-    title: "Unlock your Studio",
-    blurb: "Open your profile and tap “Open Studio” to start your creator application.",
-    Mock: OpenStudioMock,
+    key: "home",
+    title: "Start from your menu",
+    blurb: "On the home screen, tap your profile in the bottom bar to open the menu.",
+    Mock: HomeMock,
+  },
+  {
+    key: "menu",
+    title: "Open Your Studio",
+    blurb: "Tap “Open Your Studio” to begin your creator application.",
+    Mock: MenuMock,
+  },
+  {
+    key: "unlock",
+    title: "Start your application",
+    blurb: "Three photos, two short questions. We review every one personally.",
+    Mock: UnlockMock,
   },
   {
     key: "photos",
@@ -46,14 +69,14 @@ const STEPS = [
   {
     key: "questions",
     title: "Two quick questions",
-    blurb: "Tell us what you'll teach and your creative background. A few sentences each.",
+    blurb: "What you'll teach and your creative background. Be real — a few sentences.",
     Mock: QuestionsMock,
   },
   {
-    key: "submit",
-    title: "Submit & you're in",
-    blurb: "We review every application personally and reply within 24 hours.",
-    Mock: SubmitMock,
+    key: "sent",
+    title: "You're in",
+    blurb: "Submit and we'll notify you the moment you're approved — within 24 hours.",
+    Mock: SentMock,
   },
 ] as const;
 
@@ -320,172 +343,393 @@ interface MockProps {
   reduceMotion: boolean;
 }
 
-// ─── Step 1: realistic profile screen + fake finger tapping "Open Studio" ──────
-function OpenStudioMock({ reduceMotion }: MockProps) {
+// A floating finger that drifts onto a target and "taps" with a scale punch.
+// `anchor` positions it (Tailwind) over the button it's tapping.
+function TapFinger({ anchor, reduceMotion }: { anchor: string; reduceMotion: boolean }) {
+  if (reduceMotion) return null;
   return (
-    <div className="flex flex-col h-full">
-      <p className="text-[9px] font-bold tracking-[0.2em] text-muted-foreground/50 mb-3">PROFILE</p>
+    <motion.div
+      aria-hidden
+      className={cn("absolute z-30 text-foreground pointer-events-none", anchor)}
+      initial={{ x: 26, y: 28, opacity: 0, scale: 1 }}
+      animate={{
+        x: [26, 0, 0, 0, 26],
+        y: [28, 0, 0, 4, 28],
+        opacity: [0, 1, 1, 1, 0],
+        scale: [1, 1, 0.84, 1, 1],
+      }}
+      transition={{ duration: 2.6, times: [0, 0.38, 0.5, 0.62, 1], repeat: Infinity, ease: "easeInOut" }}
+    >
+      <Pointer className="w-7 h-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]" />
+    </motion.div>
+  );
+}
 
-      {/* Identity row */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-full bg-gradient-electric flex items-center justify-center text-white font-display text-lg">
-          A
-        </div>
-        <div className="flex-1">
-          <div className="h-2.5 w-24 rounded-full bg-foreground/25 mb-1.5" />
-          <div className="h-2 w-14 rounded-full bg-foreground/12" />
-        </div>
-      </div>
-
-      {/* Stat pills */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        {["Sessions", "Followers", "Saved"].map((l) => (
-          <div key={l} className="rounded-xl bg-obsidian border border-border/40 py-2 flex flex-col items-center gap-1">
-            <div className="h-2 w-5 rounded-full bg-foreground/30" />
-            <span className="text-[7px] text-muted-foreground/60">{l}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-auto space-y-2">
-        <div className="h-2 w-full rounded-full bg-foreground/10" />
-        <div className="h-2 w-2/3 rounded-full bg-foreground/10" />
-      </div>
-
-      {/* The target CTA — pulses to draw the eye */}
-      <motion.div
-        animate={reduceMotion ? undefined : {
-          boxShadow: [
-            "0 0 0px hsl(7 100% 67% / 0.0)",
-            "0 0 28px hsl(7 100% 67% / 0.55)",
-            "0 0 0px hsl(7 100% 67% / 0.0)",
-          ],
-        }}
-        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-        className="relative w-full py-3 rounded-2xl bg-gradient-electric text-white text-sm font-semibold flex items-center justify-center gap-2"
-      >
-        <Sparkles className="w-4 h-4" />
-        Open Studio
-      </motion.div>
-
-      {/* Fake finger: travels to the button and "taps" with a ripple */}
-      {!reduceMotion && (
-        <motion.div
-          className="absolute left-1/2 bottom-7 text-foreground"
-          initial={{ x: 40, y: 36, opacity: 0, scale: 1 }}
-          animate={{
-            x: [40, 0, 0, 0, 40],
-            y: [36, 0, 0, 4, 36],
-            opacity: [0, 1, 1, 1, 0],
-            scale: [1, 1, 0.86, 1, 1],
-          }}
-          transition={{ duration: 2.6, times: [0, 0.35, 0.5, 0.62, 1], repeat: Infinity, ease: "easeInOut" }}
-        >
-          <Pointer className="w-7 h-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]" />
-        </motion.div>
-      )}
+// The two-segment application progress bar that the real flow shows at the top.
+function AppProgress({ active }: { active: 0 | 1 | 2 }) {
+  return (
+    <div className="flex gap-1.5 mb-3">
+      {[0, 1].map((i) => (
+        <div
+          key={i}
+          className={cn("h-0.5 flex-1 rounded-full", i < active ? "bg-electric" : "bg-foreground/15")}
+        />
+      ))}
     </div>
   );
 }
 
-// ─── Step 2: 3 art-like photo thumbnails dropping in with check badges ─────────
-function PhotosMock({ reduceMotion }: MockProps) {
-  const slots = [
-    { label: "You Creating", Icon: Camera, grad: "from-[#6D5BFF] to-[#A78BFA]" },
-    { label: "In Progress", Icon: ImageIcon, grad: "from-[#FF8A4C] to-[#FFC24B]" },
-    { label: "Finished", Icon: Palette, grad: "from-[#2DD4BF] to-[#22D3EE]" },
+// ─── Step 1: real Home screen — finger taps the Profile tab in the bottom nav ──
+function HomeMock({ reduceMotion }: MockProps) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Top bar: logo · mode toggle · icons */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="font-display text-sm font-bold text-gradient-electric leading-none">Exhiby</span>
+        <div className="ml-1 flex items-center rounded-full bg-obsidian border border-border/40 p-0.5">
+          <span className="px-1.5 py-0.5 rounded-full bg-electric/20 text-electric text-[6px] font-semibold">Audience</span>
+          <span className="px-1.5 py-0.5 text-muted-foreground/60 text-[6px]">Studio</span>
+        </div>
+        <div className="ml-auto flex gap-1">
+          {[Search, MessageCircle, Bell].map((Icon, i) => (
+            <div key={i} className="w-4 h-4 rounded-full bg-obsidian border border-border/40 flex items-center justify-center">
+              <Icon className="w-2 h-2 text-muted-foreground" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* "No one's live" empty state */}
+      <div className="flex-1 rounded-2xl border border-border/30 flex flex-col items-center justify-center text-center px-3">
+        <div className="w-9 h-9 rounded-full border border-border/40 flex items-center justify-center mb-2">
+          <Clock className="w-4 h-4 text-muted-foreground/60" />
+        </div>
+        <p className="font-display text-[11px] text-foreground mb-1 leading-tight">No one's live right now.</p>
+        <p className="text-[8px] text-muted-foreground/55 mb-2.5 leading-snug">
+          Check back soon — or open your own studio.
+        </p>
+        <div className="px-3 py-1 rounded-full border border-border/40 text-[8px] text-foreground/80">
+          Explore Studios
+        </div>
+      </div>
+
+      {/* Bottom nav — Profile pulses to draw the eye */}
+      <div className="flex items-end justify-around pt-3 mt-3 border-t border-border/20">
+        {[
+          { Icon: Home, label: "Home", active: true },
+          { Icon: Search, label: "Categories" },
+          { Icon: Compass, label: "Passport" },
+        ].map((t) => (
+          <div key={t.label} className="flex flex-col items-center gap-0.5">
+            <t.Icon className={cn("w-3.5 h-3.5", t.active ? "text-foreground" : "text-muted-foreground/55")} />
+            <span className={cn("text-[6px]", t.active ? "text-foreground" : "text-muted-foreground/55")}>{t.label}</span>
+          </div>
+        ))}
+        <div className="flex flex-col items-center gap-0.5">
+          <motion.div
+            animate={reduceMotion ? undefined : {
+              boxShadow: [
+                "0 0 0px hsl(7 100% 67% / 0)",
+                "0 0 14px hsl(7 100% 67% / 0.8)",
+                "0 0 0px hsl(7 100% 67% / 0)",
+              ],
+            }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            className="w-4 h-4 rounded-full bg-gradient-electric flex items-center justify-center text-white text-[7px] font-bold ring-1 ring-electric"
+          >
+            Z
+          </motion.div>
+          <span className="text-[6px] text-foreground">Profile</span>
+        </div>
+      </div>
+
+      <TapFinger anchor="bottom-4 right-3" reduceMotion={reduceMotion} />
+    </div>
+  );
+}
+
+// ─── Step 2: the profile menu drawer — finger taps "Open Your Studio" ──────────
+function MenuMock({ reduceMotion }: MockProps) {
+  const rows = [
+    { Icon: User, label: "View Profile", active: false },
+    { Icon: Palette, label: "Open Your Studio", active: true },
+    { Icon: CreditCard, label: "Wallet & Earnings", active: false },
+    { Icon: Settings, label: "Settings", active: false },
   ];
   return (
     <div className="flex flex-col h-full">
-      <Palette className="w-6 h-6 text-electric mb-2" />
-      <p className="font-display text-base text-foreground mb-1 leading-tight">Show your work</p>
-      <p className="text-[9px] text-muted-foreground/60 mb-3">Three quick photos of your craft</p>
+      {/* Identity header */}
+      <div className="flex items-center gap-2.5 mb-1">
+        <div className="w-9 h-9 rounded-full bg-gradient-electric flex items-center justify-center text-white font-display text-sm ring-1 ring-electric">
+          Z
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-xs text-foreground leading-none mb-0.5">zara</p>
+          <p className="text-[8px] text-muted-foreground/60 leading-none">zara</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 ml-11 mb-4">
+        <span className="text-[7px] text-muted-foreground/60">Audience Mode ·</span>
+        <span className="px-1.5 py-0.5 rounded-md bg-obsidian border border-border/40 text-[6px] font-bold text-muted-foreground tracking-wide">
+          FREE
+        </span>
+      </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-auto">
-        {slots.map(({ label, Icon, grad }, i) => (
+      <div className="h-px bg-border/30 mb-2" />
+
+      {/* Menu rows */}
+      <div className="space-y-1">
+        {rows.map(({ Icon, label, active }) => (
           <motion.div
             key={label}
-            initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: reduceMotion ? 0 : 0.4 + i * 0.7, duration: 0.45, ease: EASE }}
-            className="relative aspect-[3/4] rounded-xl overflow-hidden border border-border/40"
+            animate={active && !reduceMotion ? {
+              boxShadow: [
+                "0 0 0px hsl(7 100% 67% / 0)",
+                "0 0 22px hsl(7 100% 67% / 0.4)",
+                "0 0 0px hsl(7 100% 67% / 0)",
+              ],
+            } : undefined}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            className={cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2.5",
+              active ? "bg-crimson/15 border border-crimson/30" : ""
+            )}
           >
-            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-90", grad)} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Icon className="w-5 h-5 text-white/80" />
-            </div>
-            <motion.div
-              initial={reduceMotion ? false : { scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: reduceMotion ? 0 : 0.7 + i * 0.7, type: "spring", stiffness: 320, damping: 18 }}
-              className="absolute top-1 right-1 w-4 h-4 rounded-full bg-electric flex items-center justify-center shadow"
-            >
-              <CheckCircle2 className="w-2.5 h-2.5 text-white" />
-            </motion.div>
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1">
-              <span className="text-[7px] font-semibold text-white leading-none">{label}</span>
-            </div>
+            <Icon className={cn("w-4 h-4", active ? "text-electric" : "text-muted-foreground/70")} />
+            <span className={cn("text-[11px]", active ? "text-foreground font-semibold" : "text-foreground/80")}>
+              {label}
+            </span>
           </motion.div>
         ))}
       </div>
 
-      <motion.p
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: reduceMotion ? 0 : 2.4 }}
-        className="text-[10px] text-center text-electric font-medium mt-3"
-      >
-        3 / 3 uploaded ✓
-      </motion.p>
+      <TapFinger anchor="top-[38%] left-[42%]" reduceMotion={reduceMotion} />
     </div>
   );
 }
 
-// ─── Step 3: two answer fields "typing" then validating ────────────────────────
-function QuestionsMock({ reduceMotion }: MockProps) {
-  const fields = [
-    { q: "What will people experience live?", lines: ["100%", "80%"] },
-    { q: "Your creative background", lines: ["100%", "60%"] },
+// ─── Step 3: "Unlock Your Studio" intro — finger taps "Start Application" ──────
+function UnlockMock({ reduceMotion }: MockProps) {
+  const reqs = [
+    "3 photos showing your creative work",
+    "2 short questions about what you'll teach",
+    "Personal review — we'll notify you within 24 hours",
   ];
   return (
     <div className="flex flex-col h-full">
-      <div className="w-7 h-7 rounded-lg bg-electric/20 border border-electric/30 flex items-center justify-center mb-2">
+      <AppProgress active={0} />
+
+      <div className="flex flex-col items-center text-center">
+        <motion.div
+          initial={reduceMotion ? false : { scale: 0, rotate: -12 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ delay: reduceMotion ? 0 : 0.1, type: "spring", stiffness: 260, damping: 18 }}
+          className="w-12 h-12 rounded-full bg-gradient-electric flex items-center justify-center shadow-[0_0_30px_hsl(7_100%_67%/0.45)] mb-2.5"
+        >
+          <Sparkles className="w-6 h-6 text-white" />
+        </motion.div>
+        <p className="font-display text-base text-foreground mb-1.5 leading-tight">Unlock Your Studio</p>
+        <p className="text-[8px] text-muted-foreground/60 leading-snug px-2 mb-3">
+          We review every application personally — looking for creators excited to share their process, not perfection.
+        </p>
+      </div>
+
+      <div className="space-y-1.5 mb-auto">
+        {reqs.map((r, i) => (
+          <motion.div
+            key={i}
+            initial={reduceMotion ? false : { opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: reduceMotion ? 0 : 0.4 + i * 0.4, duration: 0.4, ease: EASE }}
+            className="flex items-center gap-2.5 rounded-xl bg-obsidian border border-border/30 px-2.5 py-2"
+          >
+            <span className="w-4 h-4 rounded-full border border-crimson/40 flex items-center justify-center text-[7px] font-bold text-electric flex-shrink-0">
+              {i + 1}
+            </span>
+            <span className="text-[8.5px] text-foreground/85 leading-snug">{r}</span>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="relative w-full py-2.5 rounded-xl bg-gradient-electric flex items-center justify-center gap-1.5 mt-3">
+        <span className="text-[10px] font-semibold text-white">Start Application</span>
+        <ArrowRight className="w-3 h-3 text-white" />
+      </div>
+
+      <TapFinger anchor="bottom-3 left-1/2" reduceMotion={reduceMotion} />
+    </div>
+  );
+}
+
+// ─── Step 4: "Show Your Work" — 3 slots fill with art, then finger taps Continue
+function PhotosMock({ reduceMotion }: MockProps) {
+  const slots = [
+    { label: "You Creating", Icon: Camera },
+    { label: "Work in Progress", Icon: ImageIcon },
+    { label: "Finished Piece", Icon: Palette },
+  ];
+  return (
+    <div className="flex flex-col h-full">
+      <AppProgress active={1} />
+
+      <div className="flex items-center gap-2 mb-1">
+        <Palette className="w-4 h-4 text-electric" />
+        <p className="font-display text-sm text-foreground leading-none">Show Your Work</p>
+      </div>
+      <p className="text-[8px] text-muted-foreground/60 mb-2.5 leading-snug">
+        Each slot has a purpose. Read the label before choosing.
+      </p>
+
+      {/* Slots: grayscale "art" fills in with an orange ring + check badge */}
+      <div className="space-y-1.5 mb-auto">
+        {slots.map(({ label, Icon }, i) => (
+          <div key={label} className="relative h-12 rounded-xl overflow-hidden">
+            {/* empty placeholder */}
+            <div className="absolute inset-0 flex items-center gap-2.5 rounded-xl border border-dashed border-border/50 px-2.5">
+              <span className="w-7 h-7 rounded-lg bg-obsidian border border-border/40 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-3.5 h-3.5 text-muted-foreground/70" />
+              </span>
+              <span className="text-[9px] font-semibold text-foreground/80">{label}</span>
+            </div>
+
+            {/* filled photo */}
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: reduceMotion ? 0 : 0.6 + i * 0.7, duration: 0.45, ease: EASE }}
+              className="absolute inset-0 rounded-xl overflow-hidden ring-2 ring-electric"
+            >
+              {/* grayscale art stand-in */}
+              <div className="absolute inset-0 bg-gradient-to-br from-foreground/35 via-foreground/15 to-foreground/30" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Icon className="w-4 h-4 text-white/40" />
+              </div>
+              <motion.div
+                initial={reduceMotion ? false : { scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: reduceMotion ? 0 : 0.85 + i * 0.7, type: "spring", stiffness: 320, damping: 18 }}
+                className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-electric flex items-center justify-center"
+              >
+                <Check className="w-2 h-2 text-white" />
+              </motion.div>
+              <span className="absolute bottom-1 left-2 text-[8px] font-semibold text-white drop-shadow">{label}</span>
+            </motion.div>
+          </div>
+        ))}
+      </div>
+
+      <motion.p
+        key="counter"
+        initial={false}
+        animate={{ opacity: 1 }}
+        className="text-[9px] text-center text-muted-foreground/70 my-2"
+      >
+        <motion.span
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: reduceMotion ? 0 : 2.5 }}
+          className="text-electric font-medium"
+        >
+          3 / 3 photos uploaded
+        </motion.span>
+      </motion.p>
+
+      {/* portfolio link field */}
+      <div className="flex items-center gap-1.5 rounded-lg bg-obsidian border border-border/40 px-2 py-1.5 mb-2">
+        <Link2 className="w-2.5 h-2.5 text-muted-foreground/60" />
+        <span className="text-[7px] text-muted-foreground/50">Instagram, TikTok, or portfolio URL</span>
+      </div>
+
+      {/* Continue: muted → orange once 3/3 */}
+      <div className="relative w-full py-2.5 rounded-xl overflow-hidden flex items-center justify-center">
+        <div className="absolute inset-0 bg-foreground/10" />
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: reduceMotion ? 0 : 2.6, duration: 0.5 }}
+          className="absolute inset-0 bg-gradient-electric"
+        />
+        <span className="relative flex items-center gap-1.5 text-[10px] font-semibold text-white">
+          Continue <ArrowRight className="w-3 h-3" />
+        </span>
+      </div>
+
+      <TapFinger anchor="bottom-3 left-1/2" reduceMotion={reduceMotion} />
+    </div>
+  );
+}
+
+// ─── Step 5: "Two Quick Questions" — fields fill, "✓ Good", finger taps Submit ─
+function QuestionsMock({ reduceMotion }: MockProps) {
+  const fields = [
+    { q: "What will people experience in your live sessions?", lines: ["100%", "92%", "70%"] },
+    { q: "Describe your creative background", lines: ["100%", "84%"] },
+  ];
+  return (
+    <div className="flex flex-col h-full">
+      <AppProgress active={2} />
+
+      <div className="w-7 h-7 rounded-lg bg-crimson/20 border border-crimson/30 flex items-center justify-center mb-1.5">
         <span className="font-display text-electric text-sm font-bold leading-none">?</span>
       </div>
-      <p className="font-display text-base text-foreground mb-3 leading-tight">Two quick questions</p>
+      <p className="font-display text-sm text-foreground mb-0.5 leading-tight">Two Quick Questions</p>
+      <p className="text-[8px] text-muted-foreground/60 mb-3 leading-snug">
+        This is what we read when reviewing you. Be real — 2-3 sentences is enough.
+      </p>
 
-      <div className="space-y-4 mb-auto">
+      <div className="space-y-3 mb-auto">
         {fields.map(({ q, lines }, i) => (
           <div key={q}>
-            <p className="text-[9px] font-semibold text-foreground/80 mb-1.5 leading-snug">{q}</p>
-            <div className="rounded-xl bg-obsidian border border-border/40 px-3 py-2.5 space-y-1.5">
+            <p className="text-[8.5px] font-semibold text-foreground/85 mb-1.5 leading-snug">{q}</p>
+            <div
+              className={cn(
+                "rounded-xl bg-obsidian px-2.5 py-2 space-y-1.5 border",
+                i === 0 ? "border-crimson/40" : "border-border/40"
+              )}
+            >
               {lines.map((w, j) => (
                 <motion.div
                   key={j}
                   initial={reduceMotion ? false : { width: 0 }}
                   animate={{ width: w }}
-                  transition={{ delay: reduceMotion ? 0 : 0.4 + i * 0.9 + j * 0.3, duration: 0.6, ease: EASE }}
-                  className="h-1.5 rounded-full bg-foreground/20"
+                  transition={{ delay: reduceMotion ? 0 : 0.4 + i * 1.0 + j * 0.28, duration: 0.5, ease: EASE }}
+                  className="h-1.5 rounded-full bg-foreground/25"
                 />
               ))}
             </div>
             <motion.p
               initial={reduceMotion ? false : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: reduceMotion ? 0 : 1.3 + i * 0.9 }}
-              className="text-[9px] text-electric text-right mt-1 font-medium"
+              transition={{ delay: reduceMotion ? 0 : 1.5 + i * 1.0 }}
+              className="text-[8px] text-electric text-right mt-1 font-medium"
             >
-              ✓ Looks good
+              ✓ Good
             </motion.p>
           </div>
         ))}
       </div>
+
+      {/* Submit: muted → gradient once both are "Good" */}
+      <div className="relative w-full py-2.5 rounded-xl overflow-hidden flex items-center justify-center mt-2">
+        <div className="absolute inset-0 bg-foreground/10" />
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: reduceMotion ? 0 : 2.8, duration: 0.5 }}
+          className="absolute inset-0 bg-gradient-electric"
+        />
+        <span className="relative flex items-center gap-1.5 text-[10px] font-semibold text-white">
+          Submit Application <ArrowRight className="w-3 h-3" />
+        </span>
+      </div>
+
+      <TapFinger anchor="bottom-3 left-1/2" reduceMotion={reduceMotion} />
     </div>
   );
 }
 
-// ─── Step 4: submitted success ─────────────────────────────────────────────────
-function SubmitMock({ reduceMotion }: MockProps) {
+// ─── Step 6: "Application Sent" success screen ─────────────────────────────────
+function SentMock({ reduceMotion }: MockProps) {
   return (
     <div className="flex flex-col h-full items-center justify-center text-center">
       <motion.div
@@ -494,16 +738,18 @@ function SubmitMock({ reduceMotion }: MockProps) {
         transition={{ delay: reduceMotion ? 0 : 0.15, type: "spring", stiffness: 260, damping: 18 }}
         className="w-16 h-16 mb-4 rounded-full bg-gradient-electric flex items-center justify-center shadow-[0_0_40px_hsl(7_100%_67%/0.5)]"
       >
-        <CheckCircle2 className="w-8 h-8 text-white" />
+        <div className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center">
+          <Check className="w-4 h-4 text-white" strokeWidth={3} />
+        </div>
       </motion.div>
-      <p className="font-display text-xl text-foreground mb-2">Application sent</p>
-      <p className="text-[11px] text-muted-foreground leading-relaxed mb-4 px-3">
-        We'll review your work and reply within 24 hours.
+      <p className="font-display text-xl text-foreground mb-2">Application Sent</p>
+      <p className="text-[10px] text-muted-foreground leading-relaxed mb-4 px-3">
+        We'll personally review your work and reply within 24 hours. You'll be notified the moment you're approved.
       </p>
       <div className="flex items-start gap-2 rounded-xl bg-obsidian border border-border/30 px-3 py-2.5 text-left mx-1">
         <Clock className="w-4 h-4 text-electric flex-shrink-0 mt-0.5" />
-        <p className="text-[10px] text-foreground/80 leading-relaxed">
-          Your Studio activates automatically once you're approved.
+        <p className="text-[9px] text-foreground/80 leading-relaxed">
+          Your studio access activates automatically once approved — no action needed on your end.
         </p>
       </div>
     </div>
