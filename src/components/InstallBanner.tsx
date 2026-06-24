@@ -65,8 +65,38 @@ function Step({
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+// Reusable one-tap install button — same flow for Android and desktop Chrome/Edge.
+function InstallButton({
+  onClick,
+  isInstalling,
+}: {
+  onClick: () => void;
+  isInstalling: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={isInstalling}
+      aria-busy={isInstalling}
+      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-opacity active:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed"
+      style={{
+        background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
+        boxShadow: isInstalling ? "none" : "0 4px 16px hsla(7, 100%, 67%, 0.30)",
+      }}
+    >
+      {isInstalling ? (
+        <><Loader2 className="w-4 h-4 animate-spin" />Installing…</>
+      ) : (
+        <><Download className="w-4 h-4" />Install App</>
+      )}
+    </button>
+  );
+}
+
 export function InstallBanner() {
   const { showBanner, platform, isInstalling, triggerInstall, dismiss } = usePWAInstall();
+
+  const isIOS = platform === "ios" || platform === "ios-ipad";
 
   return (
     <AnimatePresence>
@@ -91,7 +121,7 @@ export function InstallBanner() {
               {/* App icon */}
               <div className="w-10 h-10 rounded-xl bg-obsidian border border-border/30 flex-shrink-0 overflow-hidden">
                 <img
-                  src={platform === "ios" ? "/apple-touch-icon.png" : "/android-chrome-192x192.png"}
+                  src={isIOS ? "/apple-touch-icon.png" : "/android-chrome-192x192.png"}
                   alt="Exhiby"
                   className="w-full h-full object-cover"
                 />
@@ -99,13 +129,13 @@ export function InstallBanner() {
 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground leading-tight">
-                  {platform === "ios"
-                    ? "Add Exhiby to your Home Screen"
-                    : "Install Exhiby"}
+                  {isIOS ? "Add Exhiby to your Home Screen" : "Install Exhiby"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {platform === "ios"
+                  {isIOS
                     ? "3 quick steps in Safari"
+                    : platform === "desktop"
+                    ? "Works like a real app — no browser chrome"
                     : "One tap — works like a real app"}
                 </p>
               </div>
@@ -123,7 +153,7 @@ export function InstallBanner() {
             {/* ── Divider ──────────────────────────────────────────────────── */}
             <div className="h-px bg-border/20 mx-4" />
 
-            {/* ── iOS: 3-step guide ─────────────────────────────────────────── */}
+            {/* ── iPhone: 3-step guide (Share button is at the BOTTOM) ──────── */}
             {platform === "ios" && (
               <div className="px-4 py-4 space-y-3">
                 <Step number={1}>
@@ -132,9 +162,8 @@ export function InstallBanner() {
                     <IOSShareIcon size={13} />
                     Share
                   </span>{" "}
-                  button at the bottom of Safari
+                  button at the <strong>bottom</strong> of Safari
                 </Step>
-
                 <Step number={2}>
                   Scroll down and tap{" "}
                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/30 border border-border/30 text-foreground font-medium text-xs">
@@ -142,7 +171,6 @@ export function InstallBanner() {
                     Add to Home Screen
                   </span>
                 </Step>
-
                 <Step number={3}>
                   Tap{" "}
                   <span className="px-1.5 py-0.5 rounded-md bg-muted/30 border border-border/30 text-foreground font-medium text-xs">
@@ -150,40 +178,47 @@ export function InstallBanner() {
                   </span>{" "}
                   in the top-right corner to confirm
                 </Step>
-
-                {/* Visual hint pointing down toward Safari toolbar */}
                 <p className="text-[11px] text-muted-foreground/50 text-center pt-1">
                   The Share button is in Safari's toolbar at the bottom of your screen
                 </p>
               </div>
             )}
 
-            {/* ── Android: single install button ────────────────────────────── */}
-            {platform === "android" && (
+            {/* ── iPad: 3-step guide (Share button is at the TOP) ───────────── */}
+            {platform === "ios-ipad" && (
+              <div className="px-4 py-4 space-y-3">
+                <Step number={1}>
+                  Tap the{" "}
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/30 border border-border/30 text-foreground font-medium text-xs">
+                    <IOSShareIcon size={13} />
+                    Share
+                  </span>{" "}
+                  button in the <strong>top</strong> toolbar of Safari
+                </Step>
+                <Step number={2}>
+                  Tap{" "}
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/30 border border-border/30 text-foreground font-medium text-xs">
+                    <AddToHomeIcon size={13} />
+                    Add to Home Screen
+                  </span>
+                </Step>
+                <Step number={3}>
+                  Tap{" "}
+                  <span className="px-1.5 py-0.5 rounded-md bg-muted/30 border border-border/30 text-foreground font-medium text-xs">
+                    Add
+                  </span>{" "}
+                  in the top-right corner to confirm
+                </Step>
+                <p className="text-[11px] text-muted-foreground/50 text-center pt-1">
+                  The Share button is in Safari's address bar area at the top
+                </p>
+              </div>
+            )}
+
+            {/* ── Android / Desktop Chrome & Edge: one-tap install ──────────── */}
+            {(platform === "android" || platform === "desktop") && (
               <div className="px-4 py-4">
-                <button
-                  onClick={triggerInstall}
-                  disabled={isInstalling}
-                  aria-busy={isInstalling}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-opacity active:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
-                    boxShadow: isInstalling ? "none" : "0 4px 16px hsla(7, 100%, 67%, 0.30)",
-                  }}
-                >
-                  {isInstalling ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Installing…
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-4 h-4" />
-                      Install App
-                    </>
-                  )}
-                </button>
+                <InstallButton onClick={triggerInstall} isInstalling={isInstalling} />
               </div>
             )}
           </div>

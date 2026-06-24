@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-export type PWAPlatform = "android" | "ios" | "unsupported";
+export type PWAPlatform = "android" | "ios" | "ios-ipad" | "desktop" | "unsupported";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -40,7 +40,6 @@ export function usePWAInstall(): UsePWAInstallReturn {
     const raw = localStorage.getItem(DISMISS_KEY);
     if (raw && Date.now() < parseInt(raw, 10)) return;
 
-    // ── Guard 3: only show on mobile — no home screen concept on desktop ─────
     const ua = navigator.userAgent;
 
     // iPad OS 13+ reports as "MacIntel" with touch points — maxTouchPoints alone
@@ -48,9 +47,6 @@ export function usePWAInstall(): UsePWAInstallReturn {
     const isIPad    = /ipad/i.test(ua) || (navigator.maxTouchPoints > 1 && /macintosh/i.test(ua));
     const isIPhone  = /iphone|ipod/i.test(ua);
     const isAndroid = /android/i.test(ua);
-    const isMobile  = isIPhone || isIPad || isAndroid;
-
-    if (!isMobile) return;
 
     // ── Detect iOS Safari ─────────────────────────────────────────────────────
     // Must be Safari specifically — Chrome/Firefox on iOS cannot install PWAs.
@@ -61,16 +57,19 @@ export function usePWAInstall(): UsePWAInstallReturn {
       !/CriOS|FxiOS|OPiOS|EdgiOS|mercury/i.test(ua);
 
     if (isIOSSafari) {
-      setPlatform("ios");
+      // Differentiate iPad vs iPhone — Safari's Share button is at the top on
+      // iPad and at the bottom on iPhone, so the instructions differ.
+      setPlatform(isIPad ? "ios-ipad" : "ios");
     }
 
-    // ── Capture Android Chrome's native install prompt ────────────────────────
-    // preventDefault() stops Chrome from showing its own mini-infobar so we
-    // control exactly when the prompt appears.
+    // ── Capture native install prompt (Android Chrome + desktop Chrome/Edge) ──
+    // beforeinstallprompt fires on Android Chrome AND on desktop Chrome/Edge.
+    // preventDefault() stops the browser's own mini-infobar so we control timing.
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       deferredPromptRef.current = e as BeforeInstallPromptEvent;
-      setPlatform("android");
+      // On Android → "android"; on desktop (MacBook, Windows, Linux) → "desktop"
+      setPlatform(isAndroid ? "android" : "desktop");
     };
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
