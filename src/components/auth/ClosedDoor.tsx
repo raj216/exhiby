@@ -19,8 +19,9 @@ export function ClosedDoor({
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleLoading(true);
+      const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, "");
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin
+        redirect_uri: appUrl
       });
       if (result.redirected) {
         // User is being redirected to Google, keep loading state

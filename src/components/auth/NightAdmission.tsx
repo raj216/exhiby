@@ -70,6 +70,7 @@ export function NightAdmission({ onComplete }: NightAdmissionProps) {
             mode={step}
             onSuccess={handleAuthSuccess}
             onClose={handleCloseCard}
+            onSwitchToLogin={handleHavePass}
           />
         )}
 

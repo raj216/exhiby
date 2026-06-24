@@ -9,6 +9,7 @@ interface GlassCardProps {
   mode: "signup" | "login";
   onSuccess: (name: string) => void;
   onClose: () => void;
+  onSwitchToLogin?: () => void;
 }
 
 const emailSchema = z.string().email("Please enter a valid email");
@@ -61,7 +62,7 @@ async function generateSuggestions(base: string): Promise<string[]> {
   return settled.filter(Boolean).slice(0, 4) as string[];
 }
 
-export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
+export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCardProps) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -189,7 +190,8 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       // VITE_APP_URL must be set to the production domain in Lovable's
       // environment settings so Supabase sends the confirmation link to the
       // real app, not to whatever origin the preview is running on.
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      // Trim trailing slash so ${appUrl}/ never produces a double-slash.
+      const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, "");
       const redirectUrl = `${appUrl}/`;
 
       if (isSignup) {
@@ -266,7 +268,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
       }
 
       setIsLoading(true);
-      const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, "");
       const redirectUrl = `${appUrl}/auth`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -355,7 +357,7 @@ export function GlassCard({ mode, onSuccess, onClose }: GlassCardProps) {
                 finish setting up your studio pass.
               </p>
               <button
-                onClick={onClose}
+                onClick={onSwitchToLogin ?? onClose}
                 className="mt-6 text-sm text-primary hover:underline"
               >
                 Back to Sign In
