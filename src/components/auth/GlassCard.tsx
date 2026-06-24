@@ -291,7 +291,10 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
 
   return (
     <motion.div
-      className="fixed inset-0 z-20 flex items-end justify-center p-4 md:items-center"
+      className="fixed inset-0 z-20 flex items-end justify-center md:items-center px-4 pt-4"
+      // On mobile the card is a bottom sheet; pad past the iOS home indicator /
+      // Android gesture bar so the rounded bottom edge isn't obscured.
+      style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem))" }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

@@ -40,7 +40,10 @@ export function ClosedDoor({
       setIsGoogleLoading(false);
     }
   };
-  return <motion.div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6" initial={{
+  return <motion.div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6" style={{
+    paddingTop: "max(0px, env(safe-area-inset-top))",
+    paddingBottom: "max(0px, env(safe-area-inset-bottom))"
+  }} initial={{
     opacity: 0
   }} animate={{
     opacity: 1
