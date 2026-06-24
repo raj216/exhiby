@@ -88,7 +88,7 @@ export function usePWAInstall(): UsePWAInstallReturn {
     };
   }, []); // runs once on mount
 
-  // ── Trigger native Android install ───────────────────────────────────────
+  // ── Trigger native install (Android Chrome + desktop Chrome/Edge) ────────
   const triggerInstall = useCallback(async () => {
     const prompt = deferredPromptRef.current;
     if (!prompt || isInstalling) return;

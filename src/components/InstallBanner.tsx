@@ -107,12 +107,22 @@ export function InstallBanner() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 120, opacity: 0 }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
-          // Sits above the bottom nav bar (≈76px) with a gap.
-          // calc() adds env(safe-area-inset-bottom) for notched iPhones (X/11/12/…)
-          // so the banner never overlaps the nav on any device.
-          // z-[50] keeps it above the nav (z-40) and the raised Go Live button.
-          className="fixed left-3 right-3 z-[50]"
-          style={{ bottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}
+          // Mobile: full-width toast floating above the bottom nav (≈80px),
+          //   with env(safe-area-inset-bottom) so it clears the iPhone home
+          //   indicator. z-[50] keeps it above the nav (z-40) + Go Live button.
+          // Desktop: there is no bottom nav, so anchor it as a conventional
+          //   bottom-right toast instead of floating mid-screen.
+          className={
+            platform === "desktop"
+              ? "fixed right-4 z-[50] w-[calc(100%-2rem)] max-w-sm"
+              : "fixed left-3 right-3 z-[50]"
+          }
+          style={{
+            bottom:
+              platform === "desktop"
+                ? "1.5rem"
+                : "calc(80px + env(safe-area-inset-bottom, 0px))",
+          }}
         >
           <div className="bg-carbon/98 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl overflow-hidden max-w-lg mx-auto">
 
@@ -135,8 +145,8 @@ export function InstallBanner() {
                   {isIOS
                     ? "3 quick steps in Safari"
                     : platform === "desktop"
-                    ? "Works like a real app — no browser chrome"
-                    : "One tap — works like a real app"}
+                    ? "One click — adds Exhiby to your dock or taskbar"
+                    : "One tap — adds Exhiby to your home screen"}
                 </p>
               </div>
 
