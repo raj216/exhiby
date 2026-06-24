@@ -65,16 +65,22 @@ export function usePWAInstall(): UsePWAInstallReturn {
     // ── Capture native install prompt (Android Chrome + desktop Chrome/Edge) ──
     // beforeinstallprompt fires on Android Chrome AND on desktop Chrome/Edge.
     // preventDefault() stops the browser's own mini-infobar so we control timing.
+    // Chrome fires this asynchronously (after manifest fetch / SW ready / its
+    // engagement heuristics) and it can arrive AFTER the 25s delay — so if the
+    // delay window has already elapsed, surface the banner the moment it lands.
+    let delayElapsed = false;
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       deferredPromptRef.current = e as BeforeInstallPromptEvent;
       // On Android → "android"; on desktop (MacBook, Windows, Linux) → "desktop"
       setPlatform(isAndroid ? "android" : "desktop");
+      if (delayElapsed) setShowBanner(true);
     };
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
     // ── Show banner after 25 seconds ─────────────────────────────────────────
     const timer = setTimeout(() => {
+      delayElapsed = true;
       const canShowPrompt = deferredPromptRef.current !== null; // Android Chrome OR desktop Chrome/Edge
       const canShowIOS    = isIOSSafari;
       if (canShowPrompt || canShowIOS) {

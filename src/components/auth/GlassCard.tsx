@@ -10,11 +10,36 @@ interface GlassCardProps {
   onSuccess: (name: string) => void;
   onClose: () => void;
   onSwitchToLogin?: () => void;
+  onSwitchToSignup?: () => void;
 }
 
 const emailSchema = z.string().email("Please enter a valid email");
 const nameSchema = z.string().min(1, "Please enter your name").max(100);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+
+// Canonical production domain. Auth emails (signup confirm, password reset) are
+// opened later, often on another device, so their link MUST point at a real,
+// allow-listed app origin — never the Lovable editor/preview (lovable.dev or
+// *.lovableproject.com), which 403s with "Access denied".
+const PROD_URL = "https://joinexhiby.com";
+
+/**
+ * Base URL to use for auth-email redirect links.
+ *   1. VITE_APP_URL wins if it is ever set (optional override).
+ *   2. If we are already on a real published origin (the custom domain or the
+ *      *.lovable.app app), use it — the link round-trips correctly.
+ *   3. Otherwise (editor/preview/localhost) fall back to the production domain
+ *      so the email never links to a sandbox the recipient can't open.
+ * No trailing slash — callers append their own path.
+ */
+function authRedirectBase(): string {
+  const envUrl = import.meta.env.VITE_APP_URL;
+  if (envUrl) return envUrl.replace(/\/$/, "");
+
+  const { origin, hostname } = window.location;
+  const isPublishedOrigin = hostname === "joinexhiby.com" || hostname.endsWith(".lovable.app");
+  return isPublishedOrigin ? origin.replace(/\/$/, "") : PROD_URL;
+}
 
 // Matches the DB constraint exactly: letters, numbers, underscore only (no dots)
 // DB constraint: handle ~ '^[a-zA-Z0-9_]+$'
@@ -62,7 +87,7 @@ async function generateSuggestions(base: string): Promise<string[]> {
   return settled.filter(Boolean).slice(0, 4) as string[];
 }
 
-export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCardProps) {
+export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin, onSwitchToSignup }: GlassCardProps) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -187,12 +212,8 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
 
       setIsLoading(true);
 
-      // VITE_APP_URL must be set to the production domain in Lovable's
-      // environment settings so Supabase sends the confirmation link to the
-      // real app, not to whatever origin the preview is running on.
-      // Trim trailing slash so ${appUrl}/ never produces a double-slash.
-      const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, "");
-      const redirectUrl = `${appUrl}/`;
+      // Confirmation link must resolve to a real app origin, not the preview.
+      const redirectUrl = `${authRedirectBase()}/`;
 
       if (isSignup) {
         const { data, error } = await supabase.auth.signUp({
@@ -268,8 +289,7 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
       }
 
       setIsLoading(true);
-      const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, "");
-      const redirectUrl = `${appUrl}/auth`;
+      const redirectUrl = `${authRedirectBase()}/auth`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -558,6 +578,7 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
                   </div>
                   {!isSignup && (
                     <button
+                      type="button"
                       onClick={handleForgotPassword}
                       className="mt-2 text-xs text-primary hover:underline"
                     >
@@ -566,16 +587,17 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
                   )}
                 </motion.div>
 
-                {/* Submit Button — inside <form> so Enter in any field fires onSubmit.
-                    type="button" prevents a second submit when the button itself is clicked. */}
+                {/* The form's single submit button. Both Enter-in-a-field and a
+                    click route through the form's onSubmit → handleSubmit (one
+                    path, no double-fire). Every other in-form button is
+                    type="button" so none of them hijack implicit submission. */}
                 <motion.button
-                  type="button"
+                  type="submit"
                   className="w-full py-4 rounded-2xl font-semibold text-white mt-6 flex items-center justify-center gap-2"
                   style={{
                     background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
                     boxShadow: "0 0 30px hsl(7 100% 67% / 0.4)",
                   }}
-                  onClick={handleSubmit}
                   disabled={isLoading}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -613,7 +635,7 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
                 {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
                 <button
                   type="button"
-                  onClick={isSignup ? (onSwitchToLogin ?? onClose) : onClose}
+                  onClick={isSignup ? (onSwitchToLogin ?? onClose) : (onSwitchToSignup ?? onClose)}
                   className="text-primary hover:underline"
                 >
                   {isSignup ? "Sign In" : "Sign Up"}
