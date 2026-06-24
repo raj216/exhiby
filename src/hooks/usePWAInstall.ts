@@ -75,9 +75,9 @@ export function usePWAInstall(): UsePWAInstallReturn {
 
     // ── Show banner after 25 seconds ─────────────────────────────────────────
     const timer = setTimeout(() => {
-      const canShowAndroid = deferredPromptRef.current !== null;
-      const canShowIOS     = isIOSSafari;
-      if (canShowAndroid || canShowIOS) {
+      const canShowPrompt = deferredPromptRef.current !== null; // Android Chrome OR desktop Chrome/Edge
+      const canShowIOS    = isIOSSafari;
+      if (canShowPrompt || canShowIOS) {
         setShowBanner(true);
       }
     }, SHOW_DELAY_MS);

@@ -390,7 +390,10 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
           ) : (
             <>
               {/* Form Fields */}
-              <div className="space-y-4 mb-6">
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+                className="space-y-4 mb-6"
+              >
                 {/* 1. Display Name */}
                 {isSignup && (
                   <motion.div
@@ -562,31 +565,33 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
                     </button>
                   )}
                 </motion.div>
-              </div>
 
-              {/* Submit Button */}
-              <motion.button
-                className="w-full py-4 rounded-2xl font-semibold text-white mb-4 flex items-center justify-center gap-2"
-                style={{
-                  background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
-                  boxShadow: "0 0 30px hsl(7 100% 67% / 0.4)",
-                }}
-                onClick={handleSubmit}
-                disabled={isLoading}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : isSignup ? (
-                  "Create Account"
-                ) : (
-                  "Sign In"
-                )}
-              </motion.button>
+                {/* Submit Button — inside <form> so Enter in any field fires onSubmit.
+                    type="button" prevents a second submit when the button itself is clicked. */}
+                <motion.button
+                  type="button"
+                  className="w-full py-4 rounded-2xl font-semibold text-white mt-6 flex items-center justify-center gap-2"
+                  style={{
+                    background: "linear-gradient(135deg, hsl(7 100% 67%), hsl(345 100% 50%))",
+                    boxShadow: "0 0 30px hsl(7 100% 67% / 0.4)",
+                  }}
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : isSignup ? (
+                    "Create Account"
+                  ) : (
+                    "Sign In"
+                  )}
+                </motion.button>
+              </form>
 
               {/* Inline form error */}
               {formError && (
@@ -606,7 +611,11 @@ export function GlassCard({ mode, onSuccess, onClose, onSwitchToLogin }: GlassCa
                 transition={{ delay: 0.45 }}
               >
                 {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
-                <button onClick={onClose} className="text-primary hover:underline">
+                <button
+                  type="button"
+                  onClick={isSignup ? (onSwitchToLogin ?? onClose) : onClose}
+                  className="text-primary hover:underline"
+                >
                   {isSignup ? "Sign In" : "Sign Up"}
                 </button>
               </motion.p>

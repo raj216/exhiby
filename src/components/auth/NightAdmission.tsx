@@ -66,7 +66,7 @@ export function NightAdmission({ onComplete }: NightAdmissionProps) {
 
         {(step === "signup" || step === "login") && (
           <GlassCard
-            key="glass-card"
+            key={step}
             mode={step}
             onSuccess={handleAuthSuccess}
             onClose={handleCloseCard}
